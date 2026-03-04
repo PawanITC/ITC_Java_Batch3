@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/ITC_Java_Batch3.iml" filepath="$PROJECT_DIR$/.idea/ITC_Java_Batch3.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/funkart.iml" filepath="$PROJECT_DIR$/.idea/modules/funkart.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/funkart.main.iml" filepath="$PROJECT_DIR$/.idea/modules/funkart.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/funkart.test.iml" filepath="$PROJECT_DIR$/.idea/modules/funkart.test.iml" />
     </modules>
   </component>
 </project>
