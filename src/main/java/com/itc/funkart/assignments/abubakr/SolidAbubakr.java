@@ -1,12 +1,16 @@
 package com.itc.funkart.assignments.abubakr;
 
-// 1️ SRP - Shape only represents a shape
+// 1️ SRP - Shape only represents a shape,  no unneccasry implementations
 interface Shape {
     double calculateArea();
 }
 
+interface Corners{//isp, interface segragtion, not all shapes have corners, so will not combine shape/corners methods into single interface
+    int numberOfCorners();
+}
 
-// 2️ LSP - Subtypes can replace Shape
+
+// 2️ LSP - Subtypes can replace Shape without causing logic errors
 class Circle implements Shape {
     private double radius;
 
@@ -20,7 +24,7 @@ class Circle implements Shape {
 }
 
 
-class Rectangle implements Shape {
+class Rectangle implements Shape, Corners {
     private double width;
     private double height;
 
@@ -31,6 +35,10 @@ class Rectangle implements Shape {
 
     public double calculateArea() {
         return width * height;
+    }
+
+    public int numberOfCorners(){
+        return 4;
     }
 }
 
@@ -44,7 +52,7 @@ class AreaCalculator {
         double total = 0;
 
         for (Shape shape : shapes) {
-            // Open for extension → OCP
+            // Open for extension → OCP, now if we have new shape we can define the calculateArea, rather than modifying a single calculateArea method
             total += shape.calculateArea();
         }
 
