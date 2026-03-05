@@ -1,0 +1,16 @@
+Notes for solid Principles:
+
+S - Single Responsibility Principle (SRP)
+A class should have only one reason to change.
+
+O - Open / Closed Principle (OCP)
+Classes should be open for extension but closed for modification.
+
+L - Liskov Substitution Principle (LSP)
+Subclasses must be usable wherever the parent class is used.
+
+I - Interface Segregation Principle (ISP)
+Clients should not be forced to implement methods they don't use.
+
+D - Dependency Inversion Principle (DIP)
+Depend on abstractions, not concrete classes.
