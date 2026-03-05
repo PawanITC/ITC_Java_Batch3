@@ -8,6 +8,7 @@ class BasicPasswordValidator implements PasswordValidator{
 
     public isPasswordValid(String password){
         return password.length() > 8 && password.length() <= 24;
+
     }
 
 }
@@ -16,12 +17,13 @@ class BasicPasswordValidator implements PasswordValidator{
 
 
 public class SolidPriyanthan {
-    //Single responsibility class with only one responsibility i.e
-    //validating email and passwor
+    //Single Responsibility Principle - with one responsibility i.e
+    //validating email and password
     //
-     //Open closed principles - This class shows you can pass an implementation without modifying the class.
+    //Open closed principles - This class shows you can pass an implementation without modifying the class.
     private PasswordValidator passwordValidator;
     public SolidPriyanthan(PasswordValidator passwordValidator){
+
         this.passwordValidator = passwordValidator;
     }
 
