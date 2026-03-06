@@ -15,7 +15,6 @@ class BasicPasswordValidator implements PasswordValidator{
 
 
 
-
 public class SolidPriyanthan {
     //Single Responsibility Principle - with one responsibility i.e
     //validating email and password
