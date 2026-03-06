@@ -1,0 +1,48 @@
+Notes for solid Principles:
+
+S - Single Responsibility Principle (SRP)
+Each class should have one responsibility
+Why:
+ → Improves readability, makes unit testing easier.
+ → If you change component only one component is affected since responsibility isn't shared.
+ → Reduces side effect in large system.
+Example: Animal handles behaviour, AnimalPrinter handles printing
+
+O - Open / Closed Principle (OCP)
+Classes should be open for extension but closed for modification.
+Why:
+ → It enables plug-in play architecture (A device/module that configures itself to work in harmony with other parts of existing system)
+ → Helps to build extensible system without hiccups
+ → Prevents breakage of existing functionality
+Example: Add Dog or Cat without changing Mammal
+
+L - Liskov Substitution Principle (LSP)
+Subclasses must be usable wherever the parent class is used without breaking functionality.
+Why:
+ → To allow the replacement of concrete classes without breaking functionality since they both are made from the interface referencing them.
+Example: Animal animal = new Cat();
+
+I - Interface Segregation Principle (ISP)
+Clients should not be forced to implement methods they don't use.
+Why:
+ → Some classes shouldn't depend on features that dont apply to them.
+ → So we segregate the interfaces methods to allow classes to inherit interfaces they will use and can apply to themselves.
+ → Encourages smaller more succinct interfaces
+ → It is used for spring dependency injection?
+Example: RunnableAnimal, FlyableAnimal interfaces dont enforce
+
+D - Dependency Inversion Principle (DIP)
+Depend on abstractions, not concrete classes.
+Why:
+ → Classes depend on interfaces, not implementations, so implementation can change as long as it adheres to interface, loose coupling.
+Example: Zoo depends on Animal, not Cat
+
+Current classes setups are :
+Animal.java           → An Interface
+Mammal.java           → An Abstract class
+Cat.java              → A Concrete class
+Dog.java              → A Concrete class
+AnimalPrinter.java    → We enforce Single Responsibility principle with Animal Printer
+Zoo.java              → Here we do Dependency Inversion principle
+Main.java             → Public static void main to instantiate and run examples
+
