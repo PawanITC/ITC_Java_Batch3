@@ -1,11 +1,43 @@
 HELP.md
-.gradle
+
+### Gradle / Java
+
+.gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### STS ###
+### Node / React / Vite
+
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+*.local
+
+### Environment variables
+
+.env
+.env.*
+!.env.example
+
+### Logs
+
+logs
+*.log
+
+### OS files
+
+.DS_Store
+Thumbs.db
+
+### STS
+
 .apt_generated
 .classpath
 .factorypath
@@ -17,8 +49,9 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
-### IntelliJ IDEA ###
-.idea
+### IntelliJ IDEA
+
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -26,12 +59,14 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-### NetBeans ###
+### NetBeans
+
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
 
-### VS Code ###
+### VS Code
+
 .vscode/
