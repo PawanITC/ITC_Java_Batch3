@@ -1,5 +1,7 @@
 package com.itc.funkart.service;
 
+import com.itc.funkart.dto.user.LoginRequest;
+import com.itc.funkart.dto.user.SignupRequest;
 import com.itc.funkart.entity.User;
 import com.itc.funkart.exceptions.AlreadyExistsException;
 import com.itc.funkart.exceptions.BadRequestException;
@@ -20,26 +22,29 @@ public class UserService {
     // Service Login/Signup Methods
     // ------------------------
 
-    public User signUp(String email, String password, String name) {
-        //validate sign up details
+    public User signUp(SignupRequest request) {
+        String email = request.email();
+        String password = request.password();
+        String name = request.name();
+
         validateSignupInput(email, password, name);
-        //check email already exists in the database
         checkEmailExists(email);
-        //hash password of new user
+
         String hashedPassword = hashPassword(password);
         User newUser = new User(email, hashedPassword, name);
-        //save new user to repository
+
         return userRepository.save(newUser);
     }
 
+    public User login(LoginRequest request) {
+        String email = request.email();
+        String password = request.password();
 
-    public User login(String email, String password) {
-        //validate login details
         validateLoginInput(email, password);
-        //fetch user email
+
         User user = fetchUserByEmail(email);
-        //check password is correct
         validatePassword(password, user.getPassword());
+
         return user;
     }
 
@@ -102,7 +107,7 @@ public class UserService {
     }
 
     /**
-     * A hashed password
+     * Method to hash the password
      *
      * @param rawPassword password
      * @return successfully hashed password
