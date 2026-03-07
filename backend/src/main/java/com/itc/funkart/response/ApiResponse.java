@@ -1,51 +1,84 @@
 package com.itc.funkart.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 /**
  * A Generic API response wrapper for all endpoints.
  * Contains:
- *   - success: whether the operation succeeded
- *   - message: descriptive text for the client
- *   - data: payload of type T
- *   - timestamp: when the response was generated
+ * - success: whether the operation succeeded
+ * - message: descriptive text for the client
+ * - data: payload of type T
+ * - timestamp: when the response was generated
  *
  * @param <T> The type of the data included in the response (e.g., User, List<Product>, etc.)
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
-    private final boolean success;
-    private final String message;
-    private final T data;
-    private final String timestamp;
+    private T data;              // success payload
+    private ErrorDetails error;     // error info
+    private String message;      // optional human-friendly message
+    private Boolean success;     // optional, derived from HTTP status
+    private Instant timestamp;   // ISO 8601 timestamp
 
-
-    public ApiResponse(boolean success, String message, T data) {
-        this.success = success;
-        this.message = message;
-        this.data = data;
-        this.timestamp = Instant.now().toString();
-    }
-    //This ApiResponse will be used when success is false (exception use)
-    public ApiResponse(String message, T data) {
-        this.success = false;
-        this.message = message;
-        this.data = data;
-        this.timestamp = Instant.now().toString();
+    // Constructors
+    //The this() keyword in the other two constructors makes sure that it calls the timestamp constructor first before chaining with the correct error/success api response
+    public ApiResponse() {
+        this.timestamp = Instant.now().truncatedTo(ChronoUnit.MILLIS);
     }
 
-    public String getTimestamp() {
+    // Successful response
+    public ApiResponse(T data, String message) {
+        this();
+        this.message = message;
+        this.data = data;
+    }
+
+    // Unsuccessful response constructor
+    public ApiResponse(ErrorDetails error) {
+        this();
+        this.error = error;
+    }
+
+    public Instant getTimestamp() {
         return timestamp;
     }
 
-    public T getData() {
-        return data;
+    public void setTimestamp(Instant timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public Boolean getSuccess() {
+        return success;
+    }
+
+    public void setSuccess(Boolean success) {
+        this.success = success;
     }
 
     public String getMessage() {
         return message;
     }
 
-    public boolean isSuccess() {
-        return success;
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public ErrorDetails getError() {
+        return error;
+    }
+
+    public void setError(ErrorDetails error) {
+        this.error = error;
+    }
+
+    public T getData() {
+        return data;
+    }
+
+    public void setData(T data) {
+        this.data = data;
     }
 }
