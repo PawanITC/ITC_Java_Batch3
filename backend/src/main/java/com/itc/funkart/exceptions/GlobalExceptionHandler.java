@@ -53,18 +53,18 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), false, ex);
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleForbidden(ForbiddenException ex) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), false, ex);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
                 .findFirst()
                 .orElse("Validation failed");
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), false, ex);
-    }
-
-    @ExceptionHandler(ForbiddenException.class)
-    public ResponseEntity<ApiResponse<Void>> handleForbidden(ForbiddenException ex) {
-        return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), false, ex);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, message, false, ex);
     }
 
     @ExceptionHandler(Exception.class)
