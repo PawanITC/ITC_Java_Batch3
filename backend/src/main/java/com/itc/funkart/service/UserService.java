@@ -7,15 +7,19 @@ import com.itc.funkart.exceptions.AlreadyExistsException;
 import com.itc.funkart.exceptions.BadRequestException;
 import com.itc.funkart.exceptions.UnauthorizedException;
 import com.itc.funkart.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ------------------------
@@ -100,8 +104,7 @@ public class UserService {
      * @param storedPassword stored password
      */
     private void validatePassword(String rawPassword, String storedPassword) {
-        // For now plain text; replace with hash comparison later
-        if (!rawPassword.equals(storedPassword)) {
+        if (!passwordEncoder.matches(rawPassword, storedPassword)) {
             throw new UnauthorizedException("Invalid email or password");
         }
     }
@@ -113,8 +116,8 @@ public class UserService {
      * @return successfully hashed password
      */
     private String hashPassword(String rawPassword) {
-        // Barebones placeholder; in production use BCrypt or Argon2
-        return rawPassword;
+        //hashing the password
+       return passwordEncoder.encode(rawPassword);
     }
 
     /**
