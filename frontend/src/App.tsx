@@ -1,12 +1,23 @@
-import RandomComponent from "./components/RandomComponent.tsx";
-import Login from "./components/Login.tsx";
+
+import LoginJWT from "./components/LoginJWT.tsx";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Signup from "./components/Signup.tsx";
 
 function App() {
 
     return (
         <>
-            <Login/>
-            <RandomComponent/>
+            <BrowserRouter>
+
+                <Routes>
+                    <Route path="/" element={<LoginJWT />} />
+                    <Route path="/signup" element={<Signup />} />
+                </Routes>
+
+            </BrowserRouter>
+
+
+
         </>
     )
 }
