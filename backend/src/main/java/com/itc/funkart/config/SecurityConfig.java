@@ -32,8 +32,12 @@ public class SecurityConfig {
                 // allow any request matching login/signup endpoint to attempt signup
                 .authorizeHttpRequests(
                         auth -> auth
-                                .requestMatchers(usersBase + "/signup").permitAll()
-                                .requestMatchers(usersBase + "/login").permitAll()
+                                .requestMatchers(
+                                        usersBase + "/signup",
+                                        usersBase + "/login",
+                                        "/oauth/github/login",
+                                        "/oauth/github/callback"
+                                ).permitAll()
                                 .anyRequest().authenticated() //everything else will require auth
                 );
 
