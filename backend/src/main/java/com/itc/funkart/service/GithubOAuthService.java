@@ -44,7 +44,7 @@ public class GithubOAuthService {
         User user = findOrCreateUser(githubUser);
 
         // 4. Generate JWT
-        return jwtService.generateToken(user);
+        return jwtService.generateJwtToken(user);
     }
 
     private String getAccessToken(String code) {
