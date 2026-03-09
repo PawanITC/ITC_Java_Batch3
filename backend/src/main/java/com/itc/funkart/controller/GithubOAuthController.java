@@ -1,6 +1,7 @@
 package com.itc.funkart.controller;
 
 import com.itc.funkart.config.GithubOAuthConfig;
+import com.itc.funkart.service.GithubOAuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,9 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class GithubOAuthController {
 
     private final GithubOAuthConfig config;
-
-    public GithubOAuthController(GithubOAuthConfig config) {
+    private final GithubOAuthService  githubOAuthService;
+    public GithubOAuthController(GithubOAuthConfig config, GithubOAuthService  githubOAuthService) {
         this.config = config;
+        this.githubOAuthService= githubOAuthService;
     }
 
     @GetMapping("/login")
@@ -33,8 +35,7 @@ public class GithubOAuthController {
 
     @GetMapping("/callback")
     public ResponseEntity<String> callback(@RequestParam String code) {
-        // For learning, just print the code for now
-        System.out.println("Received GitHub code: " + code);
-        return ResponseEntity.ok("Code received! Check the console.");
+        String jwt = githubOAuthService.processGithubLogin(code);
+        return ResponseEntity.ok(jwt); // frontend stores JWT
     }
 }
