@@ -2,24 +2,11 @@ spring:
   application:
     name: funkart
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/mydb
-    driver-class-name: org.postgresql.Driver
-    username: admin
-    password: secret
+  config: #importing env file properties
+    import: optional:file:.env[.properties]
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
 
 api:
-  version: /api/v1
-
-#old H2 quick in-memory datasource
-#  datasource:
-#    url: jdbc:postgresql://postgres:5432/mydb
-#    driver-class-name: org.h2.Driver
-#    username: sa
-#    password: password
+  version: ${API_VERSION}
