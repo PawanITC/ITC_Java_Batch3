@@ -4,6 +4,7 @@ import com.itc.funkart.config.GithubOAuthConfig;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -28,5 +29,12 @@ public class GithubOAuthController {
                 .status(302)
                 .header("Location", url)
                 .build();
+    }
+
+    @GetMapping("/callback")
+    public ResponseEntity<String> callback(@RequestParam String code) {
+        // For learning, just print the code for now
+        System.out.println("Received GitHub code: " + code);
+        return ResponseEntity.ok("Code received! Check the console.");
     }
 }
