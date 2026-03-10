@@ -1,44 +1,35 @@
-import { Link } from "react-router-dom";
-import "./Navbar.css";
+import { useAuth } from "../../context/AuthContext";
+import "./Navbar.css"
+import {Link} from "react-router-dom";
 
-const Navbar = () => {
+export default function Navbar() {
+    const { user, isAuthenticated, loading, setUser } = useAuth();
 
-    const handleLogout = (): void => {
-        localStorage.removeItem("jwt");
-        alert("Logged out");
+    if (loading) return null; // optional: prevent flash of logged-out state
+
+    const logout = async () => {
+        await fetch("/oauth/github/logout", { method: "GET", credentials: "include" });
+        setUser(null); // update context → Navbar re-renders
     };
 
     return (
         <nav className="navbar">
-
-            <div className="navbar-logo">
-                FunkArt
+            <div className="navbar-brand">FunkArt</div>
+            <div className="navbar-links">
+                {isAuthenticated ? (
+                    <>
+                        <span className="nav-user">Hello, {user?.name}</span>
+                        <button onClick={logout} className="btn-logout">
+                            Logout
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <Link to="/login" className="nav-link">Login</Link>
+                        <Link to="/signup" className="nav-link">Signup</Link>
+                    </>
+                )}
             </div>
-
-            <ul className="navbar-links">
-
-                <li>
-                    <Link to="/">Home</Link>
-                </li>
-
-                <li>
-                    <Link to="/login">Login</Link>
-                </li>
-
-                <li>
-                    <Link to="/signup">Signup</Link>
-                </li>
-
-                <li>
-                    <button onClick={handleLogout} className="logout-btn">
-                        Logout
-                    </button>
-                </li>
-
-            </ul>
-
         </nav>
     );
-};
-
-export default Navbar;
+}
