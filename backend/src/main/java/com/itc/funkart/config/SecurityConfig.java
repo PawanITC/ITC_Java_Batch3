@@ -1,5 +1,6 @@
 package com.itc.funkart.config;
 
+import com.itc.funkart.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,15 +8,18 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
 
     private final ApiConfig apiConfig;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
 
-    public SecurityConfig(ApiConfig apiConfig) {
+    public SecurityConfig(ApiConfig apiConfig, JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.apiConfig = apiConfig;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
     @Bean
@@ -39,7 +43,9 @@ public class SecurityConfig {
                                         "/oauth/github/callback"
                                 ).permitAll()
                                 .anyRequest().authenticated() //everything else will require auth
-                );
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        ;
 
         return http.build();
     }
