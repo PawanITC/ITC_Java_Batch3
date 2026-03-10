@@ -1,82 +1,51 @@
-import React, {useState} from "react";
-import "./Login.css";
-import {API_BASE_URL, BACKEND_URL} from "../config/env.ts";
+import { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import "../styles/auth.css";
 
-const API = API_BASE_URL;
-
-const Login = () => {
-
-    const [email, setEmail] = useState<string>("");
-    const [password, setPassword] = useState<string>("");
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        const response = await fetch(`${API}/users/login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                email,
-                password
-            })
-        });
-
-        const data = await response.json();
-
-        if (data?.data?.token) {
-            localStorage.setItem("jwt", data.data.token);
-            alert("Login successful");
-        } else {
-            alert("Login failed");
-        }
-    };
+export default function Login() {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const navigate = useNavigate();
+    const { setUser } = useContext(AuthContext);
 
     return (
-        <div className="login-container">
+        <div className="auth-page">
+            <div className="auth-card">
+                <h2>Login</h2>
+                <form className="auth-form" onSubmit={async (e) => {
+                    e.preventDefault();
 
-            <h2>Login</h2>
+                    const res = await fetch(`/api/v1/users/login`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ email, password }),
+                    });
 
-            <form onSubmit={handleSubmit}>
+                    if (!res.ok) {
+                        console.error("Login failed:", res.status);
+                        return;
+                    }
 
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
-
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-
-                <button type="submit">Login</button>
-
-            </form>
-
-            <br/>
-
-            <div className="oauth-container">
-
-                <p className="oauth-divider">or</p>
-
-                <a
-                    href={`${BACKEND_URL}/oauth/github/login`}
-                    className="github-login-btn"
+                    const { data } = await res.json();
+                    setUser(data.user || { email });
+                    navigate("/");
+                }}>
+                    <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <button className="auth-button" type="submit">Login</button>
+                </form>
+                <div className="oauth-divider">or</div>
+                <button
+                    className="github-button"
+                    onClick={() =>
+                        (window.location.href = "http://localhost:8080/oauth/github/login")
+                    }
                 >
                     Login with GitHub
-                </a>
-
+                </button>
             </div>
-
         </div>
     );
-};
-
-export default Login;
+}

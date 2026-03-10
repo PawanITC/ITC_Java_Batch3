@@ -1,78 +1,49 @@
-import React, {useState} from "react";
-import "./Signup.css";
-import {API_BASE_URL} from "../config/env.ts";
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import "../styles/auth.css";
 
-const API = API_BASE_URL;
+export default function Signup() {
+    const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+    const [error, setError] = useState("");
+    const navigate = useNavigate();
+    const { setUser } = useContext(AuthContext);
 
-const Signup = () => {
-
-    const [name, setName] = useState<string>("");
-    const [email, setEmail] = useState<string>("");
-    const [password, setPassword] = useState<string>("");
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        const response = await fetch(`${API}/users/signup`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                name,
-                email,
-                password
-            })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert("Signup successful");
-        } else {
-            alert("Signup failed");
-        }
-
-        console.log(data);
-    };
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+        setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
     return (
-        <div className="signup-container">
+        <div className="auth-page">
+            <div className="auth-card">
+                <h2>Sign Up</h2>
+                <form className="auth-form" onSubmit={async (e) => {
+                    e.preventDefault();
+                    setError("");
 
-            <h2>Signup</h2>
+                    const res = await fetch(`/api/v1/users/signup`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify(formData),
+                    });
 
-            <form onSubmit={handleSubmit}>
+                    if (!res.ok) {
+                        const { message } = await res.json();
+                        return setError(message || "Signup failed");
+                    }
 
-                <input
-                    type="text"
-                    placeholder="Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                />
-
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
-
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-
-                <button type="submit">Signup</button>
-
-            </form>
-
+                    const userRes = await fetch(`/api/v1/users/me`, { credentials: "include" });
+                    if (!userRes.ok) return setError("Signup succeeded but failed to fetch user");
+                    setUser(await userRes.json());
+                    navigate("/");
+                }}>
+                    <input type="text" name="name" placeholder="Name" value={formData.name} onChange={handleChange} required />
+                    <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+                    <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
+                    <button className="auth-button" type="submit">Create Account</button>
+                </form>
+                {error && <p className="error">{error}</p>}
+            </div>
         </div>
     );
-};
-
-export default Signup;
+}
