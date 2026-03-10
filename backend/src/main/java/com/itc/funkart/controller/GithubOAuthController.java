@@ -2,6 +2,7 @@ package com.itc.funkart.controller;
 
 import com.itc.funkart.config.GithubOAuthConfig;
 import com.itc.funkart.service.GithubOAuthService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,7 +29,7 @@ public class GithubOAuthController {
                 + "&redirect_uri=" + config.getRedirectUri();
 
         return ResponseEntity
-                .status(302)
+                .status(HttpStatus.TEMPORARY_REDIRECT)
                 .header("Location", url)
                 .build();
     }
@@ -36,6 +37,10 @@ public class GithubOAuthController {
     @GetMapping("/callback")
     public ResponseEntity<String> callback(@RequestParam String code) {
         String jwt = githubOAuthService.processGithubLogin(code);
-        return ResponseEntity.ok(jwt); // frontend stores JWT
+        String redirectUrl = "http://localhost:5173/oauth-success?token=" + jwt;
+        return ResponseEntity
+                .status(HttpStatus.TEMPORARY_REDIRECT)
+                .header("Location", redirectUrl)
+                .build(); // append JWT in redirectUrl
     }
 }
