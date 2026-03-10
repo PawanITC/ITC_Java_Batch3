@@ -1,10 +1,10 @@
-import './loginJWT.css'
+import './loginSignup.css'
 import { Link } from "react-router-dom";
 import { useState } from "react";
 
 
 
-function LoginJWT() {
+function Login() {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -64,4 +64,4 @@ function LoginJWT() {
     )
 }
 
-export default LoginJWT
+export default Login
