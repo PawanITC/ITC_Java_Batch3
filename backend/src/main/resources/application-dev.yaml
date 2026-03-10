@@ -18,11 +18,14 @@ github:
   oauth:
     client-id: ${CLIENT_ID}
     client-secret: ${CLIENT_SECRET}
-    redirect-uri: http://localhost:8080/oauth/github/callback
+    redirect-uri: ${GITHUB_REDIRECT_URI}
 
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: ${EXPIRATION_MS}
+
+app:
+  secure-cookie: ${APP_SECURE_COOKIE}
 
 #old H2 quick in-memory datasource
 #  datasource:
