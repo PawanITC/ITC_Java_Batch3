@@ -9,17 +9,22 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 public class SecurityConfig {
 
-    private final ApiConfig apiConfig;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CorsConfigurationSource corsConfigurationSource;
+    private final ApiConfig apiConfig;
 
-
-    public SecurityConfig(ApiConfig apiConfig, JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.apiConfig = apiConfig;
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          CorsConfigurationSource corsConfigurationSource,
+                          ApiConfig apiConfig) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.corsConfigurationSource = corsConfigurationSource;
+        this.apiConfig = apiConfig;
     }
 
     @Bean
@@ -29,23 +34,24 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        String api = apiConfig.getVersion();
 
-        String usersBase = apiConfig.getVersion() + "/users";
+        http.csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/oauth/github/login",
+                                "/oauth/github/callback",
+                                api + "/users/login",
+                                api + "/users/signup"
+                        )
 
-        http.csrf(AbstractHttpConfigurer::disable) // disable CSRF for now
-                // allow any request matching login/signup endpoint to attempt signup
-                .authorizeHttpRequests(
-                        auth -> auth
-                                .requestMatchers(
-                                        usersBase + "/signup",
-                                        usersBase + "/login",
-                                        "/oauth/github/login",
-                                        "/oauth/github/callback"
-                                ).permitAll()
-                                .anyRequest().authenticated() //everything else will require auth
+                        .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/oauth/github/callback")
+                        .permitAll()
+                        .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        ;
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
