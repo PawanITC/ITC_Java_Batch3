@@ -20,6 +20,10 @@ github:
     client-secret: ${CLIENT_SECRET}
     redirect-uri: http://localhost:8080/oauth/github/callback
 
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${EXPIRATION_MS}
+
 #old H2 quick in-memory datasource
 #  datasource:
 #    url: jdbc:postgresql://postgres:5432/mydb
