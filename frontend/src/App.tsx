@@ -1,32 +1,26 @@
-import {BrowserRouter, Routes, Route} from "react-router-dom";
-import Navbar from "./components/Navbar/Navbar";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout";
+import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-
-const Home = () => {
-    return <h2 style={{padding: "20px"}}>Welcome to FunkArt</h2>;
-};
+import OAuthCallback from "./pages/OAuthCallback";
+import { AuthProvider } from "./context/AuthProvider";
 
 function App() {
-
     return (
-        <BrowserRouter>
-
-            <Navbar/>
-
-            <Routes>
-
-                <Route path="/" element={<Home/>}/>
-
-                <Route path="/login" element={<Login/>}/>
-
-                <Route path="/signup" element={<Signup/>}/>
-
-            </Routes>
-
-        </BrowserRouter>
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/" element={<Layout />}>
+                        <Route index element={<Home />} />
+                        <Route path="login" element={<Login />} />
+                        <Route path="signup" element={<Signup />} />
+                        <Route path="oauth-success" element={<OAuthCallback />} />
+                    </Route>
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
     );
-
 }
 
 export default App;
