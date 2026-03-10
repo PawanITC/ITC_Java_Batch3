@@ -6,6 +6,7 @@ import com.itc.funkart.dto.user.SuccessfulLoginResponse;
 import com.itc.funkart.entity.User;
 import com.itc.funkart.mapper.user.UserMapper;
 import com.itc.funkart.response.ApiResponse;
+import com.itc.funkart.service.JwtService;
 import com.itc.funkart.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,10 +22,12 @@ public class UserController {
 
     private final UserService userService;
     private final UserMapper userMapper;
+    private final JwtService jwtService;
 
-    public UserController(UserService userService, UserMapper userMapper) {
+    public UserController(UserService userService, UserMapper userMapper , JwtService jwtService) {
         this.userService = userService;
         this.userMapper = userMapper;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/signup")
@@ -32,7 +35,7 @@ public class UserController {
         // Call the service to signup
         User user = userService.signUp(signupRequest);
         // Map entity -> DTO to hide the password
-        SuccessfulLoginResponse response = userMapper.toResponse(user);
+        SuccessfulLoginResponse response = userMapper.toResponse(user, null); //No token yet
         // Wrap in ApiResponse and return it
         ApiResponse<SuccessfulLoginResponse> apiResponse =
                 new ApiResponse<>(response, "User created successfully");
@@ -43,8 +46,10 @@ public class UserController {
     public ResponseEntity<ApiResponse<SuccessfulLoginResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
         // Call the service to login
         User user = userService.login(loginRequest);
-        // Map entity -> DTO to hide the password
-        SuccessfulLoginResponse response = userMapper.toResponse(user);
+        // Generate JWT
+        String token = jwtService.generateJwtToken(user);
+        // Map entity -> DTO to hide the password , Add token to DTO
+        SuccessfulLoginResponse response = userMapper.toResponse(user, token);
         // Wrap in ApiResponse and return it
         ApiResponse<SuccessfulLoginResponse> apiResponse =
                 new ApiResponse<>(response, "Login successful");

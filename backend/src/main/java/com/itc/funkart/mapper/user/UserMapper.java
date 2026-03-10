@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class UserMapper {
-    public SuccessfulLoginResponse toResponse(User user) {
-        return new SuccessfulLoginResponse(user.getId(), user.getEmail(), user.getName());
+    public SuccessfulLoginResponse toResponse(User user, String token) {
+        return new SuccessfulLoginResponse(user.getId(), user.getEmail(), user.getName(), token);
     }
 }
