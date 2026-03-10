@@ -19,15 +19,20 @@ public class CookieUtil {
 
     /** Add or refresh JWT token cookie */
     public void addTokenCookie(HttpServletResponse response, String token, int maxAgeSeconds) {
+
+        System.out.println("Setting Cookie: " + cookieName);
         Cookie cookie = new Cookie(cookieName, token);
         cookie.setHttpOnly(true);
-        cookie.setSecure(secure);
         cookie.setPath("/");
         cookie.setMaxAge(maxAgeSeconds);
 
         if (secure) {
-            cookie.setAttribute("SameSite", "Lax"); // prod: safe default
-        } // dev: leave default, avoids issues over HTTP
+            cookie.setSecure(true);         // only in prod HTTPS
+            cookie.setAttribute("SameSite", "Lax");
+        } else {
+            cookie.setSecure(false);        // dev: allow HTTP
+            cookie.setAttribute("SameSite", "None"); // necessary for cross-origin fetch
+        }
 
         response.addCookie(cookie);
     }

@@ -1,7 +1,6 @@
 package com.itc.funkart.service;
 
 import com.itc.funkart.config.GithubOAuthConfig;
-import com.itc.funkart.dto.github.AccessTokenRequest;
 import com.itc.funkart.dto.github.AccessTokenResponse;
 import com.itc.funkart.dto.github.GithubUser;
 import com.itc.funkart.entity.OAuthAccount;
@@ -22,46 +21,37 @@ public class GithubOAuthService {
     private final WebClient webClient;
     private final UserRepository userRepository;
     private final OAuthAccountRepository oauthAccountRepository;
-    private final JwtService jwtService;
 
     public GithubOAuthService(GithubOAuthConfig config,
                               UserRepository userRepository,
                               OAuthAccountRepository oauthAccountRepository,
-                              JwtService jwtService,
                               WebClient webClient) {
         this.config = config;
         this.webClient = webClient;
         this.userRepository = userRepository;
         this.oauthAccountRepository = oauthAccountRepository;
-        this.jwtService = jwtService;
     }
 
-    public String processGithubLogin(String code) {
-        // 1. Exchange code for access token
+    /**
+     * Single atomic method: exchange code, fetch user, find/create user.
+     */
+    public User processCode(String code) {
         String accessToken = getAccessToken(code);
-
-        // 2. Fetch GitHub user info
         GithubUser githubUser = fetchGithubUser(accessToken);
-
-        // 3. Find or create User & OAuthAccount
-        User user = findOrCreateUser(githubUser);
-
-        // 4. Generate JWT
-        return jwtService.generateJwtToken(user);
+        return findOrCreateUser(githubUser);
     }
 
     private String getAccessToken(String code) {
         try {
             AccessTokenResponse response = webClient.post()
                     .uri("https://github.com/login/oauth/access_token")
-                    .contentType(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .accept(MediaType.APPLICATION_JSON)
-                    .bodyValue(new AccessTokenRequest(
-                            config.getClientId(),
-                            config.getClientSecret(),
-                            code,
-                            config.getRedirectUri()
-                    ))
+                    .bodyValue("client_id=" + config.getClientId()
+                            + "&client_secret=" + config.getClientSecret()
+                            + "&code=" + code
+                            + "&redirect_uri=" + config.getRedirectUri()
+                    )
                     .retrieve()
                     .bodyToMono(AccessTokenResponse.class)
                     .block();
@@ -102,14 +92,14 @@ public class GithubOAuthService {
                     User user = new User();
                     user.setEmail(githubUser.email() != null ? githubUser.email() : githubUser.login());
                     user.setName(githubUser.name() != null ? githubUser.name() : githubUser.login());
-                    user.setPassword("");
+                    user.setPassword(""); // OAuth login
                     user = userRepository.save(user);
-                    // Create OAuthAccount
-                    OAuthAccount newAccount = new OAuthAccount();
-                    newAccount.setProvider("github");
-                    newAccount.setProviderId(githubUser.id());
-                    newAccount.setUser(user);
-                    oauthAccountRepository.save(newAccount);
+
+                    OAuthAccount account = new OAuthAccount();
+                    account.setProvider("github");
+                    account.setProviderId(githubUser.id());
+                    account.setUser(user);
+                    oauthAccountRepository.save(account);
 
                     return user;
                 });

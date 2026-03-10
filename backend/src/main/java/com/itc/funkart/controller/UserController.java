@@ -25,44 +25,72 @@ public class UserController {
     private final JwtService jwtService;
     private final CookieUtil cookieUtil;
 
-    public UserController(UserService userService, UserMapper userMapper, JwtService jwtService, CookieUtil cookieUtil) {
+    public UserController(UserService userService,
+                          UserMapper userMapper,
+                          JwtService jwtService,
+                          CookieUtil cookieUtil) {
         this.userService = userService;
         this.userMapper = userMapper;
         this.jwtService = jwtService;
         this.cookieUtil = cookieUtil;
     }
 
+    // -----------------------------
+    // SIGNUP
+    // -----------------------------
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<SuccessfulLoginResponse>> signup(@Valid @RequestBody SignupRequest signupRequest) {
-        // Call the service to signup
+    public ResponseEntity<ApiResponse<SuccessfulLoginResponse>> signup(
+            @Valid @RequestBody SignupRequest signupRequest,
+            HttpServletResponse response) {
+
         User user = userService.signUp(signupRequest);
-        // Map entity -> DTO to hide the password
-        SuccessfulLoginResponse response = userMapper.toResponse(user, null); //No token yet
-        // Wrap in ApiResponse and return it
-        ApiResponse<SuccessfulLoginResponse> apiResponse =
-                new ApiResponse<>(response, "User created successfully");
-        return ResponseEntity.status(HttpStatus.CREATED).body(apiResponse);
+
+        // generate JWT immediately after signup
+        String token = jwtService.generateJwtToken(user);
+
+        // set cookie
+        cookieUtil.addTokenCookie(response, token, 3600);
+
+        SuccessfulLoginResponse resp = userMapper.toResponse(user, null);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(resp, "Signup successful"));
     }
 
+    // -----------------------------
+    // LOGIN
+    // -----------------------------
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<SuccessfulLoginResponse>> login(@Valid @RequestBody LoginRequest loginRequest,
-                                                                      HttpServletResponse response) {
-        //Authenticate user
+    public ResponseEntity<ApiResponse<SuccessfulLoginResponse>> login(
+            @Valid @RequestBody LoginRequest loginRequest,
+            HttpServletResponse response) {
+
         User user = userService.login(loginRequest);
-        //Generate JWT
+
         String token = jwtService.generateJwtToken(user);
-        //Set JWT as HttpOnly cookie
-        cookieUtil.addTokenCookie(response, token, 3600); // maxAge = 1 hour
-        //Map entity -> DTO (without sending token in body)
+
+        cookieUtil.addTokenCookie(response, token, 3600);
+
         SuccessfulLoginResponse resp = userMapper.toResponse(user, null);
-        //Wrap in ApiResponse
-        ApiResponse<SuccessfulLoginResponse> apiResponse = new ApiResponse<>(resp, "Login successful");
-        return ResponseEntity.ok(apiResponse);
+
+        return ResponseEntity
+                .ok(new ApiResponse<>(resp, "Login successful"));
     }
+
+    // -----------------------------
+    // CURRENT USER
+    // -----------------------------
     @GetMapping("/me")
     public ResponseEntity<SuccessfulLoginResponse> getCurrentUser() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
         SuccessfulLoginResponse resp = userMapper.toResponse(user, null);
+
         return ResponseEntity.ok(resp);
     }
 }

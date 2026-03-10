@@ -11,13 +11,12 @@ const OAuthCallback = () => {
     useEffect(() => {
         if (!code) return;
 
-        // Hit backend to set JWT cookie (no need to parse JSON)
         fetch(`/oauth/github/callback?code=${code}`, {
-            credentials: "include", // important to store cookie
+            credentials: "include", // ensures cookie is saved
         })
-            .then(() => refreshUser()) // refresh AuthContext from /api/v1/users/me
+            .then(() => refreshUser()) // refresh context to see logged-in user
             .then(() => navigate("/")) // redirect to home
-            .catch(() => navigate("/login")); // fallback
+            .catch(() => navigate("/login")); // fallback if something fails
     }, [code, refreshUser, navigate]);
 
     return <p>Logging you in…</p>;

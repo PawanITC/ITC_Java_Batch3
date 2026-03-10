@@ -1,8 +1,9 @@
-/* auth.css - shared for Login + Signup */
+/* ----------------------------- */
+/* Auth Pages Layout (Login/Signup/OAuth) */
+/* ----------------------------- */
 
-/* Page layout */
 .auth-page {
-    min-height: calc(100vh - 70px);
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -11,24 +12,28 @@
 }
 
 /* Card */
+
 .auth-card {
     width: 360px;
     background: white;
-    padding: 35px 40px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 35px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08),
+    0 2px 8px rgba(0,0,0,0.04);
     text-align: center;
 }
 
-/* Titles */
+/* Title */
+
 .auth-card h2 {
     margin-bottom: 25px;
+    font-size: 26px;
     font-weight: 500;
-    font-size: 24px;
+    color: #111;
 }
 
-/* Form layout */
+/* Form */
+
 .auth-form {
     display: flex;
     flex-direction: column;
@@ -36,11 +41,13 @@
 }
 
 /* Inputs */
+
 .auth-form input {
     padding: 12px;
     border-radius: 6px;
     border: 1px solid #d1d5db;
     font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .auth-form input:focus {
@@ -49,7 +56,8 @@
     box-shadow: 0 0 3px #ff9900;
 }
 
-/* Primary button */
+/* Primary Button (Login / Signup) */
+
 .auth-button {
     padding: 12px;
     border: none;
@@ -66,40 +74,61 @@
 }
 
 /* OAuth Divider */
+
 .oauth-divider {
     margin: 20px 0;
     font-size: 14px;
     color: #6b7280;
 }
 
-/* GitHub button */
+/* GitHub Button */
+
 .github-button {
-    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px;
-    background-color: #24292f;
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
     border: none;
-    border-radius: 4px;
+    background: #24292f;
     color: white;
-    font-weight: bold;
+    font-weight: 600;
     cursor: pointer;
+    transition: background 0.2s ease;
 }
 
 .github-button:hover {
-    background-color: #333;
+    background: #333;
 }
 
+/* GitHub Logo inside button */
 .github-logo {
     width: 20px;
     height: 20px;
     margin-right: 10px;
 }
 
-/* Errors */
+/* Error messages */
+
 .error {
     margin-top: 10px;
     color: #ef4444;
     font-size: 14px;
+}
+
+/* Footer links (optional, like "Already have account?") */
+.auth-card p {
+    margin-top: 15px;
+    font-size: 13px;
+    color: #555;
+}
+
+.auth-card p a {
+    color: #0066c0;
+    text-decoration: none;
+}
+
+.auth-card p a:hover {
+    text-decoration: underline;
 }
