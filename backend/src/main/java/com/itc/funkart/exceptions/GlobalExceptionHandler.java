@@ -67,6 +67,16 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, message, false, ex);
     }
 
+    @ExceptionHandler(JwtAuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJwtAuthentication(JwtAuthenticationException ex) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), false, ex);
+    }
+
+    @ExceptionHandler(OAuthException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOAuth(OAuthException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), true, ex);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error", true, ex);
