@@ -1,0 +1,33 @@
+/* src/global.css */
+
+/* Reset some basic browser styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body default styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9; /* soft light background */
+    color: #333;               /* easy-on-the-eyes text color */
+}
+
+/* Links default */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Simple container class you can reuse */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+/* Headings default spacing */
+h1, h2, h3, h4, h5, h6 {
+    margin-bottom: 1rem;
+}

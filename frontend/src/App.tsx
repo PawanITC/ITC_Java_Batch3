@@ -1,13 +1,25 @@
-import RandomComponent from "./components/randomComponent.tsx";
+
+import Login from "./components/Login.tsx";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Signup from "./components/Signup.tsx";
+import OAuthCallback from "./pages/OAuthCallback";
 
 function App() {
 
     return (
         <>
-            <h1>Root</h1>
-            <h2>Main.tsx gets the root element and renders the root to contain an App component</h2>
-            <h3>The app file that is rendered</h3>
-            <RandomComponent/>
+            <BrowserRouter>
+
+                <Routes>
+                    <Route path="/" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/oauth/callback" element={<OAuthCallback />} />
+                </Routes>
+
+            </BrowserRouter>
+
+
+
         </>
     )
 }
