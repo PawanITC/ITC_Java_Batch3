@@ -23,8 +23,11 @@ public class CookieUtil {
         return cookieName;
     }
 
-    /** Add or refresh JWT token cookie */
-    public void addTokenCookie(HttpServletResponse response, String token, Integer maxAgeSeconds) {
+    /**
+     * Add or refresh JWT token cookie
+     */
+    public void addTokenCookie(HttpServletResponse response,
+                               String token, Integer maxAgeSeconds) {
         int age = (maxAgeSeconds != null) ? maxAgeSeconds : defaultMaxAgeSeconds;
 
         Cookie cookie = new Cookie(cookieName, token);
@@ -43,7 +46,9 @@ public class CookieUtil {
         response.addCookie(cookie);
     }
 
-    /** Clear JWT token cookie */
+    /**
+     * Clear JWT token cookie
+     */
     public void clearTokenCookie(HttpServletResponse response) {
         Cookie cookie = new Cookie(cookieName, null);
         cookie.setHttpOnly(true);
