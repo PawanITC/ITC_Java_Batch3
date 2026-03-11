@@ -1,15 +1,17 @@
 spring:
   datasource:
-    url: ${DB_URL}              # points to localhost
+    url: ${DB_URL} # point to localhost
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO:create-drop}
-    show-sql: ${SHOW_SQL:true}
+      ddl-auto: create-drop # production safe set to validate
+    show-sql: true
 
 frontend:
   url: ${FRONTEND_URL}
+
 app:
-  secure-cookie: false         # allow HTTP in dev
+  secure-cookie: false #allow http in dev
