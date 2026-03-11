@@ -10,6 +10,8 @@ public class CookieUtil {
 
     private final String cookieName;
     private final boolean secure;
+    @Value("${jwt.cookie-max-age-seconds}")
+    private int defaultMaxAgeSeconds;
 
     public CookieUtil(@Value("${app.secure-cookie:false}") boolean secure,
                       @Value("${app.cookie-name:token}") String cookieName) {
@@ -17,21 +19,25 @@ public class CookieUtil {
         this.cookieName = cookieName;
     }
 
-    /** Add or refresh JWT token cookie */
-    public void addTokenCookie(HttpServletResponse response, String token, int maxAgeSeconds) {
+    public String getCookieName() {
+        return cookieName;
+    }
 
-        System.out.println("Setting Cookie: " + cookieName);
+    /** Add or refresh JWT token cookie */
+    public void addTokenCookie(HttpServletResponse response, String token, Integer maxAgeSeconds) {
+        int age = (maxAgeSeconds != null) ? maxAgeSeconds : defaultMaxAgeSeconds;
+
         Cookie cookie = new Cookie(cookieName, token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
-        cookie.setMaxAge(maxAgeSeconds);
+        cookie.setMaxAge(age);
 
         if (secure) {
-            cookie.setSecure(true);         // only in prod HTTPS
-            cookie.setAttribute("SameSite", "Lax");
+            cookie.setSecure(true);
+            cookie.setAttribute("SameSite", "None");
         } else {
-            cookie.setSecure(false);        // dev: allow HTTP
-            cookie.setAttribute("SameSite", "None"); // necessary for cross-origin fetch
+            cookie.setSecure(false);
+            cookie.setAttribute("SameSite", "Lax");
         }
 
         response.addCookie(cookie);
@@ -46,6 +52,8 @@ public class CookieUtil {
         cookie.setMaxAge(0);
 
         if (secure) {
+            cookie.setAttribute("SameSite", "None");
+        } else {
             cookie.setAttribute("SameSite", "Lax");
         }
 

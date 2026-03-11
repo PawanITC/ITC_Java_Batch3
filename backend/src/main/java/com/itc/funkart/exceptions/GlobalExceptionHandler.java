@@ -16,13 +16,12 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     //Helper method to build error response
-    private ResponseEntity<ApiResponse<Void>> buildErrorResponse(HttpStatus status, String message, boolean logError, Exception ex) {
-        if (logError) {
-            log.error("{}:{}", status.name(), message, ex);
+    private ResponseEntity<ApiResponse<Void>> buildErrorResponse(HttpStatus status, String message, boolean logStackTrace, Exception ex) {
+        if (logStackTrace) {
+            log.error("Unhandled exception", ex);
         } else {
-            log.warn("{}:{}", status.name(), message, ex);
+            log.warn("{}: {}", status.name(), message);
         }
-        // Use the HTTP status name as the JSON error code
         ErrorDetails errorDetails = new ErrorDetails(status.name(), message);
         return ResponseEntity.status(status)
                 .body(new ApiResponse<>(errorDetails));
@@ -75,6 +74,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OAuthException.class)
     public ResponseEntity<ApiResponse<Void>> handleOAuth(OAuthException ex) {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), true, ex);
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(Exception ex) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "Access denied", false, ex);
     }
 
     @ExceptionHandler(Exception.class)

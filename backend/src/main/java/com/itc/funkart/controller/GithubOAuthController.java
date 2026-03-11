@@ -6,9 +6,8 @@ import com.itc.funkart.exceptions.OAuthException;
 import com.itc.funkart.security.CookieUtil;
 import com.itc.funkart.service.GithubOAuthService;
 import com.itc.funkart.service.JwtService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpHeaders;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +23,8 @@ public class GithubOAuthController {
     private final GithubOAuthService githubOAuthService;
     private final JwtService jwtService;
     private final CookieUtil cookieUtil;
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
     public GithubOAuthController(GithubOAuthConfig config,
                                  GithubOAuthService githubOAuthService,
@@ -56,21 +57,14 @@ public class GithubOAuthController {
     public ResponseEntity<Void> callback(@RequestParam String code, HttpServletResponse response) {
         try {
             User user = githubOAuthService.processCode(code);
-
-            // Generate JWT only after successful token exchange
             String jwt = jwtService.generateJwtToken(user);
 
-            Cookie cookie = new Cookie("token", jwt);
-            cookie.setHttpOnly(true);
-            cookie.setPath("/");
-            cookie.setMaxAge(60); // 1 day
-            response.addCookie(cookie);
+            // Use default max age from CookieUtil
+            cookieUtil.addTokenCookie(response, jwt, null);
 
-            // Redirect to frontend
             return ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
-                    .header("Location", "http://localhost:5173/")
+                    .header("Location", frontendUrl)
                     .build();
-
         } catch (OAuthException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

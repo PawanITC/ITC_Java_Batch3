@@ -4,6 +4,7 @@ import com.itc.funkart.entity.User;
 import com.itc.funkart.exceptions.JwtAuthenticationException;
 import com.itc.funkart.repository.UserRepository;
 import com.itc.funkart.service.JwtService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -20,21 +21,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Date;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    // Refresh threshold in seconds (5 min)
+    private static final long REFRESH_THRESHOLD_SECONDS = 300;
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final CookieUtil cookieUtil;
-    private static final String COOKIE_NAME = "token";
-    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
-
-    // Refresh threshold in seconds (e.g., 5 min)
-    private static final long REFRESH_THRESHOLD_SECONDS = 300;
-    // Default cookie lifespan after refresh (e.g., 1 hour)
-    private static final int COOKIE_MAX_AGE = 3600;
 
     public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository, CookieUtil cookieUtil) {
         this.jwtService = jwtService;
@@ -52,57 +48,61 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null && !token.isBlank()) {
             try {
-                Long userId = jwtService.getUserIdFromToken(token);
+                Claims claims = jwtService.parseJwtToken(token); // parse first
+                Long userId = Long.parseLong(claims.getSubject());
+
                 User user = userRepository.findById(userId)
                         .orElseThrow(() -> new JwtAuthenticationException("User not found for token"));
 
                 // Authenticate user in SecurityContext
-                UsernamePasswordAuthenticationToken authentication =
+                UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(auth);
 
-                log.debug("JWT Filter — valid token for user id {}", userId);
-
-                // --- Auto-refresh logic ---
-                Date expiry = jwtService.parseJwtToken(token).getExpiration();
-                long remainingSeconds = (expiry.getTime() - System.currentTimeMillis()) / 1000;
-
+                // Auto-refresh if remaining time < threshold
+                long remainingSeconds = (claims.getExpiration().getTime() - System.currentTimeMillis()) / 1000;
                 if (remainingSeconds < REFRESH_THRESHOLD_SECONDS) {
                     String newToken = jwtService.generateJwtToken(user);
-                    cookieUtil.addTokenCookie(response, newToken, COOKIE_MAX_AGE);
-                    log.debug("JWT Filter — token refreshed for user id {}", userId);
+                    cookieUtil.addTokenCookie(response, newToken, null);  // null → uses configured default
+                    log.debug("JWT token refreshed for user id {}", userId);
                 }
 
+            } catch (io.jsonwebtoken.ExpiredJwtException ex) {
+                // Token expired → clear context, no refresh
+                SecurityContextHolder.clearContext();
+                log.warn("JWT token expired: {}", ex.getMessage());
             } catch (Exception ex) {
                 SecurityContextHolder.clearContext();
-                log.warn("JWT Filter — invalid token: {}", ex.getMessage());
-                throw new JwtAuthenticationException("Invalid JWT token");
+                log.warn("JWT token invalid: {}", ex.getMessage());
             }
         }
 
         filterChain.doFilter(request, response);
     }
 
-    /** Extract token from Authorization header or cookie */
+    /**
+     * Extract token from Authorization header or cookie
+     */
     private String extractToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
-            log.debug("JWT Filter — token found in Authorization header");
+            log.debug("JWT token found in Authorization header");
             return header.substring(7);
         }
 
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie c : cookies) {
-                if (COOKIE_NAME.equals(c.getName())) {
-                    log.debug("JWT Filter — token found in cookie");
+        // Use cookie name from CookieUtil instead of hardcoded "token"
+        String cookieName = cookieUtil.getCookieName();
+        if (request.getCookies() != null) {
+            for (Cookie c : request.getCookies()) {
+                if (cookieName.equals(c.getName())) {
+                    log.debug("JWT token found in cookie");
                     return c.getValue();
                 }
             }
         }
 
-        log.debug("JWT Filter — no token found");
+        log.debug("No JWT token found");
         return null;
     }
 }

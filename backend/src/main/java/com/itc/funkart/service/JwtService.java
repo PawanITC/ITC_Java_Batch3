@@ -5,7 +5,6 @@ import com.itc.funkart.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.security.Key;
 import java.util.Base64;
@@ -17,11 +16,10 @@ public class JwtService {
     private final JwtConfig jwtConfig;
     private final Key key;  // use same key for signing and parsing
 
-    public JwtService(JwtConfig jwtConfig , @Value("${JWT_SECRET}") String jwtSecret) {
-        this.jwtConfig = jwtConfig;
-
-        byte[] keyBytes = Base64.getDecoder().decode(jwtSecret);
+    public JwtService(JwtConfig jwtConfig) {
+        byte[] keyBytes = Base64.getDecoder().decode(jwtConfig.getSecret());
         this.key = Keys.hmacShaKeyFor(keyBytes);
+        this.jwtConfig = jwtConfig;
     }
 
     public String generateJwtToken(User user) {
