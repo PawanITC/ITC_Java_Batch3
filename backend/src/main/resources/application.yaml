@@ -14,7 +14,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate   # production safe
+      ddl-auto: create-drop   # production safe set to validate
     show-sql: false
 
 api:
