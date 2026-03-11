@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: ${DB_URL}              # points to localhost
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${HIBERNATE_DDL_AUTO:create-drop}
+    show-sql: ${SHOW_SQL:true}
+
+frontend:
+  url: ${FRONTEND_URL}
+app:
+  secure-cookie: false         # allow HTTP in dev

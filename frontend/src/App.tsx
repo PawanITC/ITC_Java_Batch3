@@ -1,15 +1,26 @@
-import RandomComponent from "./components/randomComponent.tsx";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import OAuthCallback from "./pages/OAuthCallback";
+import { AuthProvider } from "./context/AuthProvider";
 
 function App() {
-
     return (
-        <>
-            <h1>Root</h1>
-            <h2>Main.tsx gets the root element and renders the root to contain an App component</h2>
-            <h3>The app file that is rendered</h3>
-            <RandomComponent/>
-        </>
-    )
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/" element={<Layout />}>
+                        <Route index element={<Home />} />
+                        <Route path="login" element={<Login />} />
+                        <Route path="signup" element={<Signup />} />
+                        <Route path="oauth-success" element={<OAuthCallback />} />
+                    </Route>
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
+    );
 }
 
-export default App
+export default App;

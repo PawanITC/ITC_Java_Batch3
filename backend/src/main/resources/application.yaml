@@ -2,14 +2,38 @@ spring:
   application:
     name: funkart
 
+  config:
+    import: optional:file:.env[.properties] # importing env file properties
+
   datasource:
-    url: jdbc:h2:mem:funkart
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
+    url: jdbc:postgresql://prod-db-host:5432/mydb
+    driver-class-name: org.postgresql.Driver
+    username: prod_user
+    password: prod_secret
 
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: create-drop   # production safe set to validate
+    show-sql: false
+
+api:
+  version: /api/v1
+
+github:
+  oauth:
+    client-id: ${CLIENT_ID}
+    client-secret: ${CLIENT_SECRET}
+    redirect-uri: ${GITHUB_REDIRECT_URI}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${EXPIRATION_MS}
+  cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
+
+app:
+  secure-cookie: true   # production HTTPS
+
+logging:
+  level:
+    org.springframework.core.env: INFO
