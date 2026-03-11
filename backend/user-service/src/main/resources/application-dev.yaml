@@ -6,8 +6,8 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO:create-drop}
-    show-sql: ${SHOW_SQL:true}
+      ddl-auto: ${HIBERNATE_DDL_AUTO} # validate when in prod
+    show-sql: ${SHOW_SQL}
 
 frontend:
   url: ${FRONTEND_URL}
