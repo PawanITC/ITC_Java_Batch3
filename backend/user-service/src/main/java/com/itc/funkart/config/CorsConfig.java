@@ -12,7 +12,7 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    @Value("${FRONTEND_URL}")
+    @Value("${frontend.url}")
     private String frontendUrl; // fallback to localhost for dev
 
     @Bean
