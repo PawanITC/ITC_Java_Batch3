@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: product-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: product_service_db
+      POSTGRES_USER: product_user
+      POSTGRES_PASSWORD: product_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - product_postgres_data:/var/lib/postgresql/data
+    networks:
+      - product-network
+
+  mongo:
+    image: mongo:7
+    container_name: product-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_admin
+      MONGO_INITDB_ROOT_PASSWORD: mongo_password
+    volumes:
+      - product_mongo_data:/data/db
+    networks:
+      - product-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: product-pgadmin
+    restart: always
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@product.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - postgres
+    volumes:
+      - product_pgadmin_data:/var/lib/pgadmin
+    networks:
+      - product-network
+
+volumes:
+  product_postgres_data:
+  product_mongo_data:
+  product_pgadmin_data:
+
+networks:
+  product-network:
