@@ -3,21 +3,24 @@ package com.example.notificationservice.service;
 import com.example.notificationservice.dto.OrderEventDTO;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repository.NotificationRepository;
+import com.example.notificationservice.template.*;
 import org.springframework.stereotype.Service;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository repository;
-    private final EmailService emailService;
-    private final SmsService smsService;
+    private final MockEmailSender mockEmailSender;
+    private final MockSmsSender mockSmsSender;
+    private final SmtpEmailSender smtpEmailSender;
 
     public NotificationServiceImpl(NotificationRepository repository,
-                                   EmailService emailService,
-                                   SmsService smsService) {
+                                   MockEmailSender mockEmailSender,
+                                   MockSmsSender mockSmsSender, SmtpEmailSender smtpEmailSender) {
 
         this.repository = repository;
-        this.emailService = emailService;
-        this.smsService = smsService;
+        this.mockEmailSender = mockEmailSender;
+        this.mockSmsSender = mockSmsSender;
+        this.smtpEmailSender = smtpEmailSender;
     }
 
     @Override
@@ -29,12 +32,16 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setPhone(event.getPhone());
         notification.setStatus(event.getStatus());
 
-        repository.save(notification);
+        repository.save(notification);//saves notification log to database
 
-        String message = buildMessage(event);
+        String message = MessageBuilderTemplate.generateMessage(event.getOrderId(), event.getStatus());
 
-        emailService.sendEmail(event.getEmail(), message);
-        smsService.sendSms(event.getPhone(), message);
+        //TODO: need to add logic to handle if email/sms not given or blank
+
+
+        mockEmailSender.sendEmail(event.getEmail(), message);//then sends the notification via email/sms
+        smtpEmailSender.sendEmail(event.getEmail(), "Order Update for order: "+event.getOrderId(), message);
+        mockSmsSender.sendSms(event.getPhone(), message);
 
     }
 

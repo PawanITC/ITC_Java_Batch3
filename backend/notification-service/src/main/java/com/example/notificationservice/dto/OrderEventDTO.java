@@ -1,6 +1,7 @@
 package com.example.notificationservice.dto;
 
 
+import com.example.notificationservice.event.OrderStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,7 +12,7 @@ public class OrderEventDTO {
         private String orderId;
         private String email;
         private String phone;
-        private String status;
+        private OrderStatus status;
 
 }
 
