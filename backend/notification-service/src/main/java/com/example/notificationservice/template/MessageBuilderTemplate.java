@@ -14,4 +14,6 @@ public class MessageBuilderTemplate {
             default -> "Update for your order #" + orderId;
         };
     }
+
+    //TODO implement email subject message builder function
 }
