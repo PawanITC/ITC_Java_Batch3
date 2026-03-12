@@ -4,6 +4,7 @@ import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
 import com.itc.funkart.product_service.dto.request.ProductUpdateRequest;
 import com.itc.funkart.product_service.dto.response.ProductResponse;
 import com.itc.funkart.product_service.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity<ProductResponse> createProduct(
-            @RequestBody ProductCreateRequest request) {
+            @Valid @RequestBody ProductCreateRequest request) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -47,7 +48,7 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponse> updateProduct(
             @PathVariable Long id,
-            @RequestBody ProductUpdateRequest request) {
+            @Valid @RequestBody ProductUpdateRequest request) {
 
         return ResponseEntity
                 .status(HttpStatus.OK)
