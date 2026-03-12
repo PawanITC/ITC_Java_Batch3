@@ -4,8 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class ProductCreateRequest {
-
+public class ProductUpdateRequest {
     @NotBlank(message = "Product name is required")
     private String name;
 
@@ -14,4 +13,3 @@ public class ProductCreateRequest {
 
     private Boolean active;
 }
-
