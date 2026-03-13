@@ -1,4 +1,4 @@
-package com.itc.user.config;
+package com.itc.funkart.user.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

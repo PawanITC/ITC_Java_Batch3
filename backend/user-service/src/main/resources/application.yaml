@@ -7,14 +7,14 @@ api:
 
 github:
   oauth:
-    client-id: ${CLIENT_ID}
-    client-secret: ${CLIENT_SECRET}
-    redirect-uri: ${GITHUB_REDIRECT_URI}
+
+
+
 
 jwt:
-  secret: ${JWT_SECRET}
-  expiration-ms: ${EXPIRATION_MS}
-  cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
+
+
+
 
 logging:
   level:

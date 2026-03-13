@@ -1,7 +1,4 @@
-version: "3.9"
-
 services:
-
   postgres:
     container_name: postgres-db
     image: postgres:15
@@ -11,11 +8,16 @@ services:
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: mydb
     ports:
-      - "5432:5432" # host port | container port
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data # ./postgres_id is an alternative means to access postgres
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - db-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pgAdmin:
     container_name: pgadmin-ui
@@ -27,9 +29,41 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - db-network
+
+  user-service:
+    container_name: user-service
+    build:
+      context: ./backend/user-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/user-service/.env
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - db-network
+    restart: on-failure
+
+  api-gateway:
+    container_name: api-gateway
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/api-gateway/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-service
+    networks:
+      - db-network
+    restart: on-failure
 
 volumes:
   postgres_data:

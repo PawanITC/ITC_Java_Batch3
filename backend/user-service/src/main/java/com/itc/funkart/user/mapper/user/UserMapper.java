@@ -1,7 +1,7 @@
-package com.itc.user.mapper.user;
+package com.itc.funkart.user.mapper.user;
 
-import com.itc.user.dto.user.SuccessfulLoginResponse;
-import com.itc.user.entity.User;
+import com.itc.funkart.user.dto.user.SuccessfulLoginResponse;
+import com.itc.funkart.user.entity.User;
 import org.springframework.stereotype.Component;
 
 /**

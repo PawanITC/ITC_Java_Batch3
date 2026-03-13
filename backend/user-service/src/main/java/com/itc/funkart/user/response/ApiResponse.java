@@ -1,4 +1,4 @@
-package com.itc.user.response;
+package com.itc.funkart.user.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

@@ -1,4 +1,4 @@
-package com.itc.user.dto.github;
+package com.itc.funkart.user.dto.github;
 // -----------------------
 // DTO for GitHub API
 // -----------------------

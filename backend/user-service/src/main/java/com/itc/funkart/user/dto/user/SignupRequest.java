@@ -1,4 +1,4 @@
-package com.itc.user.dto.user;
+package com.itc.funkart.user.dto.user;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

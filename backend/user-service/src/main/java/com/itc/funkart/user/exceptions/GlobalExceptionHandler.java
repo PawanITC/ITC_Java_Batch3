@@ -1,7 +1,7 @@
-package com.itc.user.exceptions;
+package com.itc.funkart.user.exceptions;
 
-import com.itc.user.response.ApiResponse;
-import com.itc.user.response.ErrorDetails;
+import com.itc.funkart.user.response.ApiResponse;
+import com.itc.funkart.user.response.ErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

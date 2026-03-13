@@ -1,13 +1,13 @@
-package com.itc.funkart.user;
+package com.itc.funkart.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class FunkartApplication {
+public class ApiGatewayApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(FunkartApplication.class, args);
+        SpringApplication.run(ApiGatewayApplication.class, args);
     }
 
 }

@@ -1,4 +1,4 @@
-package com.itc.user.dto.user;
+package com.itc.funkart.user.dto.user;
 
 public record SuccessfulLoginResponse(
         Long id,

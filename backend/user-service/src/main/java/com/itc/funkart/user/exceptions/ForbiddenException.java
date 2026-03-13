@@ -1,4 +1,4 @@
-package com.itc.user.exceptions;
+package com.itc.funkart.user.exceptions;
 
 public class ForbiddenException extends RuntimeException {
     public ForbiddenException(String message) {

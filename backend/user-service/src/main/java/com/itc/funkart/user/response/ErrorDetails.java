@@ -1,4 +1,4 @@
-package com.itc.user.response;
+package com.itc.funkart.user.response;
 
 /**
  * A Generic Error Detail setup for unsuccessful API responses for all endpoints.

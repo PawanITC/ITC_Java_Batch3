@@ -1,4 +1,4 @@
-package com.itc.user.exceptions;
+package com.itc.funkart.user.exceptions;
 
 public class BadRequestException extends RuntimeException {
     public BadRequestException(String message) {

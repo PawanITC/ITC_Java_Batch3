@@ -1,14 +1,16 @@
-package com.itc.user.service;
+package com.itc.funkart.user.service;
 
-import com.itc.user.dto.user.LoginRequest;
-import com.itc.user.dto.user.SignupRequest;
-import com.itc.user.entity.User;
-import com.itc.user.exceptions.AlreadyExistsException;
-import com.itc.user.exceptions.BadRequestException;
-import com.itc.user.exceptions.UnauthorizedException;
-import com.itc.user.repository.UserRepository;
+import com.itc.funkart.user.dto.user.LoginRequest;
+import com.itc.funkart.user.dto.user.SignupRequest;
+import com.itc.funkart.user.entity.User;
+import com.itc.funkart.user.exceptions.AlreadyExistsException;
+import com.itc.funkart.user.exceptions.BadRequestException;
+import com.itc.funkart.user.exceptions.UnauthorizedException;
+import com.itc.funkart.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -128,6 +130,15 @@ public class UserService {
     private User fetchUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
+    }
+
+    /**
+     * Check db for user existing
+     *
+     * @param id users id
+     */
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
     }
 
 }

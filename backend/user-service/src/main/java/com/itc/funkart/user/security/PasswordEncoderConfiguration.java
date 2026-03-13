@@ -1,4 +1,4 @@
-package com.itc.user.security;
+package com.itc.funkart.user.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

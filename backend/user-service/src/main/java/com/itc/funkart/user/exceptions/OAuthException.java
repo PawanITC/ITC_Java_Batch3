@@ -1,4 +1,4 @@
-package com.itc.user.exceptions;
+package com.itc.funkart.user.exceptions;
 
 public class OAuthException extends RuntimeException {
     public OAuthException(String message) {
