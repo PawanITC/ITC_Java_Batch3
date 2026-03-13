@@ -12,7 +12,7 @@ public class ProductMapper {
                 .name(product.getName())
                 .slug(product.getSlug())
                 .description(product.getDescription())
-                .active(product.isActive())
+                .active(product.getActive())
                 .build();
     }
 }

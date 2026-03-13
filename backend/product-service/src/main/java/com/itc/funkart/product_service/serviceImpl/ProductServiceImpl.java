@@ -57,6 +57,7 @@ public class ProductServiceImpl implements ProductService {
         product.setDescription(request.getDescription());
         product.setActive(request.getActive());
         product.setUpdatedAt(LocalDateTime.now());
+        product.setSlug(request.getName().toLowerCase().replace(" ", "-"));
 
         productRepository.save(product);
 
