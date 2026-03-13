@@ -15,5 +15,20 @@ public class MessageBuilderTemplate {
         };
     }
 
-    //TODO implement email subject message builder function
+    public static String generateSubject(String orderId, OrderStatus status){
+
+        String temp;
+
+        switch (status) {
+            case ORDER_PLACED -> temp = orderId + " Status: Order placed!";
+            case ORDER_CONFIRMED -> temp = orderId+" Status: Order confirmed!";
+            case DISPATCHED -> temp = orderId+" Status: Order dispatched!";
+            case OUT_FOR_DELIVERY -> temp = orderId+" Status: Out for delivery!";
+            case DELIVERED -> temp = orderId+" Status: Order delivered!";
+            default -> temp = orderId;
+        }
+
+        return "Update for your Funkart order #"+temp;
+    }
+
 }

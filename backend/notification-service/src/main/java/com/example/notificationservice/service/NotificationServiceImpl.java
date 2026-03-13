@@ -37,13 +37,14 @@ public class NotificationServiceImpl implements NotificationService {
 
         repository.save(notification);//saves notification log to database
 
-        String message = MessageBuilderTemplate.generateMessage(event.getOrderId(), event.getStatus());
+        String message = MessageBuilderTemplate.generateMessage(event.getOrderId(), event.getStatus());//message body in email
+        String subject = MessageBuilderTemplate.generateSubject(event.getOrderId(), event.getStatus());//subject header for email
 
         if (event.getEmail() != null && !event.getEmail().isEmpty()) {//making sure email field is present etc.
 
             try {
-                mockEmailSender.sendEmail(event.getEmail(), message);//then sends the notification via email/sms
-                smtpEmailSender.sendEmail(event.getEmail(), "Order Update for order: " + event.getOrderId(), message);
+                mockEmailSender.sendEmail(event.getEmail(),subject, message);//then sends the notification via email/sms
+                smtpEmailSender.sendEmail(event.getEmail(), subject, message);
             }catch (Exception e) {
                 log.error("Failed to send email for order {} : {}", event.getOrderId(), e.getMessage());
             }
