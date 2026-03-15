@@ -6,9 +6,9 @@ import "../styles/auth.css";
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState(""); // optional improvement
+    const [error, setError] = useState("");
     const navigate = useNavigate();
-    const { setUser } = useContext(AuthContext);
+    const { refreshUser } = useContext(AuthContext); // use refreshUser instead of setUser
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -18,21 +18,21 @@ export default function Login() {
             const res = await fetch("/api/v1/users/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include", // important for cookie
+                credentials: "include",
                 body: JSON.stringify({ email, password }),
             });
 
-            const body = await res.json();
+            const body = await res.json().catch(() => ({}));
 
             if (!res.ok) {
                 setError(body.message || "Login failed");
                 return;
             }
 
-            // Backend returns ApiResponse<SuccessfulLoginResponse>
-            setUser(body.data); // FIXED: was previously data.user, now matches backend
+            // Call refreshUser to update AuthProvider state consistently
+            await refreshUser();
 
-            navigate("/"); // redirect to home
+            navigate("/"); // redirect after login
         } catch (err) {
             console.error("Login error:", err);
             setError("Something went wrong. Please try again.");
