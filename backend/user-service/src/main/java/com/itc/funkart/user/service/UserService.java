@@ -119,7 +119,7 @@ public class UserService {
      */
     private String hashPassword(String rawPassword) {
         //hashing the password
-       return passwordEncoder.encode(rawPassword);
+        return passwordEncoder.encode(rawPassword);
     }
 
     /**
@@ -141,4 +141,21 @@ public class UserService {
         return userRepository.findById(id);
     }
 
+    // -----------------------------
+    // Find by email (used for OAuth)
+    // -----------------------------
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    // -----------------------------
+    // Create user (used for OAuth)
+    // -----------------------------
+    public User createUser(String email, String password, String name) {
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(password); // null for OAuth users
+        user.setName(name);
+        return userRepository.save(user);
+    }
 }

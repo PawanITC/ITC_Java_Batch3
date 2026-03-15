@@ -1,15 +1,18 @@
 spring:
+  config:
+    activate:
+      on-profile: dev
+
   datasource:
-    url: ${DB_URL}              # points to localhost
+    url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO} # validate when in prod
-    show-sql: ${SHOW_SQL}
-
-frontend:
-
-app:
-  # allow HTTP in dev
+      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
+    show-sql: ${SHOW_SQL:true}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect

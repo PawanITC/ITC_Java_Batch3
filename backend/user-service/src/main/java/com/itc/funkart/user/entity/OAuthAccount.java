@@ -1,4 +1,4 @@
-package com.itc.funkart.gateway.entity;
+package com.itc.funkart.user.entity;
 
 import jakarta.persistence.*;
 

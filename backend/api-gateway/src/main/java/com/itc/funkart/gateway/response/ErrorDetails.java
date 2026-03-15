@@ -1,4 +1,4 @@
-package com.itc.funkart.user.response;
+package com.itc.funkart.gateway.response;
 
 import lombok.Getter;
 import lombok.Setter;

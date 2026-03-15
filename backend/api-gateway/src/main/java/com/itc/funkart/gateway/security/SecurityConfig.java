@@ -3,57 +3,44 @@ package com.itc.funkart.gateway.security;
 import com.itc.funkart.gateway.config.ApiConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @Configuration
+@EnableWebFluxSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CorsConfigurationSource corsConfigurationSource;
+    private final JwtWebFilter jwtWebFilter;
     private final ApiConfig apiConfig;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          CorsConfigurationSource corsConfigurationSource,
-                          ApiConfig apiConfig) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.corsConfigurationSource = corsConfigurationSource;
+    public SecurityConfig(JwtWebFilter jwtWebFilter, ApiConfig apiConfig) {
+        this.jwtWebFilter = jwtWebFilter;
         this.apiConfig = apiConfig;
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
         String api = apiConfig.getVersion();
 
         http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
-                .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers(
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .addFilterBefore(jwtWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                .authorizeExchange(auth -> auth
+                        // Public endpoints - no authentication required
+                        .pathMatchers(
                                 "/oauth/github/login",
                                 "/oauth/github/callback",
-                                api + "/users/login",
+                                "/oauth/github/logout",
+                                           api + "/users/login",
                                 api + "/users/signup"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/oauth/github/callback").permitAll()
                         // All other requests require authentication
-                        .anyRequest().authenticated()
+                        .anyExchange().authenticated()
                 )
-                // Add your custom JWT filter before the default UsernamePasswordAuthenticationFilter
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable);
 
         return http.build();
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-        return authConfig.getAuthenticationManager();
     }
 }

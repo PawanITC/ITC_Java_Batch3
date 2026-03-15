@@ -1,68 +1,62 @@
 package com.itc.funkart.gateway.security;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import java.time.Duration;
 
 @Component
 public class CookieUtil {
 
-    private static final String SAME_SITE = "same-site";
+    private static final String SAME_SITE_LAX = "Lax";
+    private static final String SAME_SITE_NONE = "None";
+
+    @Getter
     private final String cookieName;
     private final boolean secure;
-    @Value("${jwt.cookie-max-age-seconds}")
-    private int defaultMaxAgeSeconds;
+    private final int defaultMaxAgeSeconds;
 
     public CookieUtil(@Value("${app.secure-cookie:false}") boolean secure,
-                      @Value("${app.cookie-name:token}") String cookieName) {
+                      @Value("${app.cookie-name:token}") String cookieName,
+                      @Value("${jwt.cookie-max-age-seconds:3600}") int defaultMaxAgeSeconds) {
         this.secure = secure;        // true in prod HTTPS
         this.cookieName = cookieName;
-    }
-
-    public String getCookieName() {
-        return cookieName;
+        this.defaultMaxAgeSeconds = defaultMaxAgeSeconds;
     }
 
     /**
-     * Add or refresh JWT token cookie
+     * Add or refresh JWT token cookie (reactive)
      */
-    public void addTokenCookie(HttpServletResponse response,
-                               String token, Integer maxAgeSeconds) {
+    public void addTokenCookie(ServerWebExchange exchange, String token, Integer maxAgeSeconds) {
         int age = (maxAgeSeconds != null) ? maxAgeSeconds : defaultMaxAgeSeconds;
 
-        Cookie cookie = new Cookie(cookieName, token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(age);
+        ResponseCookie cookie = ResponseCookie
+                .from(cookieName, token)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ofSeconds(age))
+                .sameSite(secure ? SAME_SITE_NONE : SAME_SITE_LAX)
+                .secure(secure)
+                .build();
 
-        if (secure) {
-            cookie.setSecure(true);
-            cookie.setAttribute(SAME_SITE, "None");
-        } else {
-            cookie.setSecure(false);
-            cookie.setAttribute(SAME_SITE, "Lax");
-        }
-
-        response.addCookie(cookie);
+        exchange.getResponse().addCookie(cookie);
     }
 
     /**
-     * Clear JWT token cookie
+     * Clear JWT token cookie (reactive)
      */
-    public void clearTokenCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(cookieName, null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(secure);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
+    public void clearTokenCookie(ServerWebExchange exchange) {
+        ResponseCookie cookie = ResponseCookie
+                .from(cookieName, "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .sameSite(secure ? SAME_SITE_NONE : SAME_SITE_LAX)
+                .secure(secure)
+                .build();
 
-        if (secure) {
-            cookie.setAttribute(SAME_SITE, "None");
-        } else {
-            cookie.setAttribute(SAME_SITE, "Lax");
-        }
-
-        response.addCookie(cookie);
+        exchange.getResponse().addCookie(cookie);
     }
 }

@@ -1,4 +1,4 @@
-package com.itc.funkart.user.response;
+package com.itc.funkart.gateway.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;

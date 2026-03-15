@@ -1,23 +1,31 @@
 package com.itc.funkart.user.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@SuppressWarnings("JpaDataSourceORMInspection")
 @Entity
 @Table(name = "users")
 public class User {
+    // Getters and setters
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    @Setter
     private String password; // hashed password
 
+    @Setter
     private String name;
 
-    public User() {}
+    public User() {
+    }
 
     public User(String email, String password, String name) {
         this.email = email;
@@ -25,12 +33,4 @@ public class User {
         this.name = name;
     }
 
-    // Getters and setters
-    public Long getId() { return id; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
 }

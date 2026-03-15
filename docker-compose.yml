@@ -13,11 +13,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - db-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   pgAdmin:
     container_name: pgadmin-ui
@@ -29,8 +24,7 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
       - db-network
 
@@ -44,11 +38,10 @@ services:
     ports:
       - "8081:8080"
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
       - db-network
-    restart: on-failure
+    restart: on-failure:3
 
   api-gateway:
     container_name: api-gateway
@@ -63,7 +56,7 @@ services:
       - user-service
     networks:
       - db-network
-    restart: on-failure
+    restart: on-failure:3
 
 volumes:
   postgres_data:
