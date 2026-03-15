@@ -4,6 +4,7 @@ import com.itc.funkart.user.config.GithubOAuthConfig;
 import com.itc.funkart.user.dto.github.AccessTokenResponse;
 import com.itc.funkart.user.dto.github.GithubUser;
 import com.itc.funkart.user.entity.User;
+import com.itc.funkart.user.exceptions.OAuthException;  // ← ADD THIS
 import jakarta.transaction.Transactional;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -84,7 +85,7 @@ public class GithubOAuthService {
                 .block();
 
         if (response == null || response.access_token() == null) {
-            throw new RuntimeException("Failed to retrieve GitHub access token");
+            throw new OAuthException("Failed to retrieve GitHub access token");  // ← CHANGE THIS
         }
 
         return response.access_token();
@@ -100,7 +101,7 @@ public class GithubOAuthService {
                 .block();
 
         if (user == null) {
-            throw new RuntimeException("Failed to fetch GitHub user info");
+            throw new OAuthException("Failed to fetch GitHub user info");  // ← CHANGE THIS
         }
 
         return user;

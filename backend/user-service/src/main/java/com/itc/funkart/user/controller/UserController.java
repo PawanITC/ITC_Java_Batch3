@@ -71,7 +71,13 @@ public class UserController {
             @Valid @RequestBody SignupRequest signupRequest) {
 
         User user = userService.signUp(signupRequest);
-        SuccessfulLoginResponse resp = userMapper.toResponse(user, null);
+
+        // Generate JWT token
+        String jwt = jwtService.generateJwtToken(
+                new JwtUserDto(user.getId(), user.getName(), user.getEmail())
+        );
+
+        SuccessfulLoginResponse resp = userMapper.toResponse(user, jwt);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -86,7 +92,13 @@ public class UserController {
             @Valid @RequestBody LoginRequest loginRequest) {
 
         User user = userService.login(loginRequest);
-        SuccessfulLoginResponse resp = userMapper.toResponse(user, null);
+
+        // Generate JWT token
+        String jwt = jwtService.generateJwtToken(
+                new JwtUserDto(user.getId(), user.getName(), user.getEmail())
+        );
+
+        SuccessfulLoginResponse resp = userMapper.toResponse(user, jwt);
 
         return ResponseEntity
                 .ok(new ApiResponse<>(resp, "Login successful"));

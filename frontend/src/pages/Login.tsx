@@ -6,9 +6,9 @@ import "../styles/auth.css";
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState(""); // optional improvement
+    const [error, setError] = useState("");
     const navigate = useNavigate();
-    const { setUser } = useContext(AuthContext);
+    const { refreshUser } = useContext(AuthContext); // use refreshUser instead of setUser
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -29,8 +29,10 @@ export default function Login() {
                 return;
             }
 
-            setUser(body.data);
-            navigate("/");
+            // Call refreshUser to update AuthProvider state consistently
+            await refreshUser();
+
+            navigate("/"); // redirect after login
         } catch (err) {
             console.error("Login error:", err);
             setError("Something went wrong. Please try again.");
