@@ -5,6 +5,7 @@ import com.example.notificationservice.event.OrderStatus;
 import lombok.Getter;
 import lombok.Setter;
 
+
 @Setter
 @Getter
 public class OrderEventDTO {

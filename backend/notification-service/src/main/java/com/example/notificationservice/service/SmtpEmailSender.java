@@ -4,9 +4,10 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.*;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Profile("prod")
-@Component
+//@Profile("prod")
+@Service
 public class SmtpEmailSender implements EmailSender {//uses the SMTP implemented via javamailSender
     private final JavaMailSender mailSender;
 
@@ -17,6 +18,7 @@ public class SmtpEmailSender implements EmailSender {//uses the SMTP implemented
     @Override
     public void sendEmail(String email, String Subject, String message) {
         SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setFrom("");
         msg.setTo(email);
         msg.setSubject(Subject);
         msg.setText(message);

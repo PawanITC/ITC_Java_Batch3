@@ -18,7 +18,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     public NotificationServiceImpl(NotificationRepository repository,
                                    MockEmailSender mockEmailSender,
-                                   MockSmsSender mockSmsSender, SmtpEmailSender smtpEmailSender) {
+                                   MockSmsSender mockSmsSender ,SmtpEmailSender smtpEmailSender) {
 
         this.repository = repository;
         this.mockEmailSender = mockEmailSender;
@@ -44,7 +44,7 @@ public class NotificationServiceImpl implements NotificationService {
 
             try {
                 mockEmailSender.sendEmail(event.getEmail(),subject, message);//then sends the notification via email/sms
-                smtpEmailSender.sendEmail(event.getEmail(), subject, message);
+                smtpEmailSender.sendEmail(event.getEmail(), subject, message);//send the real e-mail using smtp
             }catch (Exception e) {
                 log.error("Failed to send email for order {} : {}", event.getOrderId(), e.getMessage());
             }
