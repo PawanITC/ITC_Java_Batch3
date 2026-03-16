@@ -1,4 +1,4 @@
-package com.itc.catalogue_service;
+package com.itc.catalogueservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
