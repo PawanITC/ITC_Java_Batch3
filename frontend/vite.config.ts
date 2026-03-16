@@ -10,9 +10,7 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
-        // optional: include credentials
       },
-      // Optional: if OAuth login calls /oauth/github from frontend
       '/oauth': {
         target: 'http://localhost:8080',
         changeOrigin: true,
@@ -25,3 +23,4 @@ export default defineConfig({
   },
   base: "/",
 });
+
