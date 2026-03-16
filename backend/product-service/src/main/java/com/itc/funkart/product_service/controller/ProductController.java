@@ -28,7 +28,7 @@ public class ProductController {
                 .body(productService.createProduct(request));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping(value = "/{id}")
     public ResponseEntity<ProductResponse> getProduct(
             @PathVariable Long id) {
 
