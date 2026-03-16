@@ -11,12 +11,23 @@ const OAuthCallback = () => {
     useEffect(() => {
         if (!code) return;
 
-        fetch(`/oauth/github/callback?code=${code}`, {
-            credentials: "include", // ensures cookie is saved
-        })
-            .then(() => refreshUser()) // refresh context to see logged-in user
-            .then(() => navigate("/")) // redirect to home
-            .catch(() => navigate("/login")); // fallback if something fails
+        const handleOAuth = async () => {
+            try {
+                const res = await fetch(`/oauth/github/callback?code=${code}`, {
+                    credentials: "include",
+                });
+
+                if (!res.ok) throw new Error("OAuth failed");
+
+                await refreshUser(); // update user context
+                navigate("/"); // redirect to home
+            } catch (err) {
+                console.error("OAuth callback error:", err);
+                navigate("/login"); // fallback if something fails
+            }
+        };
+
+        handleOAuth();
     }, [code, refreshUser, navigate]);
 
     return <p>Logging you in…</p>;
