@@ -18,7 +18,7 @@ public class SmtpEmailSender implements EmailSender {//uses the SMTP implemented
     @Override
     public void sendEmail(String email, String Subject, String message) {
         SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setFrom("");
+        msg.setFrom("a.khan480849@gmail.com");
         msg.setTo(email);
         msg.setSubject(Subject);
         msg.setText(message);
