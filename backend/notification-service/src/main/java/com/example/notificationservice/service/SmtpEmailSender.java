@@ -1,9 +1,7 @@
 package com.example.notificationservice.service;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.*;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 //@Profile("prod")
@@ -14,6 +12,7 @@ public class SmtpEmailSender implements EmailSender {//uses the SMTP implemented
     public SmtpEmailSender(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
+
 
     @Override
     public void sendEmail(String email, String Subject, String message) {

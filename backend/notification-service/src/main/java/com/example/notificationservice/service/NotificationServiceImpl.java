@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+
 @Service
 public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository repository;
@@ -15,15 +16,17 @@ public class NotificationServiceImpl implements NotificationService {
     private final MockSmsSender mockSmsSender;
     private final SmtpEmailSender smtpEmailSender;
     private final Logger log = LoggerFactory.getLogger(NotificationServiceImpl.class);
+    private final TwilioSmsSender twilioSmsSender;
 
     public NotificationServiceImpl(NotificationRepository repository,
                                    MockEmailSender mockEmailSender,
-                                   MockSmsSender mockSmsSender ,SmtpEmailSender smtpEmailSender) {
+                                   MockSmsSender mockSmsSender , SmtpEmailSender smtpEmailSender, TwilioSmsSender twilioSmsSender) {
 
         this.repository = repository;
         this.mockEmailSender = mockEmailSender;
         this.mockSmsSender = mockSmsSender;
         this.smtpEmailSender = smtpEmailSender;
+        this.twilioSmsSender = twilioSmsSender;
     }
 
     @Override
@@ -44,7 +47,7 @@ public class NotificationServiceImpl implements NotificationService {
 
             try {
                 mockEmailSender.sendEmail(event.getEmail(),subject, message);//then sends the notification via email/sms
-                smtpEmailSender.sendEmail(event.getEmail(), subject, message);//send the real e-mail using smtp
+                sendEmailWithRetry(event.getEmail(),subject, message);
             }catch (Exception e) {
                 log.error("Failed to send email for order {} : {}", event.getOrderId(), e.getMessage());
             }
@@ -55,6 +58,7 @@ public class NotificationServiceImpl implements NotificationService {
 
             try{
             mockSmsSender.sendSms(event.getPhone(), message);
+            sendSmsWithRetry(event.getPhone(),message);
             }catch (Exception e) {
                 log.error("Failed to send sms for order {} : {}", event.getOrderId(), e.getMessage());
 
@@ -62,9 +66,31 @@ public class NotificationServiceImpl implements NotificationService {
     }
     }
 
-    private String buildMessage(OrderEventDTO event) {
+    //adding logic to retry with resilience4j should request fail (implmented retry here ,
+    // rather than SmtpEmailSender because of following seperation of concern)
+    @Retry(name="emailRetry", fallback="emailFallback")
+    private void sendEmailWithRetry(String email, String subject, String message) {
+        smtpEmailSender.sendEmail(email, subject, message);//send the real e-mail using smtp
 
-        return "Order " + event.getOrderId() + " status: " + event.getStatus();
 
+    }
+
+    @Retry(name="smsRetry", fallback="smsFallback")
+    @CircuitBreaker(name = "smsCircuit", fallbackMethod = "smsFallback")
+    @TimeLimiter(name = "smsTimeout", fallbackMethod = "smsFallback")
+    private void sendSmsWithRetry(String phone, String message) {
+        twilioSmsSender.sendSms(phone, message);
+    }
+
+    // 🔁 Fallback for email
+    public void emailFallback(String email, String subject, String message, Exception ex) {
+        System.out.println("❌ Email failed after retries: " + ex.getMessage());
+        // You can also save FAILED status in DB here
+    }
+
+    // 🔁 Fallback for SMS
+    public void smsFallback(String phone, String message, Exception ex) {
+        System.out.println("❌ SMS failed after retries: " + ex.getMessage());
+        // Save FAILED status here
     }
 }
