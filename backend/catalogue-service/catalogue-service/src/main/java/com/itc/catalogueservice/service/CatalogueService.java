@@ -6,7 +6,9 @@ import com.itc.catalogueservice.exception.catalogue.NoProductsException;
 import org.springframework.stereotype.Service;
 
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class CatalogueService {
@@ -16,14 +18,18 @@ public class CatalogueService {
         this.productApiClient = productApiClient;
     }
 
-    public List<ProductDTO> getProducts() {
+    public CompletableFuture<List<ProductDTO>> getProducts(
+            Integer page, Integer size, String category,
+            BigDecimal minPrice, BigDecimal maxPrice, Double rating) {
 
-        List<ProductDTO> products = productApiClient.getProducts();
+        return productApiClient.getProducts()
+                .thenApply(products -> {
 
-        if (products.isEmpty()) {
-            throw new NoProductsException();
-        }
+                    if (products.isEmpty()) {
+                        throw new NoProductsException();
+                    }
 
-        return products;
+                    return products;
+                });
     }
 }

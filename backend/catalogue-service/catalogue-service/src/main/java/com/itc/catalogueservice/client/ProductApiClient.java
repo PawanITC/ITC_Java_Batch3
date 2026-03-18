@@ -3,16 +3,24 @@
 package com.itc.catalogueservice.client;
 
 import com.itc.catalogueservice.dto.ProductDTO;
+import com.itc.catalogueservice.exception.external.ExternalServiceException;
+import com.itc.catalogueservice.exception.external.ExternalServiceFailureException;
+import com.itc.catalogueservice.exception.external.ExternalServiceTimeoutException;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Component
+@Slf4j
 public class ProductApiClient {
 
-    public List<ProductDTO> getProducts() {
-        return List.of(
+    @TimeLimiter(name = "productService", fallbackMethod = "getProductsFallback")
+    public CompletableFuture<List<ProductDTO>> getProducts() {
+        return CompletableFuture.supplyAsync(() -> List.of(
                 new ProductDTO(1L,"iPhone 15","Apple smartphone",new BigDecimal("999.99"),"iphone.jpg",4.7,10,"Electronics"),
                 new ProductDTO(2L,"Samsung TV","4K Smart TV",new BigDecimal("799.99"),"tv.jpg",4.5,5,"Electronics"),
                 new ProductDTO(3L,"MacBook Air","Apple laptop",new BigDecimal("1199.99"),"macbook.jpg",4.8,7,"Electronics"),
@@ -33,6 +41,22 @@ public class ProductApiClient {
                 new ProductDTO(18L,"Philips Hue Bulb","Smart light bulb",new BigDecimal("59.99"),"hue.jpg",4.6,25,"Smart Home"),
                 new ProductDTO(19L,"Fitness Tracker","Health monitoring device",new BigDecimal("149.99"),"fitness.jpg",4.5,14,"Wearables"),
                 new ProductDTO(20L,"VR Headset","Virtual reality headset",new BigDecimal("399.99"),"vr.jpg",4.6,9,"Gaming")
+        ));
+    }
+
+    public CompletableFuture<List<ProductDTO>> getProductsFallback(Exception ex) {
+
+        log.error("Product API failed", ex);
+
+        if (ex instanceof java.util.concurrent.TimeoutException) {
+            return CompletableFuture.failedFuture(
+                    new ExternalServiceTimeoutException()
+            );
+        }
+
+        return CompletableFuture.failedFuture(
+                new ExternalServiceFailureException()
         );
     }
+
 }
