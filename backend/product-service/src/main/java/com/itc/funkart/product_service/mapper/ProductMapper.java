@@ -14,6 +14,7 @@ public class ProductMapper {
                 .slug(product.getSlug())
                 .description(product.getDescription())
                 .active(product.getActive())
+                .price(product.getPrice())
                 .build();
     }
 

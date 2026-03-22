@@ -38,6 +38,7 @@ public class ProductServiceImpl implements ProductService {
                 .slug(request.getName().toLowerCase().replace(" ", "-"))
                 .active(true)
                 .createdAt(LocalDateTime.now())
+                .price(request.getPrice())
                 .build();
 
         Product savedProduct = productRepository.save(product);
@@ -60,9 +61,10 @@ public class ProductServiceImpl implements ProductService {
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());
-        product.setActive(request.getActive());
+        product.setActive(true);
         product.setUpdatedAt(LocalDateTime.now());
         product.setSlug(request.getName().toLowerCase().replace(" ", "-"));
+        product.setPrice(request.getPrice());
 
         productRepository.save(product);
 
@@ -86,7 +88,8 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductResponse> getAllProducts() {
         log.info("Fetching all products");
 
-        return productRepository.findAll()
+        //return productRepository.findAll()
+        return productRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(ProductMapper::toResponse)
                 .collect(Collectors.toList());
