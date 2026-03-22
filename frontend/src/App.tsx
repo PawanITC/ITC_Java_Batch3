@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import OAuthCallback from "./pages/OAuthCallback";
 import { AuthProvider } from "./context/AuthProvider";
+import ProductManagement from "./pages/product/ProductManagement";
 
 function App() {
     return (
@@ -16,6 +17,7 @@ function App() {
                         <Route path="login" element={<Login />} />
                         <Route path="signup" element={<Signup />} />
                         <Route path="oauth-success" element={<OAuthCallback />} />
+                        <Route path="products" element={<ProductManagement />} />
                     </Route>
                 </Routes>
             </BrowserRouter>
