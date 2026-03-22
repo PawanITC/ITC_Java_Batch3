@@ -46,6 +46,15 @@ services:
       - product_pgadmin_data:/var/lib/pgadmin
     networks:
       - product-network
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
 
 volumes:
   product_postgres_data:
