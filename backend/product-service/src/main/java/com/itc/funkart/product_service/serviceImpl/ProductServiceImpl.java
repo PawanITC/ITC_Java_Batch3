@@ -1,11 +1,13 @@
 package com.itc.funkart.product_service.serviceImpl;
 
+import com.itc.funkart.product_service.dto.events.ProductEvent;
 import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
 import com.itc.funkart.product_service.dto.request.ProductUpdateRequest;
 import com.itc.funkart.product_service.dto.response.ProductResponse;
 import com.itc.funkart.product_service.entity.Product;
 import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
 import com.itc.funkart.product_service.mapper.ProductMapper;
+import com.itc.funkart.product_service.producer.ProductProducer;
 import com.itc.funkart.product_service.repository.ProductRepository;
 import com.itc.funkart.product_service.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final ProductProducer productProducer;
 
     @Override
     @Transactional
@@ -38,6 +41,8 @@ public class ProductServiceImpl implements ProductService {
                 .build();
 
         Product savedProduct = productRepository.save(product);
+        ProductEvent event = ProductMapper.toEvent(savedProduct);
+        productProducer.sendMessage(event);
 
         log.info("Product created with id {}", savedProduct.getId());
 

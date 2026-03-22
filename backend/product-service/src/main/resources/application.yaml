@@ -20,9 +20,26 @@ spring:
   mongodb:
     uri: mongodb://mongo_admin:mongo_password@localhost:27017/product_service_mongo?authSource=admin
 
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+    consumer:
+      group-id: product-group-v2
+      auto-offset-reset: earliest
+
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+        spring.json.trusted.packages: com.itc.funkart.product_service.dto.events
+
 server:
   port: 9090
-  #Open telemetry configuration for Jaeger
+
 management:
   tracing:
     sampling:
@@ -39,6 +56,10 @@ management:
       server:
         requests:
           enabled: true
+
 logging:
   pattern:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+  level:
+    org.springframework.kafka: DEBUG
+    org.apache.kafka: WARN
