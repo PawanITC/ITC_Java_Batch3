@@ -18,9 +18,9 @@ public class CookieUtil {
     private final boolean secure;
     private final int defaultMaxAgeSeconds;
 
-    public CookieUtil(@Value("${app.secure-cookie:false}") boolean secure,
-                      @Value("${app.cookie-name:token}") String cookieName,
-                      @Value("${jwt.cookie-max-age-seconds:3600}") int defaultMaxAgeSeconds) {
+    public CookieUtil(@Value("${app.secure-cookie}") boolean secure,
+                      @Value("${app.cookie-name}") String cookieName,
+                      @Value("${jwt.cookie-max-age-seconds}") int defaultMaxAgeSeconds) {
         this.secure = secure;        // true in prod HTTPS
         this.cookieName = cookieName;
         this.defaultMaxAgeSeconds = defaultMaxAgeSeconds;
