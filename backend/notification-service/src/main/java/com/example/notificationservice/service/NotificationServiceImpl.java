@@ -4,9 +4,7 @@ import com.example.notificationservice.dto.OrderEventDTO;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repository.NotificationRepository;
 import com.example.notificationservice.template.*;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -71,16 +69,16 @@ public class NotificationServiceImpl implements NotificationService {
 
     //adding logic to retry with resilience4j should request fail (implemented retry here ,
     // rather than SmtpEmailSender because of following separation of concern)
-    @Retry(name="emailRetry", fallbackMethod="emailFallback")
+    //@Retry(name="emailRetry", fallbackMethod="emailFallback")
     private void sendEmailWithRetry(String email, String subject, String message) {
         smtpEmailSender.sendEmail(email, subject, message);//send the real e-mail using smtp
 
 
     }
 
-    @Retry(name="smsRetry", fallbackMethod="smsFallback")
-    @CircuitBreaker(name = "smsCircuit", fallbackMethod = "smsFallback")
-    @TimeLimiter(name = "smsTimeout", fallbackMethod = "smsFallback")
+    //@Retry(name="smsRetry", fallbackMethod="smsFallback")
+    //@CircuitBreaker(name = "smsCircuit", fallbackMethod = "smsFallback")
+    //@TimeLimiter(name = "smsTimeout", fallbackMethod = "smsFallback")
     private void sendSmsWithRetry(String phone, String message) {
         twilioSmsSender.sendSms(phone, message);
     }

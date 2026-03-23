@@ -6,9 +6,10 @@ import com.twilio.type.PhoneNumber;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 @Component
-@Profile("Prod")
+
 public class TwilioSmsSender implements SmsSender {
     private final String accountSid;
     private final String authToken;
