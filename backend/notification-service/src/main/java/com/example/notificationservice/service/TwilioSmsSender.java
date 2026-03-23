@@ -23,8 +23,8 @@ public class TwilioSmsSender implements SmsSender {
         this.authToken = authToken;
         this.fromNumber = fromNumber;
         //log in to Twilio so future API calls are authenticated
-        Twilio.init(accountSid, authToken);//initialise only once in constructor
-        //more efficent and staches authtoekn/credentials to every request we make after
+        Twilio.init(accountSid, authToken);//initialize only once in constructor
+        //more efficient and staches authtoekn/credentials to every request we make after
 
     }
 
