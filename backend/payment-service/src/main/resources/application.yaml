@@ -1,3 +1,24 @@
 spring:
   application:
     name: payment-service
+
+server:
+  port: 8080        # match container mapping
+  address: 0.0.0.0  # bind all interfaces
+
+api:
+  version: /api/v1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info  # minimal for prod
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: INFO
+    com.itc.funkart: DEBUG

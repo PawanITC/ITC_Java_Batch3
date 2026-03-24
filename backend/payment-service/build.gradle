@@ -23,16 +23,33 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
     // PostgresSQL - Database
     implementation 'org.postgresql:postgresql'
+
     // Kafka - Event Streaming
     implementation 'org.springframework.kafka:spring-kafka'
+
     // Stripe - Payment Processing
     implementation 'com.stripe:stripe-java:24.0.0'
+
     // JWT Authentication
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // Security - Spring Security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // Code Generation - Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    // Validation - Bean Validation (Jakarta Validation / Hibernate Validator)
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Reactive Web - Spring WebFlux (non-blocking stack)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
 
 tasks.named('test') {
