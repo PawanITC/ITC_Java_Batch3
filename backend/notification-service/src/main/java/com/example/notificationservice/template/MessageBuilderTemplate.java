@@ -11,6 +11,11 @@ public class MessageBuilderTemplate {
             case DISPATCHED -> "Your order #" + orderId + " has been dispatched and is on its way.";
             case OUT_FOR_DELIVERY -> "Your order #" + orderId + " is out for delivery today.";
             case DELIVERED -> "Your order #" + orderId + " has been delivered. Enjoy!";
+            case ORDER_UPDATED ->  "Great news! Your order #" + orderId + " has been updated successfully as per your request. please find the updated information" +
+                    "attached below.";
+            case ORDER_CANCELLED ->   "Sorry but you your order #" + orderId + " has been cancelled. This maybe because the order was cancelled by you " +
+                    "otherwise we are either out of stock for your requested item(s). We will issue a refund/replacement accordingly." +
+                    " Sorry for the inconvenience this may have caused you.";
             default -> "Update for your order #" + orderId;
         };
     }
