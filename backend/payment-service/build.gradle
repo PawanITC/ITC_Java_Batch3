@@ -45,6 +45,9 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
+    // Mapper used for json objects
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+
     // Validation - Bean Validation (Jakarta Validation / Hibernate Validator)
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 

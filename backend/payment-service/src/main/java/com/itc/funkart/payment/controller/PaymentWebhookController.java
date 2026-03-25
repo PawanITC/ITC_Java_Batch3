@@ -1,10 +1,10 @@
 package com.itc.funkart.payment.controller;
 
+import com.itc.funkart.payment.dto.webhook.PaymentIntentWebhookDto;
+import com.itc.funkart.payment.dto.webhook.PaymentIntentMapper;
 import com.itc.funkart.payment.service.PaymentService;
 
 import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Event;
-import com.stripe.model.PaymentIntent;
 import com.stripe.net.Webhook;
 
 import org.slf4j.Logger;
@@ -29,29 +29,35 @@ public class PaymentWebhookController {
     public PaymentWebhookController(PaymentService paymentService) {
         this.paymentService = paymentService;
     }
-
     @PostMapping("/webhook")
     public ResponseEntity<String> handleStripeEvent(@RequestBody String payload,
                                                     @RequestHeader("Stripe-Signature") String signature) {
         try {
-            Event event = Webhook.constructEvent(payload, signature, webhookSecret);
-            String eventType = event.getType();
+            // Verify Stripe signature
+            Webhook.constructEvent(payload, signature, webhookSecret);
 
-            event.getDataObjectDeserializer().getObject().ifPresent(obj -> {
-                if (obj instanceof PaymentIntent intent) {
-                    switch (eventType) {
-                        case "payment_intent.succeeded" -> paymentService.handlePaymentSuccess(intent.getId());
-                        case "payment_intent.payment_failed" -> paymentService.handlePaymentFailure(intent.getId());
-                        default -> logger.info("Unhandled Stripe event: {}", eventType);
-                    }
-                }
-            });
+            // Map payload JSON into DTO
+            PaymentIntentWebhookDto dto = PaymentIntentMapper.fromJson(payload);
+
+            // Null-safe status handling
+            String status = dto.status();
+            if (status == null) {
+                logger.warn("Webhook received with null status for payment intent {}", dto.id());
+                return ResponseEntity.ok("Ignored webhook with null status");
+            }
+
+            switch (status) {
+                case "succeeded" -> paymentService.handlePaymentSuccess(dto.id());
+                case "failed" -> paymentService.handlePaymentFailure(dto.id());
+                default -> logger.info("Unhandled payment status: {}", status);
+            }
 
             return ResponseEntity.ok("Webhook processed");
 
         } catch (SignatureVerificationException ex) {
             logger.error("Invalid Stripe signature: {}", ex.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
+
         } catch (Exception ex) {
             logger.error("Error processing webhook: {}", ex.getMessage(), ex);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Webhook processing error");

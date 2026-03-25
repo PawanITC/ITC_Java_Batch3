@@ -12,6 +12,6 @@ public class StripeConfig {
 
     @PostConstruct
     public void init() {
-        com.stripe.Stripe.apiKey = apiKey; // Stripe.apiKey is static
+        com.stripe.Stripe.apiKey = this.apiKey; // ✅ only once
     }
 }
