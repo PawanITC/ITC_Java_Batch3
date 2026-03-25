@@ -1,10 +1,9 @@
 # ==================================================
-# API Gateway Microservice
+# Payment Service Microservice
 # ==================================================
 # Author: Abbas
-# Description: Central entry point for all client requests.
-#              Routes requests to appropriate backend microservices,
-#              handles authentication, and manages API versioning.
+# Description: Handles all payment-related operations including payment intent
+#              creation, payment confirmation, refunds, and Stripe integration.
 # ==================================================
 
 # ---------------------------
@@ -31,14 +30,14 @@ WORKDIR /app
 
 # Metadata Labels
 LABEL maintainer="Abbas"
-LABEL service.name="api-gateway"
-LABEL service.description="API Gateway - Routes requests to microservices"
+LABEL service.name="payment-service"
+LABEL service.description="Payment Service - Handles payments via Stripe integration"
 LABEL service.version="1.0.0"
 
 # Copy jar from build stage
 COPY --from=builder /app/build/libs/*.jar app.jar
 
-EXPOSE 8080
+EXPOSE 8082
 
 # Run the jar
 ENTRYPOINT ["java", "-jar", "app.jar"]
