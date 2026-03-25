@@ -26,11 +26,10 @@ public class StripeService {
     public PaymentIntent createPaymentIntent(BigDecimal amount,
                                              String currency,
                                              Long userId,
-                                             Long paymentId) throws StripeException {
+                                             Long paymentId,
+                                             String idempotencyKey) throws StripeException {
 
         long amountCents = amount.multiply(BigDecimal.valueOf(100)).longValueExact();
-
-        logger.info("Creating PaymentIntent for user {} with amount {}", userId, amount);
 
         Map<String, String> metadata = Map.of(
                 "userId", String.valueOf(userId),
@@ -46,11 +45,11 @@ public class StripeService {
                                 .setEnabled(true)
                                 .build()
                 )
+                .setReturnUrl("http://localhost:5173/")
                 .build();
 
-        // ✅ Idempotency key prevents duplicate intents
         RequestOptions options = RequestOptions.builder()
-                .setIdempotencyKey("payment-intent-" + paymentId)
+                .setIdempotencyKey(idempotencyKey)
                 .build();
 
         return PaymentIntent.create(params, options);
@@ -65,6 +64,7 @@ public class StripeService {
         return PaymentIntent.retrieve(paymentIntentId).confirm(
                 PaymentIntentConfirmParams.builder()
                         .setPaymentMethod(paymentMethodId)
+                        .setReturnUrl("http://localhost:5173/")
                         .build()
         );
     }

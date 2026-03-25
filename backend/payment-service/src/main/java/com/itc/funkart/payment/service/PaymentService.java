@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class PaymentService {
 
@@ -41,21 +43,31 @@ public class PaymentService {
     // ================= CREATE PAYMENT INTENT =================
     public ApiResponse<PaymentIntentResponse> createPaymentIntent(Long userId, CreatePaymentIntentRequest request) {
         try {
-            Payment payment = new Payment(userId, request.orderId(), request.amount(), request.currency());
-            payment = paymentRepository.save(payment);
+            // ✅ Generate a unique idempotency key per request
+            String idempotencyKey = "payment-intent-" + userId + "-" + request.orderId() + "-" + UUID.randomUUID();
 
+            // ✅ Create Stripe PaymentIntent first
             PaymentIntent stripeIntent = stripeService.createPaymentIntent(
-                    request.amount(), request.currency(), userId, payment.getId()
+                    request.amount(),
+                    request.currency(),
+                    userId,
+                    request.orderId(),   // you can use orderId or temp paymentId
+                    idempotencyKey       // pass the unique idempotency key
             );
 
+            // ✅ Now persist Payment in DB, including Stripe ID
+            Payment payment = new Payment(userId, request.orderId(), request.amount(), request.currency());
             payment.setStripePaymentIntentId(stripeIntent.getId());
             paymentRepository.save(payment);
 
-            return new ApiResponse<>(new PaymentIntentResponse(
-                    stripeIntent.getClientSecret(),
-                    stripeIntent.getId(),
-                    stripeIntent.getStatus()
-            ), "Payment intent created successfully");
+            return new ApiResponse<>(
+                    new PaymentIntentResponse(
+                            stripeIntent.getClientSecret(),
+                            stripeIntent.getId(),
+                            stripeIntent.getStatus()
+                    ),
+                    "Payment intent created successfully"
+            );
 
         } catch (StripeException ex) {
             throw new PaymentException("Failed to create payment intent: " + ex.getMessage());

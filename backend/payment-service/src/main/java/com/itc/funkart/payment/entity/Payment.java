@@ -23,11 +23,12 @@ public class Payment {
     private BigDecimal amount;
     private String currency;
     private String stripePaymentIntentId;
+
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Custom constructor for creating pending payments
+    // Custom constructor
     public Payment(Long userId, Long orderId, BigDecimal amount, String currency) {
         this.userId = userId;
         this.orderId = orderId;
@@ -36,5 +37,17 @@ public class Payment {
         this.status = "pending";
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+    }
+
+    // ================= JPA Lifecycle Callbacks =================
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = createdAt;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }
