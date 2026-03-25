@@ -1,8 +1,13 @@
 package com.example.notificationservice;
 
 import com.example.notificationservice.dto.OrderEventDTO;
+import com.example.notificationservice.model.Notification;
+import com.example.notificationservice.repository.NotificationRepository;
 import org.hibernate.validator.internal.constraintvalidators.bv.AssertTrueValidator;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.junit.jupiter.api.Assertions;
@@ -20,6 +25,24 @@ class NotificationServiceApplicationTests {
 
     @Autowired
     private AssertTrueValidator assertTrueValidator;
+
+    @Mock
+    NotificationRepository notificationRepository;
+
+    @Mock
+    private MockEmailSender mockEmailSender;
+
+    @Mock
+    private MockSmsSender mockSmsSender;
+
+    @Mock
+    private SmtpEmailSender smtpEmailSender;
+
+    @Mock
+    private TwilioSmsSender twilioSmsSender;
+
+    @InjectMocks
+    private NotificationServiceImpl service;
 
     @Test
     void contextLoads() {
@@ -50,14 +73,34 @@ class NotificationServiceApplicationTests {
 
     @Test //tests to see if an orderEventDto is successfully mapped to the model Notification object
     void serviceLayerMapsOrderEventDTOtoNotification() {
+        OrderEventDTO eventDTO = new OrderEventDTO();
+        eventDTO.setOrderId("12453");
+        eventDTO.setEmail("joe@gmail.com");
+        eventDTO.setPhone("123456789");
+        eventDTO.setStatus(OrderStatus.DELIVERED);
+
+        Notification n = NotificationServiceImpl.generateNotification(eventDTO);
+
+        Assertions.assertEquals("12453", n.getOrderId());
+        Assertions.assertEquals(OrderStatus.DELIVERED, n.getStatus());
+        Assertions.assertEquals("123456789", n.getPhone());
+        Assertions.assertEquals("joe@gmail.com", n.getEmail());
     }
 
-    @Test
+    @Test //a mocked test to ensure that when we pass the eventDTO object the service class method ,
+        // then it DEFINITELY has CALLED the interface JpaRepository.save() method to save the object to repo.
     void validateNotificationSavedToRepository() {
-    }
+        OrderEventDTO eventDTO = new OrderEventDTO();
+        eventDTO.setOrderId("12453");
+        eventDTO.setEmail("joe@gmail.com");
+        eventDTO.setPhone("123456789");
+        eventDTO.setStatus(OrderStatus.DELIVERED);
 
-    @Test //test whether the database connects with our credentials stored in secrets
-    void testDatabaseConnectivity() {
+        service.processOrderEvent(eventDTO);
+
+        Mockito.verify(notificationRepository, Mockito.times(1)).save(Mockito.any(Notification.class));
+        //we verify here that INDEED , behind the scenes somewhere our service class method is calling this exact method
+        //with the parameter being a Notification class object being passed through
     }
 
     @Test
@@ -144,7 +187,8 @@ class NotificationServiceApplicationTests {
     void TwilioSmsSenderCatchesException() {
     }
 
-    //------------------------FURTHER PERFORMANCE/OTHER TESTS----------------------------------------------------------------
+    //------------------------FURTHER PERFORMANCE/OTHER TESTS--------------------------------------------------------------------------------------------------
+
     @Test //testing resilliance4j's retry for requests sent to SMTP server
     void retryTestForSmptpEmailSender() {
     }
@@ -167,6 +211,10 @@ class NotificationServiceApplicationTests {
 
     @Test //testing fallback method for SMTP Email sender activates when resilience4j metrics fail
     void fallbackForSmtpEmailSender() {
+    }
+
+    @Test //test whether the database connects with our credentials stored in secrets
+    void testDatabaseConnectivity() {
     }
 
 

@@ -5,6 +5,7 @@ import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repository.NotificationRepository;
 import com.example.notificationservice.template.*;
 
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,11 +34,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void processOrderEvent(OrderEventDTO event) {
 
-        Notification notification = new Notification();
-        notification.setOrderId(event.getOrderId());
-        notification.setEmail(event.getEmail());
-        notification.setPhone(event.getPhone());
-        notification.setStatus(event.getStatus());
+        Notification notification = generateNotification(event);
 
         repository.save(notification);//saves notification log to database
 
@@ -65,6 +62,15 @@ public class NotificationServiceImpl implements NotificationService {
 
             }
     }
+    }
+
+    public static @NonNull Notification generateNotification(OrderEventDTO event) {
+        Notification notification = new Notification();
+        notification.setOrderId(event.getOrderId());
+        notification.setEmail(event.getEmail());
+        notification.setPhone(event.getPhone());
+        notification.setStatus(event.getStatus());
+        return notification;
     }
 
     //adding logic to retry with resilience4j should request fail (implemented retry here ,
