@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -20,7 +19,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(PaymentException.class)
     public ResponseEntity<ApiResponse<?>> handlePaymentException(
-            PaymentException ex, WebRequest request) {
+            PaymentException ex) {
 
         logger.error("✗ Payment error: {}", ex.getMessage());
 
@@ -40,12 +39,31 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(
-            IllegalArgumentException ex, WebRequest request) {
+            IllegalArgumentException ex) {
 
         logger.error("✗ Illegal argument: {}", ex.getMessage());
 
         ErrorDetails errorDetails = new ErrorDetails(
                 "INVALID_ARGUMENT",
+                ex.getMessage()
+        );
+
+        return new ResponseEntity<>(
+                new ApiResponse<>(errorDetails),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+    /**
+     * Handle IntentMappingException (validation errors)
+     */
+    @ExceptionHandler(IntentMappingException.class)
+    public ResponseEntity<ApiResponse<?>> handleIntentMappingException(
+            IntentMappingException ex) {
+
+        logger.error("✗ Failed to map Stripe webhook JSON to DTO: {}", ex.getMessage());
+
+        ErrorDetails errorDetails = new ErrorDetails(
+                "MAPPING_FAILED",
                 ex.getMessage()
         );
 
@@ -60,7 +78,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGenericException(
-            Exception ex, WebRequest request) {
+            Exception ex) {
 
         logger.error("✗ Unexpected error: {}", ex.getMessage(), ex);
 

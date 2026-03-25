@@ -1,16 +1,17 @@
 package com.itc.funkart.payment.service;
 
-import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.Refund;
+import com.stripe.net.RequestOptions;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.PaymentIntentConfirmParams;
 import com.stripe.param.RefundCreateParams;
-import jakarta.annotation.PostConstruct;
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,30 +21,16 @@ import java.util.Map;
 public class StripeService {
 
     private static final Logger logger = LoggerFactory.getLogger(StripeService.class);
-    private static boolean initialized = false;
 
-    @Value("${stripe.api-key}")
-    private String stripeApiKey;
+    // ================= CREATE PAYMENT INTENT =================
+    public PaymentIntent createPaymentIntent(BigDecimal amount,
+                                             String currency,
+                                             Long userId,
+                                             Long paymentId) throws StripeException {
 
-    @PostConstruct
-    public void init() {
-        setApiKey(stripeApiKey);
-    }
-
-    /**
-     * Static-safe method to set Stripe API key once
-     */
-    public static synchronized void setApiKey(String key) {
-        if (!initialized) {
-            Stripe.apiKey = key;
-            initialized = true;
-            logger.info("✓ Stripe API initialized (static-safe)");
-        }
-    }
-
-    // ================= STATIC WRAPPERS =================
-    public static PaymentIntent createPaymentIntentStatic(BigDecimal amount, String currency, Long userId, Long paymentId) throws StripeException {
         long amountCents = amount.multiply(BigDecimal.valueOf(100)).longValueExact();
+
+        logger.info("Creating PaymentIntent for user {} with amount {}", userId, amount);
 
         Map<String, String> metadata = Map.of(
                 "userId", String.valueOf(userId),
@@ -55,14 +42,26 @@ public class StripeService {
                 .setCurrency(currency.toLowerCase())
                 .putAllMetadata(metadata)
                 .setAutomaticPaymentMethods(
-                        PaymentIntentCreateParams.AutomaticPaymentMethods.builder().setEnabled(true).build()
+                        PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                                .setEnabled(true)
+                                .build()
                 )
                 .build();
 
-        return PaymentIntent.create(params);
+        // ✅ Idempotency key prevents duplicate intents
+        RequestOptions options = RequestOptions.builder()
+                .setIdempotencyKey("payment-intent-" + paymentId)
+                .build();
+
+        return PaymentIntent.create(params, options);
     }
 
-    public static PaymentIntent confirmPaymentIntentStatic(String paymentIntentId, String paymentMethodId) throws StripeException {
+    // ================= CONFIRM PAYMENT =================
+    public PaymentIntent confirmPaymentIntent(String paymentIntentId,
+                                              String paymentMethodId) throws StripeException {
+
+        logger.info("Confirming PaymentIntent {}", paymentIntentId);
+
         return PaymentIntent.retrieve(paymentIntentId).confirm(
                 PaymentIntentConfirmParams.builder()
                         .setPaymentMethod(paymentMethodId)
@@ -70,15 +69,28 @@ public class StripeService {
         );
     }
 
-    public static PaymentIntent retrievePaymentIntentStatic(String paymentIntentId) throws StripeException {
+    // ================= RETRIEVE =================
+    public PaymentIntent retrievePaymentIntent(String paymentIntentId) throws StripeException {
         return PaymentIntent.retrieve(paymentIntentId);
     }
 
-    public static void refundPaymentStatic(String paymentIntentId) throws StripeException {
-        Refund.create(RefundCreateParams.builder().setPaymentIntent(paymentIntentId).build());
+    // ================= REFUND =================
+    public void refundPayment(String paymentIntentId) throws StripeException {
+
+        logger.info("Refunding PaymentIntent {}", paymentIntentId);
+
+        Refund.create(
+                RefundCreateParams.builder()
+                        .setPaymentIntent(paymentIntentId)
+                        .build()
+        );
     }
 
-    public static void cancelPaymentIntentStatic(String paymentIntentId) throws StripeException {
+    // ================= CANCEL =================
+    public void cancelPaymentIntent(String paymentIntentId) throws StripeException {
+
+        logger.info("Cancelling PaymentIntent {}", paymentIntentId);
+
         PaymentIntent.retrieve(paymentIntentId).cancel();
     }
 }

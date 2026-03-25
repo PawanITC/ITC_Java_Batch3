@@ -21,13 +21,21 @@ public class PaymentService {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
 
+    // ================= STATUS CONSTANTS =================
+    private static final String STATUS_SUCCEEDED = "succeeded";
+    private static final String STATUS_FAILED = "failed";
+    private static final String STATUS_REFUNDED = "refunded";
+
     private final PaymentRepository paymentRepository;
     private final KafkaEventPublisher kafkaEventPublisher;
+    private final StripeService stripeService;
 
     public PaymentService(PaymentRepository paymentRepository,
+                          StripeService stripeService,
                           KafkaEventPublisher kafkaEventPublisher) {
         this.paymentRepository = paymentRepository;
         this.kafkaEventPublisher = kafkaEventPublisher;
+        this.stripeService = stripeService;
     }
 
     // ================= CREATE PAYMENT INTENT =================
@@ -36,7 +44,7 @@ public class PaymentService {
             Payment payment = new Payment(userId, request.orderId(), request.amount(), request.currency());
             payment = paymentRepository.save(payment);
 
-            PaymentIntent stripeIntent = StripeService.createPaymentIntentStatic(
+            PaymentIntent stripeIntent = stripeService.createPaymentIntent(
                     request.amount(), request.currency(), userId, payment.getId()
             );
 
@@ -58,18 +66,18 @@ public class PaymentService {
     public ApiResponse<PaymentResponse> confirmPayment(Long userId, ConfirmPaymentRequest request) {
         try {
             Payment payment = findPaymentForUser(request.paymentIntentId(), userId);
-            PaymentIntent confirmedIntent = StripeService.confirmPaymentIntentStatic(
+
+            PaymentIntent confirmedIntent = stripeService.confirmPaymentIntent(
                     request.paymentIntentId(), request.paymentMethodId()
             );
 
+            // ✅ Only update DB
             payment.setStatus(confirmedIntent.getStatus());
             paymentRepository.save(payment);
-            publishKafkaEvent(payment, confirmedIntent);
 
-            return new ApiResponse<>(mapToResponse(payment), "Payment confirmed successfully");
+            return new ApiResponse<>(mapToResponse(payment), "Payment confirmation initiated");
 
         } catch (StripeException ex) {
-            publishPaymentFailedEvent(request.paymentIntentId(), userId, ex);
             throw new PaymentException("Payment confirmation failed: " + ex.getMessage());
         }
     }
@@ -77,13 +85,16 @@ public class PaymentService {
     // ================= REFUND PAYMENT =================
     public ApiResponse<PaymentResponse> refundPayment(Long userId, Long paymentId) {
         Payment payment = findPaymentByUser(paymentId, userId);
-        if (!"succeeded".equals(payment.getStatus())) {
+
+        if (!STATUS_SUCCEEDED.equals(payment.getStatus())) {
             throw new PaymentException("Can only refund succeeded payments");
         }
+
         try {
-            StripeService.refundPaymentStatic(payment.getStripePaymentIntentId());
-            payment.setStatus("refunded");
+            stripeService.retrievePaymentIntent(payment.getStripePaymentIntentId());
+            payment.setStatus(STATUS_REFUNDED);
             paymentRepository.save(payment);
+
             return new ApiResponse<>(mapToResponse(payment), "Payment refunded successfully");
         } catch (StripeException ex) {
             throw new PaymentException("Refund failed: " + ex.getMessage());
@@ -101,7 +112,12 @@ public class PaymentService {
         Payment payment = paymentRepository.findByStripePaymentIntentId(stripePaymentIntentId)
                 .orElseThrow(() -> new PaymentException("Payment not found for Stripe ID " + stripePaymentIntentId));
 
-        payment.setStatus("succeeded");
+        if (STATUS_SUCCEEDED.equals(payment.getStatus())) {
+            logger.info("Payment already succeeded, skipping Stripe ID {}", stripePaymentIntentId);
+            return;
+        }
+
+        payment.setStatus(STATUS_SUCCEEDED);
         paymentRepository.save(payment);
 
         kafkaEventPublisher.publishPaymentCompletedEvent(
@@ -122,7 +138,12 @@ public class PaymentService {
         Payment payment = paymentRepository.findByStripePaymentIntentId(stripePaymentIntentId)
                 .orElseThrow(() -> new PaymentException("Payment not found for Stripe ID " + stripePaymentIntentId));
 
-        payment.setStatus("failed");
+        if (STATUS_FAILED.equals(payment.getStatus())) {
+            logger.info("Payment already failed, skipping Stripe ID {}", stripePaymentIntentId);
+            return;
+        }
+
+        payment.setStatus(STATUS_FAILED);
         paymentRepository.save(payment);
 
         kafkaEventPublisher.publishPaymentFailedEvent(
@@ -160,35 +181,15 @@ public class PaymentService {
         return payment;
     }
 
-    private void publishKafkaEvent(Payment payment, PaymentIntent intent) {
-        String status = intent.getStatus();
-        if ("succeeded".equals(status)) {
-            kafkaEventPublisher.publishPaymentCompletedEvent(
-                    new PaymentCompletedEvent(payment.getId(), payment.getUserId(), payment.getOrderId(),
-                            payment.getAmount(), payment.getCurrency(), System.currentTimeMillis())
-            );
-        } else if (!"requires_action".equals(status)) {
-            kafkaEventPublisher.publishPaymentFailedEvent(
-                    new PaymentFailedEvent(payment.getId(), payment.getUserId(), payment.getOrderId(),
-                            payment.getAmount(), payment.getCurrency(),
-                            "Payment declined or failed",
-                            intent.getLastPaymentError() != null ? intent.getLastPaymentError().getCode() : "unknown",
-                            System.currentTimeMillis())
-            );
-        }
-    }
-
-    private void publishPaymentFailedEvent(String stripePaymentIntentId, Long userId, StripeException ex) {
-        paymentRepository.findByStripePaymentIntentId(stripePaymentIntentId)
-                .ifPresent(payment -> kafkaEventPublisher.publishPaymentFailedEvent(
-                        new PaymentFailedEvent(payment.getId(), payment.getUserId(), payment.getOrderId(),
-                                payment.getAmount(), payment.getCurrency(),
-                                ex.getMessage(), ex.getCode(), System.currentTimeMillis())
-                ));
-    }
-
     private PaymentResponse mapToResponse(Payment payment) {
-        return new PaymentResponse(payment.getId(), payment.getUserId(), payment.getOrderId(),
-                payment.getAmount(), payment.getCurrency(), payment.getStatus(), payment.getCreatedAt());
+        return new PaymentResponse(
+                payment.getId(),
+                payment.getUserId(),
+                payment.getOrderId(),
+                payment.getAmount(),
+                payment.getCurrency(),
+                payment.getStatus(),
+                payment.getCreatedAt()
+        );
     }
 }
