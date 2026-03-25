@@ -54,22 +54,22 @@ class NotificationServiceApplicationTests {
 
     @Test //overall endpoint test, when request is received by our endpoint it should return a response back
     void validateEndpointReceiveOrderEvent() {
-        Assertions.assertEquals(true, true);
+
     }
 
     @Test //if our request is valid then a 'successful' response should be returned
     void validateEndpointSendSuccessfulResponse() {
-        Assertions.assertEquals(true, true);
+
     }
 
     @Test //if our request is invalid then an 'unsuccessful' response should be returned
     void validateEndpointSendUnsuccessfulResponse() {
-        Assertions.assertEquals(true, true);
+
     }
 
     @Test //ensure we receive event dto with correctly validated fields
     void validateOrderEventDTOFields() {//ensure all fields are validated
-        Assertions.assertEquals(true, true);
+
 
     }
 
