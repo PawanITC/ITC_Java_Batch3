@@ -20,23 +20,24 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
-
     private final PaymentService paymentService;
 
     public PaymentController(PaymentService paymentService) {
         this.paymentService = paymentService;
     }
 
+    // ================= CREATE PAYMENT INTENT =================
     @PostMapping("/create-intent")
     public ResponseEntity<ApiResponse<?>> createPaymentIntent(
             @AuthenticationPrincipal JwtUserDto user,
             @Valid @RequestBody CreatePaymentIntentRequest request) {
 
-        logger.info("User {} requested to create payment intent", user.id());
+        logger.info("User {} requested to create payment intent for order {}", user.id(), request.orderId());
         ApiResponse<?> response = paymentService.createPaymentIntent(user.id(), request);
         return ResponseEntity.ok(response);
     }
 
+    // ================= CONFIRM PAYMENT =================
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponse<?>> confirmPayment(
             @AuthenticationPrincipal JwtUserDto user,
@@ -47,6 +48,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    // ================= GET PAYMENT =================
     @GetMapping("/{paymentId}")
     public ResponseEntity<ApiResponse<?>> getPayment(
             @AuthenticationPrincipal JwtUserDto user,
@@ -57,6 +59,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    // ================= REFUND PAYMENT =================
     @PostMapping("/{paymentId}/refund")
     public ResponseEntity<ApiResponse<?>> refundPayment(
             @AuthenticationPrincipal JwtUserDto user,

@@ -1,16 +1,23 @@
 package com.itc.funkart.payment.dto.webhook;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.Map;
+import java.io.IOException;
 
 /**
- * DTO for Stripe PaymentIntent webhook payload.
+ * Minimal DTO for Stripe PaymentIntent webhook events.
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record PaymentIntentWebhookDto(
         @JsonProperty("id") String id,
-        @JsonProperty("status") String status,
-        @JsonProperty("metadata") Map<String, String> metadata
-) {}
+        @JsonProperty("status") String status
+) {
+
+    /**
+     * Convert raw JSON payload into DTO.
+     */
+    public static PaymentIntentWebhookDto fromJson(String json) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(json, PaymentIntentWebhookDto.class);
+    }
+}
