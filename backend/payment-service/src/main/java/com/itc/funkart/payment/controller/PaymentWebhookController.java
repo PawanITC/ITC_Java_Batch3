@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentWebhookController {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentWebhookController.class);
-
     private final PaymentService paymentService;
 
     @Value("${stripe.webhook-secret}")
@@ -29,23 +28,24 @@ public class PaymentWebhookController {
     public PaymentWebhookController(PaymentService paymentService) {
         this.paymentService = paymentService;
     }
+
     @PostMapping("/webhook")
     public ResponseEntity<String> handleStripeEvent(@RequestBody String payload,
                                                     @RequestHeader("Stripe-Signature") String signature) {
         try {
-            // Verify Stripe signature
+            // ================= VERIFY SIGNATURE =================
             Webhook.constructEvent(payload, signature, webhookSecret);
 
-            // Map payload JSON into DTO
+            // ================= MAP PAYLOAD =================
             PaymentIntentWebhookDto dto = PaymentIntentMapper.fromJson(payload);
 
-            // Null-safe status handling
             String status = dto.status();
             if (status == null) {
                 logger.warn("Webhook received with null status for payment intent {}", dto.id());
                 return ResponseEntity.ok("Ignored webhook with null status");
             }
 
+            // ================= HANDLE EVENT =================
             switch (status) {
                 case "succeeded" -> paymentService.handlePaymentSuccess(dto.id());
                 case "failed" -> paymentService.handlePaymentFailure(dto.id());

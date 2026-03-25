@@ -33,6 +33,25 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST
         );
     }
+    /**
+     * Handle WebhookException
+     */
+    @ExceptionHandler(WebhookException.class)
+    public ResponseEntity<ApiResponse<?>> handlePaymentException(
+            WebhookException ex) {
+
+        logger.error("✗ Webhook error: {}", ex.getMessage());
+
+        ErrorDetails errorDetails = new ErrorDetails(
+                "WEBHOOK_ERROR",
+                ex.getMessage()
+        );
+
+        return new ResponseEntity<>(
+                new ApiResponse<>(errorDetails),
+                HttpStatus.BAD_REQUEST
+        );
+    }
 
     /**
      * Handle IllegalArgumentException (validation errors)

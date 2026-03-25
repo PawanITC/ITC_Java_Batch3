@@ -10,20 +10,20 @@ import com.itc.funkart.payment.entity.Payment;
 import com.itc.funkart.payment.exception.PaymentException;
 import com.itc.funkart.payment.repository.PaymentRepository;
 import com.itc.funkart.payment.response.ApiResponse;
+
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import org.springframework.stereotype.Service;
 
 @Service
 public class PaymentService {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
 
-    // ================= STATUS CONSTANTS =================
     private static final String STATUS_SUCCEEDED = "succeeded";
     private static final String STATUS_FAILED = "failed";
     private static final String STATUS_REFUNDED = "refunded";
@@ -43,19 +43,17 @@ public class PaymentService {
     // ================= CREATE PAYMENT INTENT =================
     public ApiResponse<PaymentIntentResponse> createPaymentIntent(Long userId, CreatePaymentIntentRequest request) {
         try {
-            // ✅ Generate a unique idempotency key per request
-            String idempotencyKey = "payment-intent-" + userId + "-" + request.orderId() + "-" + UUID.randomUUID();
+            // Deterministic idempotency key (no UUID)
+            String idempotencyKey = "payment-intent-" + userId + "-" + request.orderId();
 
-            // ✅ Create Stripe PaymentIntent first
             PaymentIntent stripeIntent = stripeService.createPaymentIntent(
                     request.amount(),
                     request.currency(),
                     userId,
-                    request.orderId(),   // you can use orderId or temp paymentId
-                    idempotencyKey       // pass the unique idempotency key
+                    request.orderId(),
+                    idempotencyKey
             );
 
-            // ✅ Now persist Payment in DB, including Stripe ID
             Payment payment = new Payment(userId, request.orderId(), request.amount(), request.currency());
             payment.setStripePaymentIntentId(stripeIntent.getId());
             paymentRepository.save(payment);
@@ -83,11 +81,10 @@ public class PaymentService {
                     request.paymentIntentId(), request.paymentMethodId()
             );
 
-            // ✅ Only update DB
             payment.setStatus(confirmedIntent.getStatus());
             paymentRepository.save(payment);
 
-            return new ApiResponse<>(mapToResponse(payment), "Payment confirmation initiated");
+            return new ApiResponse<>(mapToResponse(payment), "Payment confirmation processed");
 
         } catch (StripeException ex) {
             throw new PaymentException("Payment confirmation failed: " + ex.getMessage());
@@ -124,10 +121,7 @@ public class PaymentService {
         Payment payment = paymentRepository.findByStripePaymentIntentId(stripePaymentIntentId)
                 .orElseThrow(() -> new PaymentException("Payment not found for Stripe ID " + stripePaymentIntentId));
 
-        if (STATUS_SUCCEEDED.equals(payment.getStatus())) {
-            logger.info("Payment already succeeded, skipping Stripe ID {}", stripePaymentIntentId);
-            return;
-        }
+        if (STATUS_SUCCEEDED.equals(payment.getStatus())) return;
 
         payment.setStatus(STATUS_SUCCEEDED);
         paymentRepository.save(payment);
@@ -142,7 +136,6 @@ public class PaymentService {
                         System.currentTimeMillis()
                 )
         );
-
         logger.info("Payment succeeded handled for Stripe ID {}", stripePaymentIntentId);
     }
 
@@ -150,10 +143,7 @@ public class PaymentService {
         Payment payment = paymentRepository.findByStripePaymentIntentId(stripePaymentIntentId)
                 .orElseThrow(() -> new PaymentException("Payment not found for Stripe ID " + stripePaymentIntentId));
 
-        if (STATUS_FAILED.equals(payment.getStatus())) {
-            logger.info("Payment already failed, skipping Stripe ID {}", stripePaymentIntentId);
-            return;
-        }
+        if (STATUS_FAILED.equals(payment.getStatus())) return;
 
         payment.setStatus(STATUS_FAILED);
         paymentRepository.save(payment);
@@ -170,26 +160,23 @@ public class PaymentService {
                         System.currentTimeMillis()
                 )
         );
-
         logger.warn("Payment failed handled for Stripe ID {}", stripePaymentIntentId);
     }
 
-    // ================= HELPER METHODS =================
+    // ================= HELPERS =================
     private Payment findPaymentForUser(String stripePaymentIntentId, Long userId) {
         Payment payment = paymentRepository.findByStripePaymentIntentId(stripePaymentIntentId)
                 .orElseThrow(() -> new PaymentException("Payment not found"));
-        if (!payment.getUserId().equals(userId)) {
-            throw new PaymentException("Unauthorized access to payment");
-        }
+        if (!payment.getUserId().equals(userId))
+            throw new PaymentException("Unauthorized access");
         return payment;
     }
 
     private Payment findPaymentByUser(Long paymentId, Long userId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentException("Payment not found"));
-        if (!payment.getUserId().equals(userId)) {
-            throw new PaymentException("Unauthorized access to payment");
-        }
+        if (!payment.getUserId().equals(userId))
+            throw new PaymentException("Unauthorized access");
         return payment;
     }
 

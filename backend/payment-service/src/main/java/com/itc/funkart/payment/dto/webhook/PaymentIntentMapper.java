@@ -1,22 +1,27 @@
 package com.itc.funkart.payment.dto.webhook;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.itc.funkart.payment.exception.IntentMappingException;
+import com.itc.funkart.payment.exception.WebhookException;
+
+import java.io.IOException;
 
 /**
- * Mapper helper to convert raw JSON into PaymentIntentWebhookDto.
+ * Mapper for converting raw Stripe webhook JSON to DTOs.
  */
 public class PaymentIntentMapper {
+
     private PaymentIntentMapper() {
         /* This utility class should not be instantiated */
     }
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
-    public static PaymentIntentWebhookDto fromJson(String payload) {
+    /**
+     * Convert raw JSON payload to PaymentIntentWebhookDto.
+     * @param json raw Stripe webhook JSON
+     * @return PaymentIntentWebhookDto
+     */
+    public static PaymentIntentWebhookDto fromJson(String json) {
         try {
-            return objectMapper.readValue(payload, PaymentIntentWebhookDto.class);
-        } catch (Exception ex) {
-            throw new IntentMappingException("Failed to map Stripe webhook JSON to DTO");
+            return PaymentIntentWebhookDto.fromJson(json);
+        } catch (IOException e) {
+            throw new WebhookException("Failed to parse Stripe webhook payload: " + e.getMessage());
         }
     }
 }

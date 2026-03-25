@@ -8,7 +8,6 @@ import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.PaymentIntentConfirmParams;
 import com.stripe.param.RefundCreateParams;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,18 +21,20 @@ public class StripeService {
 
     private static final Logger logger = LoggerFactory.getLogger(StripeService.class);
 
+    private static final String DEFAULT_RETURN_URL = "http://localhost:5173/"; // Can be configured via properties
+
     // ================= CREATE PAYMENT INTENT =================
     public PaymentIntent createPaymentIntent(BigDecimal amount,
                                              String currency,
                                              Long userId,
-                                             Long paymentId,
+                                             Long orderId,
                                              String idempotencyKey) throws StripeException {
 
         long amountCents = amount.multiply(BigDecimal.valueOf(100)).longValueExact();
 
         Map<String, String> metadata = Map.of(
                 "userId", String.valueOf(userId),
-                "paymentId", String.valueOf(paymentId)
+                "orderId", String.valueOf(orderId)
         );
 
         PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
@@ -45,12 +46,13 @@ public class StripeService {
                                 .setEnabled(true)
                                 .build()
                 )
-                .setReturnUrl("http://localhost:5173/")
                 .build();
 
         RequestOptions options = RequestOptions.builder()
                 .setIdempotencyKey(idempotencyKey)
                 .build();
+
+        logger.info("Creating Stripe PaymentIntent for user {} and order {}", userId, orderId);
 
         return PaymentIntent.create(params, options);
     }
@@ -59,37 +61,37 @@ public class StripeService {
     public PaymentIntent confirmPaymentIntent(String paymentIntentId,
                                               String paymentMethodId) throws StripeException {
 
-        logger.info("Confirming PaymentIntent {}", paymentIntentId);
+        logger.info("Confirming Stripe PaymentIntent {}", paymentIntentId);
 
-        return PaymentIntent.retrieve(paymentIntentId).confirm(
-                PaymentIntentConfirmParams.builder()
-                        .setPaymentMethod(paymentMethodId)
-                        .setReturnUrl("http://localhost:5173/")
-                        .build()
-        );
+        PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
+
+        PaymentIntentConfirmParams confirmParams = PaymentIntentConfirmParams.builder()
+                .setPaymentMethod(paymentMethodId)
+                .setReturnUrl(DEFAULT_RETURN_URL)
+                .build();
+
+        return intent.confirm(confirmParams);
     }
 
-    // ================= RETRIEVE =================
+    // ================= RETRIEVE PAYMENT INTENT =================
     public PaymentIntent retrievePaymentIntent(String paymentIntentId) throws StripeException {
         return PaymentIntent.retrieve(paymentIntentId);
     }
 
     // ================= REFUND =================
     public void refundPayment(String paymentIntentId) throws StripeException {
+        logger.info("Refunding Stripe PaymentIntent {}", paymentIntentId);
 
-        logger.info("Refunding PaymentIntent {}", paymentIntentId);
+        RefundCreateParams refundParams = RefundCreateParams.builder()
+                .setPaymentIntent(paymentIntentId)
+                .build();
 
-        Refund.create(
-                RefundCreateParams.builder()
-                        .setPaymentIntent(paymentIntentId)
-                        .build()
-        );
+        Refund.create(refundParams);
     }
 
     // ================= CANCEL =================
     public void cancelPaymentIntent(String paymentIntentId) throws StripeException {
-
-        logger.info("Cancelling PaymentIntent {}", paymentIntentId);
+        logger.info("Cancelling Stripe PaymentIntent {}", paymentIntentId);
 
         PaymentIntent.retrieve(paymentIntentId).cancel();
     }
