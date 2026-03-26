@@ -13,15 +13,13 @@ FROM gradle:9.4.0-jdk17 AS builder
 
 WORKDIR /app
 
-# Copy Gradle wrapper and project files
-COPY gradlew .
-COPY gradle ./gradle
+# Copy project files
 COPY build.gradle .
 COPY settings.gradle .
 COPY src ./src
 
 # Build the Spring Boot fat jar (skip tests to speed up)
-RUN ./gradlew clean build -x test
+RUN gradle clean build -x test
 
 # ---------------------------
 # Stage 2: Runtime

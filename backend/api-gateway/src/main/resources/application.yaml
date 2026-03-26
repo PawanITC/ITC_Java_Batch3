@@ -33,6 +33,7 @@ frontend:
 
 app:
   secure-cookie: ${APP_SECURE_COOKIE}
+  cookie-name: ${APP_COOKIE_NAME}
 
 github:
   client-id: ${GITHUB_CLIENT_ID}
