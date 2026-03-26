@@ -1,6 +1,31 @@
-version: "3.9"
-
 services:
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_INIT_LIMIT: 5
+    ports:
+      - "2181:2181"
+    networks:
+      - db-network
+
+  kafka:
+    container_name: kafka
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    networks:
+      - db-network
 
   postgres:
     container_name: postgres-db
@@ -11,11 +36,17 @@ services:
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: mydb
     ports:
-      - "5432:5432" # host port | container port
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data # ./postgres_id is an alternative means to access postgres
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - db-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   pgAdmin:
     container_name: pgadmin-ui
@@ -27,9 +58,66 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - db-network
+
+  user-service:
+    container_name: user-service
+    build:
+      context: ./backend/user-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/user-service/.env
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - db-network
+    restart: on-failure:3
+
+  payment-service:
+    container_name: payment-service
+    build:
+      context: ./backend/payment-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/payment-service/.env
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - db-network
+    restart: on-failure:3
+
+  api-gateway:
+    container_name: api-gateway
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/api-gateway/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      user-service:
+        condition: service_started
+    networks:
+      - db-network
+    restart: on-failure:3
 
 volumes:
   postgres_data:

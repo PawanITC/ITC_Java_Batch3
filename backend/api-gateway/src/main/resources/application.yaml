@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: api-gateway
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/v1/users/**
+
+server:
+  port: 8080
+
+api:
+  version: /api/v1
+
+user:
+  service:
+    url: ${USER_SERVICE_URL}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS}
+  cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
+
+frontend:
+  url: ${FRONTEND_URL}
+
+app:
+  secure-cookie: ${APP_SECURE_COOKIE}
+  cookie-name: ${APP_COOKIE_NAME}
+
+github:
+  client-id: ${GITHUB_CLIENT_ID}
+  client-secret: ${GITHUB_CLIENT_SECRET}
+  redirect-uri: ${GITHUB_REDIRECT_URI}
