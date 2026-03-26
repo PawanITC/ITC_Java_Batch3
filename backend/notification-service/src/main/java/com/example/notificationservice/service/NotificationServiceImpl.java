@@ -67,7 +67,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
     }
 
-    public static @Nonnull Notification generateNotification(OrderEventDTO event) {
+    public static Notification generateNotification(OrderEventDTO event) {
         Notification notification = new Notification();
         notification.setOrderId(event.getOrderId());
         notification.setEmail(event.getEmail());

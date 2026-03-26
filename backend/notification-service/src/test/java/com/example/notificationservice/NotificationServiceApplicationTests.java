@@ -141,15 +141,36 @@ class NotificationServiceApplicationTests {
 
     }
 
-    @Test //the mock email sender should not print anything to console
-    void validateMockEmailSenderWhenEmailFieldIsEmpty() {
+    @Test //testing both the mock email sender and live smtp email senders. i.e they should not initiate trying to send email because e-mail field is empty
+    void validateEmailSenderWhenEmailFieldIsEmpty() {
 
+        OrderEventDTO eventDTO = new OrderEventDTO();
+        eventDTO.setOrderId("12453");
+        eventDTO.setEmail("  ");
+        eventDTO.setPhone("123456789");
+        eventDTO.setStatus(OrderStatus.DELIVERED);
 
+        service.processOrderEvent(eventDTO);
+
+        Mockito.verify(smtpEmailSender, Mockito.never()).sendEmail(Mockito.any(),Mockito.any(),Mockito.any());//over here mockito.never() tests to see if that specific was
+        //was truly not called
+        Mockito.verify(mockEmailSender, Mockito.never()).sendEmail(Mockito.any(),Mockito.any(),Mockito.any());
 
     }
 
     @Test //validate that the simple mail transfer protocol is able to send live emails when everything is correct such as authentication etc.
     void validateSmtpEmailSender() {
+
+        OrderEventDTO eventDTO = new OrderEventDTO();
+        eventDTO.setOrderId("12453");
+        eventDTO.setEmail("Joe@gmail.com");
+        eventDTO.setPhone("123456789");
+        eventDTO.setStatus(OrderStatus.DELIVERED);
+
+        service.processOrderEvent(eventDTO);
+
+        Mockito.verify(smtpEmailSender, Mockito.times(1)).sendEmail(Mockito.any(),Mockito.any(),Mockito.any());//over here mockito.never() tests to see if that specific was
+        //was truly not called
     }
 
     @Test //validate that it is able to successfully catch a generic exception caused by common issues such as authentication failure or
@@ -178,10 +199,32 @@ class NotificationServiceApplicationTests {
 
     @Test //the mock sms sender should not print anything to console
     void validateMockSmsSenderWhenNumberIsNull() {
+
+        OrderEventDTO eventDTO = new OrderEventDTO();
+        eventDTO.setOrderId("12453");
+        eventDTO.setEmail("Joe@hotmail.com");
+        eventDTO.setPhone("");
+        eventDTO.setStatus(OrderStatus.DELIVERED);
+
+        service.processOrderEvent(eventDTO);//real service , but uses mocked field parameter (mocksmssender, twilio etc.)
+
+        Mockito.verify(mockSmsSender, Mockito.never()).sendSms(Mockito.any(),Mockito.any());//over here mockito.never() tests to see if that specific was
+        //was truly not called
+        Mockito.verify(twilioSmsSender, Mockito.never()).sendSms(Mockito.any(),Mockito.any());
     }
 
     @Test //validate that the twilio sms is able to send live sms when everything is correct such as authentication etc.
     void validateTwilioSmsSender() {
+
+        OrderEventDTO eventDTO = new OrderEventDTO();
+        eventDTO.setOrderId("12453");
+        eventDTO.setEmail("Joe@hotmail.com");
+        eventDTO.setPhone("07871976543");
+        eventDTO.setStatus(OrderStatus.DELIVERED);
+
+        service.processOrderEvent(eventDTO);//real service , but uses mocked field parameter (mocksmssender, twilio etc.)
+
+        Mockito.verify(twilioSmsSender).sendSms(Mockito.any(String.class),Mockito.any(String.class));
     }
 
     @Test //validate that it is able to successfully catch a generic exception caused by common issues such as authentication failure or
