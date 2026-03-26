@@ -1,3 +1,8 @@
+// Unit test for GlobalExceptionHandler
+// Verifies that exceptions are correctly mapped to ApiResponse
+// Ensures proper HTTP status codes and messages are returned
+// Uses ConstraintViolationException as a sample case
+// Note: Full exception flow is also covered in controller tests
 package com.itc.catalogueservice.exception;
 
 import com.itc.catalogueservice.response.ApiResponse;

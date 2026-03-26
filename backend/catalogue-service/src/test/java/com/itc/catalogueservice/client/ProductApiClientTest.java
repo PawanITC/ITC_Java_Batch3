@@ -1,46 +1,28 @@
 package com.itc.catalogueservice.client;
 
-import com.itc.catalogueservice.exception.external.ExternalServiceFailureException;
-import com.itc.catalogueservice.exception.external.ExternalServiceTimeoutException;
+import com.itc.catalogueservice.dto.ProductDTO;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProductApiClientTest {
 
-    private final ProductApiClient client = new ProductApiClient();
+    private final ProductApiClient client =
+            new ProductApiClient(Executors.newSingleThreadExecutor());
 
-    //Test timeout fallback
     @Test
-    void getProductsFallback_shouldReturnTimeoutException() {
+    void getProducts_shouldReturnProducts() {
 
-        CompletableFuture<?> result =
-                client.getProductsFallback(new TimeoutException());
+        CompletableFuture<List<ProductDTO>> result = client.getProducts();
 
-        CompletionException ex = assertThrows(
-                CompletionException.class,
-                result::join
-        );
+        List<ProductDTO> products = result.join();
 
-        assertTrue(ex.getCause() instanceof ExternalServiceTimeoutException);
-    }
-
-    //Test other failure fallback
-    @Test
-    void getProductsFallback_shouldReturnFailureException() {
-
-        CompletableFuture<?> result =
-                client.getProductsFallback(new RuntimeException());
-
-        CompletionException ex = assertThrows(
-                CompletionException.class,
-                result::join
-        );
-
-        assertTrue(ex.getCause() instanceof ExternalServiceFailureException);
+        assertNotNull(products);
+        assertFalse(products.isEmpty());
+        assertEquals(20, products.size());
     }
 }

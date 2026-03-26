@@ -14,6 +14,10 @@ java {
 	}
 }
 
+bootJar {
+	archiveFileName = 'app.jar'
+}
+
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
@@ -31,6 +35,8 @@ dependencies {
 	implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.github.resilience4j:resilience4j-ratelimiter'
+	implementation 'io.github.resilience4j:resilience4j-timelimiter'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'

@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  catalogue-service:
+    build: .
+    image: catalogue-service
+    container_name: catalogue-service
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
