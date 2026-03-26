@@ -5,7 +5,10 @@ import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repository.NotificationRepository;
 import com.example.notificationservice.template.*;
 
-import org.jspecify.annotations.NonNull;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -64,7 +67,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
     }
 
-    public static @NonNull Notification generateNotification(OrderEventDTO event) {
+    public static @Nonnull Notification generateNotification(OrderEventDTO event) {
         Notification notification = new Notification();
         notification.setOrderId(event.getOrderId());
         notification.setEmail(event.getEmail());
@@ -75,16 +78,16 @@ public class NotificationServiceImpl implements NotificationService {
 
     //adding logic to retry with resilience4j should request fail (implemented retry here ,
     // rather than SmtpEmailSender because of following separation of concern)
-    //@Retry(name="emailRetry", fallbackMethod="emailFallback")
+    @Retry(name="emailRetry", fallbackMethod="emailFallback")
     private void sendEmailWithRetry(String email, String subject, String message) {
         smtpEmailSender.sendEmail(email, subject, message);//send the real e-mail using smtp
 
 
     }
 
-    //@Retry(name="smsRetry", fallbackMethod="smsFallback")
-    //@CircuitBreaker(name = "smsCircuit", fallbackMethod = "smsFallback")
-    //@TimeLimiter(name = "smsTimeout", fallbackMethod = "smsFallback")
+    @Retry(name="smsRetry" , fallbackMethod="smsFallback")
+    @CircuitBreaker(name = "smsCircuit")
+    @TimeLimiter(name = "smsTimeout")
     private void sendSmsWithRetry(String phone, String message) {
         twilioSmsSender.sendSms(phone, message);
     }
@@ -92,7 +95,7 @@ public class NotificationServiceImpl implements NotificationService {
      //🔁 Fallback for email
      public void emailFallback(String email, String subject, String message, Exception ex) {
         System.out.println("❌ Email failed after retries: " + ex.getMessage());
-         //You can also save FAILED status in DB here
+       //  You can also save FAILED status in DB here
     }
 
     // 🔁 Fallback for SMS
