@@ -29,6 +29,7 @@ pipeline {
             steps {
                 sh '''
                 cd backend/catalogue-service
+
                 docker run --rm \
                   -v $(pwd)/jmeter:/tests \
                   --add-host=host.docker.internal:host-gateway \
