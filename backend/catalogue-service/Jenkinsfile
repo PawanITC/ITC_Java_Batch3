@@ -15,13 +15,12 @@ pipeline {
             }
         }
 
-        stage('Deploy (Docker)') {
+        stage('Deploy (Docker Compose)') {
             steps {
                 sh '''
-                docker stop catalogue-service || true
-                docker rm catalogue-service || true
-                docker build -t catalogue-service backend/catalogue-service
-                docker run -d -p 8081:8081 --name catalogue-service catalogue-service
+                cd backend/catalogue-service
+                docker-compose down || true
+                docker-compose up -d --build
                 '''
             }
         }
