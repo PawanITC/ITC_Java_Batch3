@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     stages {
+
         stage('Test') {
             steps {
                 sh 'cd backend/catalogue-service && ./gradlew test'
@@ -13,5 +14,12 @@ pipeline {
                 sh 'cd backend/catalogue-service && ./gradlew build -x test'
             }
         }
+
+        stage('Docker Build') {
+            steps {
+                sh 'cd backend/catalogue-service && docker build -t catalogue-service .'
+            }
+        }
+
     }
 }
