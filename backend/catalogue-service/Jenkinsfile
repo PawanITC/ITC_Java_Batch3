@@ -4,8 +4,13 @@ pipeline {
     stages {
         stage('Test') {
             steps {
-                echo 'test change'
                 sh 'cd backend/catalogue-service && ./gradlew test'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'cd backend/catalogue-service && ./gradlew build -x test'
             }
         }
     }
