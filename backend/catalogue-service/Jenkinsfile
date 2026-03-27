@@ -56,7 +56,7 @@ pipeline {
                 sh '''
                 cd backend/catalogue-service/jmeter
 
-                rm -rf report results.jtl results_raw.jtl jmeter.log
+                rm -rf report results.jtl results_raw.jtl jmeter.log clean.jtl
 
                 docker run --rm \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
@@ -70,19 +70,13 @@ pipeline {
                   -Jjmeter.save.saveservice.output_format=csv \
                   -Jjmeter.save.saveservice.timestamp_format=ms
 
-               # remove any header lines if present
-               grep -v "^timeStamp" results_raw.jtl > clean.jtl
-
-               # add header once
-               echo "timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect" > results.jtl
-
-               # append clean data
-               cat clean.jtl >> results.jtl
+                # ✅ FIX: remove ANY header lines
+                grep -v "timeStamp" results_raw.jtl > clean.jtl
 
                 docker run --rm \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
                   justb4/jmeter \
-                  -g /tests/results.jtl \
+                  -g /tests/clean.jtl \
                   -o /tests/report
                 '''
             }
@@ -96,3 +90,4 @@ pipeline {
 
     }
 }
+
