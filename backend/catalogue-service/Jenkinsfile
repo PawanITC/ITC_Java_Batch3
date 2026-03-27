@@ -51,25 +51,6 @@ pipeline {
             }
         }
 
-        stage('Find JMeter Test File') {
-            steps {
-                sh '''
-                cd backend/catalogue-service/jmeter
-                echo "=== Looking for JMX files ==="
-                echo "Current directory: $(pwd)"
-                echo ""
-                echo "All files in current directory:"
-                ls -la
-                echo ""
-                echo "Searching for .jmx files in backend/catalogue-service:"
-                find ../.. -name "*.jmx" -type f
-                echo ""
-                echo "Searching in whole workspace:"
-                find /var/jenkins_home/workspace/catalogue-pipeline -name "*.jmx" -type f
-                '''
-            }
-        }
-
         stage('Performance Test (JMeter)') {
             steps {
                 sh '''
@@ -77,53 +58,25 @@ pipeline {
 
                 rm -rf report results.jtl jmeter.log
 
-                # Get workspace directory
+                # Get the full path
                 WORKSPACE_DIR=$(pwd)
                 echo "Workspace directory: $WORKSPACE_DIR"
 
-                # First, let's find where the JMX file is
-                echo "=== Finding JMX file ==="
-                JMX_FILE=$(find /var/jenkins_home/workspace/catalogue-pipeline -name "catalogue-docker-test.jmx" -type f | head -1)
+                # Check if file exists
+                echo "Checking for JMX file:"
+                ls -la catalogue-docker-test.jmx
 
-                if [ -z "$JMX_FILE" ]; then
-                    echo "ERROR: catalogue-docker-test.jmx not found anywhere!"
-                    echo "Searching for any .jmx files:"
-                    find /var/jenkins_home/workspace/catalogue-pipeline -name "*.jmx" -type f
-                    exit 1
-                fi
-
-                echo "Found JMX file at: $JMX_FILE"
-
-                # Get the directory containing the JMX file
-                JMX_DIR=$(dirname "$JMX_FILE")
-                echo "JMX directory: $JMX_DIR"
-
-                # Copy the JMX file to our jmeter directory if it's not already there
-                if [ "$JMX_DIR" != "$WORKSPACE_DIR" ]; then
-                    echo "Copying JMX file to jmeter directory..."
-                    cp "$JMX_FILE" "$WORKSPACE_DIR/"
-                fi
-
-                # Verify the file is now in the current directory
-                if [ ! -f catalogue-docker-test.jmx ]; then
-                    echo "ERROR: catalogue-docker-test.jmx still not in current directory!"
-                    ls -la
-                    exit 1
-                fi
+                # Fix permissions
+                chmod 644 catalogue-docker-test.jmx
 
                 echo "=== Running JMeter test ==="
+                # Run with explicit path and debug output
                 docker run --rm \
                   -v $WORKSPACE_DIR:/tests \
+                  --workdir /tests \
                   --add-host=host.docker.internal:host-gateway \
                   justb4/jmeter \
-                  -n \
-                  -t /tests/catalogue-docker-test.jmx \
-                  -l /tests/results.jtl \
-                  -j /tests/jmeter.log \
-                  -JtestType=high \
-                  -Jjmeter.save.saveservice.output_format=csv \
-                  -Jjmeter.save.saveservice.timestamp_format=ms \
-                  -Jjmeter.save.saveservice.print_field_names=true
+                  /bin/sh -c "ls -la /tests && jmeter -n -t /tests/catalogue-docker-test.jmx -l /tests/results.jtl -j /tests/jmeter.log -JtestType=high -Jjmeter.save.saveservice.output_format=csv -Jjmeter.save.saveservice.timestamp_format=ms -Jjmeter.save.saveservice.print_field_names=true"
 
                 # Check if results.jtl was created
                 if [ ! -f results.jtl ]; then
@@ -137,9 +90,9 @@ pipeline {
                 echo "=== Generating HTML report ==="
                 docker run --rm \
                   -v $WORKSPACE_DIR:/tests \
+                  --workdir /tests \
                   justb4/jmeter \
-                  -g /tests/results.jtl \
-                  -o /tests/report
+                  /bin/sh -c "jmeter -g /tests/results.jtl -o /tests/report"
 
                 # Check if report was generated
                 if [ ! -f report/index.html ]; then
@@ -152,7 +105,7 @@ pipeline {
                 echo "=== Report generated successfully ==="
                 ls -la report/
 
-                # Fix permissions so Jenkins can read them
+                # Fix permissions
                 chmod -R 777 report/
                 '''
             }
@@ -165,16 +118,13 @@ pipeline {
                 echo "=== Verifying report files ==="
                 echo "Current directory: $(pwd)"
                 echo ""
-                echo "=== Full directory structure ==="
-                find . -type f -name "*.html" | head -20
-                echo ""
                 echo "=== Checking if index.html exists ==="
                 if [ -f report/index.html ]; then
                     echo "✅ index.html exists"
                     ls -la report/index.html
                     echo ""
-                    echo "=== First few lines of index.html ==="
-                    head -20 report/index.html
+                    echo "=== File size ==="
+                    du -h report/index.html
                 else
                     echo "❌ index.html NOT found!"
                     echo "Contents of report directory:"
