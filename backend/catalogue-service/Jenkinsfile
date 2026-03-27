@@ -70,11 +70,14 @@ pipeline {
                   -Jjmeter.save.saveservice.output_format=csv \
                   -Jjmeter.save.saveservice.timestamp_format=ms
 
-                # ✅ FIX: use raw file directly (no corruption)
+                # ✅ FIX: add header manually
+                echo "timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect" > results.jtl
+                cat results_raw.jtl >> results.jtl
+
                 docker run --rm \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
                   justb4/jmeter \
-                  -g /tests/results_raw.jtl \
+                  -g /tests/results.jtl \
                   -o /tests/report
                 '''
             }
