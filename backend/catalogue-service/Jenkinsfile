@@ -80,21 +80,14 @@ pipeline {
             }
         }
 
-        stage('Publish JMeter Report') {
+        stage('Archive JMeter Report') {
             steps {
-                // Archive raw artifacts for download (optional but useful)
-                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/results.jtl', fingerprint: true
-                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/jmeter.log', fingerprint: true
+                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
 
-                // Publish HTML report for viewing in Jenkins
                 publishHTML([
                     reportDir: 'backend/catalogue-service/jmeter/report',
                     reportFiles: 'index.html',
-                    reportName: 'JMeter Performance Test Report',
-                    reportTitles: 'JMeter Test Results',
-                    keepAll: true,
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: true
+                    reportName: 'JMeter Performance Report'
                 ])
             }
         }
