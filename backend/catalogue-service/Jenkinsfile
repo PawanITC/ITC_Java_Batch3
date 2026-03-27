@@ -82,10 +82,8 @@ pipeline {
 
         stage('Archive JMeter Report') {
             steps {
-                // Archive the entire jmeter folder for download
                 archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
 
-                // Publish HTML report for viewing in Jenkins
                 publishHTML([
                     reportDir: 'backend/catalogue-service/jmeter/report',
                     reportFiles: 'index.html',
