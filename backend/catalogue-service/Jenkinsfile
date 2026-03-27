@@ -25,24 +25,13 @@ pipeline {
             }
         }
 
-        stage('Debug JMeter Files') {
-            steps {
-                sh '''
-                cd backend/catalogue-service
-                echo "PWD:"
-                pwd
-                echo "FILES:"
-                ls -l
-                echo "JMETER FOLDER:"
-                ls -l jmeter || echo "jmeter folder missing"
-                '''
-            }
-        }
-
         stage('Performance Test (JMeter)') {
             steps {
                 sh '''
-                cd backend/catalogue-service
+                cd backend/catalogue-service/jmeter
+
+                # CLEAN OLD FILES (CRITICAL)
+                rm -rf report results.jtl jmeter.log || true
 
                 docker run --rm \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
