@@ -25,6 +25,20 @@ pipeline {
             }
         }
 
+        stage('Debug JMeter Files') {
+            steps {
+                sh '''
+                cd backend/catalogue-service
+                echo "PWD:"
+                pwd
+                echo "FILES:"
+                ls -l
+                echo "JMETER FOLDER:"
+                ls -l jmeter || echo "jmeter folder missing"
+                '''
+            }
+        }
+
         stage('Performance Test (JMeter)') {
             steps {
                 sh '''
