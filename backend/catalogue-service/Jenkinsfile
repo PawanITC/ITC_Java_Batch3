@@ -78,6 +78,7 @@ pipeline {
                   -Jjmeter.save.saveservice.bytes=true \
                   -Jjmeter.save.saveservice.thread_name=true \
                   -Jjmeter.save.saveservice.assertion_results_failure_message=true
+                  -Djmeter.save.saveservice.print_field_names=true
                 '''
             }
         }
