@@ -58,78 +58,24 @@ pipeline {
 
                 rm -rf report results.jtl jmeter.log
 
-                # Get the full path
-                WORKSPACE_DIR=$(pwd)
-                echo "Workspace directory: $WORKSPACE_DIR"
-
-                # Check if file exists
-                echo "Checking for JMX file:"
-                ls -la catalogue-docker-test.jmx
-
-                # Fix permissions
-                chmod 644 catalogue-docker-test.jmx
-
-                echo "=== Running JMeter test ==="
-                # Run with explicit path and debug output
                 docker run --rm \
-                  -v $WORKSPACE_DIR:/tests \
-                  --workdir /tests \
+                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
                   --add-host=host.docker.internal:host-gateway \
                   justb4/jmeter \
-                  /bin/sh -c "ls -la /tests && jmeter -n -t /tests/catalogue-docker-test.jmx -l /tests/results.jtl -j /tests/jmeter.log -JtestType=high -Jjmeter.save.saveservice.output_format=csv -Jjmeter.save.saveservice.timestamp_format=ms -Jjmeter.save.saveservice.print_field_names=true"
+                  -n \
+                  -t /tests/catalogue-docker-test.jmx \
+                  -l /tests/results.jtl \
+                  -j /tests/jmeter.log \
+                  -JtestType=high \
+                  -Jjmeter.save.saveservice.output_format=csv \
+                  -Jjmeter.save.saveservice.timestamp_format=ms \
+                  -Jjmeter.save.saveservice.print_field_names=true
 
-                # Check if results.jtl was created
-                if [ ! -f results.jtl ]; then
-                    echo "ERROR: results.jtl was not created!"
-                    exit 1
-                fi
-
-                echo "results.jtl created successfully"
-                ls -la results.jtl
-
-                echo "=== Generating HTML report ==="
                 docker run --rm \
-                  -v $WORKSPACE_DIR:/tests \
-                  --workdir /tests \
+                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
                   justb4/jmeter \
-                  /bin/sh -c "jmeter -g /tests/results.jtl -o /tests/report"
-
-                # Check if report was generated
-                if [ ! -f report/index.html ]; then
-                    echo "ERROR: report/index.html was not generated!"
-                    echo "Contents of report directory:"
-                    ls -la report/ || echo "report directory doesn't exist"
-                    exit 1
-                fi
-
-                echo "=== Report generated successfully ==="
-                ls -la report/
-
-                # Fix permissions
-                chmod -R 777 report/
-                '''
-            }
-        }
-
-        stage('Verify Report Files') {
-            steps {
-                sh '''
-                cd backend/catalogue-service/jmeter
-                echo "=== Verifying report files ==="
-                echo "Current directory: $(pwd)"
-                echo ""
-                echo "=== Checking if index.html exists ==="
-                if [ -f report/index.html ]; then
-                    echo "✅ index.html exists"
-                    ls -la report/index.html
-                    echo ""
-                    echo "=== File size ==="
-                    du -h report/index.html
-                else
-                    echo "❌ index.html NOT found!"
-                    echo "Contents of report directory:"
-                    ls -la report/ || echo "report directory doesn't exist"
-                fi
+                  -g /tests/results.jtl \
+                  -o /tests/report
                 '''
             }
         }
