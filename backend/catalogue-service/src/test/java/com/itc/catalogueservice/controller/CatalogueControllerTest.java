@@ -38,7 +38,7 @@ class CatalogueControllerTest {
         when(catalogueService.getProducts(1,10,null,null,null,null))
                 .thenReturn(CompletableFuture.completedFuture(List.of(new ProductDTO())));
 
-        MvcResult result = mockMvc.perform(get("/catalogue/products"))
+        MvcResult result = mockMvc.perform(get("/catalogue/productsssss"))
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
@@ -169,7 +169,7 @@ class CatalogueControllerTest {
     @Test
     void getProducts_shouldReturnTooManyRequests_whenBulkheadFull() throws Exception {
 
-        when(catalogueService.getProducts(1,hello,10,null,null,null,null))
+        when(catalogueService.getProducts(1,10,null,null,null,null))
                 .thenReturn(CompletableFuture.failedFuture(new RejectedExecutionException()));
 
         MvcResult result = mockMvc.perform(get("/catalogue/products"))
