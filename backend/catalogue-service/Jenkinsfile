@@ -1,11 +1,16 @@
 pipeline {
     agent any
 
-    options {
-        cleanWs()
-    }
-
     stages {
+        stage('Clean Workspace') {
+            steps {
+                sh '''
+                cd backend/catalogue-service/jmeter
+                rm -rf report results.jtl jmeter.log jmeter-report.tar jmeter-report.tar.gz 2>/dev/null || true
+                echo "Cleaned up old files"
+                '''
+            }
+        }
 
         stage('Test') {
             steps {
