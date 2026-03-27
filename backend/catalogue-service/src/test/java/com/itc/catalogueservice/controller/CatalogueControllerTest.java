@@ -38,7 +38,7 @@ class CatalogueControllerTest {
         when(catalogueService.getProducts(1,10,null,null,null,null))
                 .thenReturn(CompletableFuture.completedFuture(List.of(new ProductDTO())));
 
-        MvcResult result = mockMvc.perform(get("/catalogue/productsssss"))
+        MvcResult result = mockMvc.perform(get("/catalogue/products"))
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
