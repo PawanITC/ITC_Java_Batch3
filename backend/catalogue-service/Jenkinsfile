@@ -80,30 +80,12 @@ pipeline {
             }
         }
 
-        stage('Package JMeter Report') {
-            steps {
-                sh '''
-                cd backend/catalogue-service/jmeter
-
-                # Use tar instead of zip (tar is usually pre-installed)
-                tar -czf jmeter-report.tar.gz report/
-
-                echo "Report packaged: jmeter-report.tar.gz"
-                ls -la jmeter-report.tar.gz
-                '''
-            }
-        }
-
         stage('Archive JMeter Report') {
             steps {
-                // Archive the tar.gz file for easy download
-                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/jmeter-report.tar.gz', fingerprint: true
+                // Archive the entire jmeter folder for download
+                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
 
-                // Also archive individual files
-                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/results.jtl', fingerprint: true
-                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/jmeter.log', fingerprint: true
-
-                // Publish HTML report (optional)
+                // Publish HTML report for viewing in Jenkins
                 publishHTML([
                     reportDir: 'backend/catalogue-service/jmeter/report',
                     reportFiles: 'index.html',
