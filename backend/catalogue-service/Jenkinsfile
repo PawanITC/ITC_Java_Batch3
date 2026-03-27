@@ -54,6 +54,7 @@ pipeline {
                   -j /tests/jmeter.log \
                   -e -o /tests/report \
                   -JtestType=normal
+                '''
             }
         }
 
