@@ -58,5 +58,11 @@ pipeline {
             }
         }
 
+        stage('Archive JMeter Report') {
+            steps {
+                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
+            }
+        }
+
     }
 }
