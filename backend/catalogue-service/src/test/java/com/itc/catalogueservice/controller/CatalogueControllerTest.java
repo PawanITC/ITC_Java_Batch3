@@ -166,10 +166,10 @@ class CatalogueControllerTest {
                 .andExpect(jsonPath("$.message").value("Rate limit exceeded. Please try again later"));
     }
 
-    /*@Test
+    @Test
     void getProducts_shouldReturnTooManyRequests_whenBulkheadFull() throws Exception {
 
-        when(catalogueService.getProducts(1,10,null,null,null,null))
+        when(catalogueService.getProducts(1,hello,10,null,null,null,null))
                 .thenReturn(CompletableFuture.failedFuture(new RejectedExecutionException()));
 
         MvcResult result = mockMvc.perform(get("/catalogue/products"))
@@ -180,5 +180,5 @@ class CatalogueControllerTest {
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.status").value(HttpStatus.TOO_MANY_REQUESTS.value()))
                 .andExpect(jsonPath("$.message").value("Too many concurrent requests"));
-    }*/
+    }
 }
