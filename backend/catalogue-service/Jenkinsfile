@@ -69,7 +69,7 @@ pipeline {
                   -l /tests/results.jtl \
                   -j /tests/jmeter.log \
                   -e -o /tests/report \
-                  -JtestType=normal
+                  -JtestType=high
                 '''
             }
         }
