@@ -56,7 +56,7 @@ pipeline {
                 sh '''
                 cd backend/catalogue-service/jmeter
 
-                rm -rf report results_raw.jtl jmeter.log clean.jtl
+                rm -rf report results.jtl jmeter.log
 
                 docker run --rm \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
@@ -64,19 +64,17 @@ pipeline {
                   justb4/jmeter \
                   -n \
                   -t /tests/catalogue-docker-test.jmx \
-                  -l /tests/results_raw.jtl \
+                  -l /tests/results.jtl \
                   -j /tests/jmeter.log \
                   -JtestType=high \
                   -Jjmeter.save.saveservice.output_format=csv \
-                  -Jjmeter.save.saveservice.timestamp_format=ms
-
-                # ✅ FIX: remove invalid rows (non-numeric timestamp)
-                awk -F',' '$1 ~ /^[0-9]+$/' results_raw.jtl > clean.jtl
+                  -Jjmeter.save.saveservice.timestamp_format=ms \
+                  -Jjmeter.save.saveservice.print_field_names=true
 
                 docker run --rm \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
                   justb4/jmeter \
-                  -g /tests/clean.jtl \
+                  -g /tests/results.jtl \
                   -o /tests/report
                 '''
             }
@@ -90,4 +88,3 @@ pipeline {
 
     }
 }
-
