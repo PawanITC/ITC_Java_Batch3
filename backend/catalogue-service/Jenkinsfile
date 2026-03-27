@@ -15,21 +15,32 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
-            steps {
-                sh 'cd backend/catalogue-service && docker build -t catalogue-service .'
-            }
-        }
-
-        stage('Docker Run') {
+        stage('Deploy (Docker Compose)') {
             steps {
                 sh '''
-                docker stop catalogue-service || true
-                docker rm catalogue-service || true
-                docker run -d -p 8081:8081 --name catalogue-service catalogue-service
+                cd backend/catalogue-service
+                docker compose down || true
+                docker compose up -d --build
                 '''
             }
         }
+
+        stage('API Performance Test (JMeter)') {
+            steps {
+                sh '''
+                docker run --rm \
+                  -v $(pwd)/jmeter:/tests \
+                  --add-host=host.docker.internal:host-gateway \
+                  justb4/jmeter \
+                  -n -t /tests/catalogue-docker-test.jmx \
+                  -l /tests/results.jtl \
+                  -j /tests/jmeter.log \
+                  -e -o /tests/report \
+                  -JtestType=normal
+                '''
+            }
+        }
+
 
     }
 }
