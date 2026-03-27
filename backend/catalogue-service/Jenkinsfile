@@ -70,9 +70,14 @@ pipeline {
                   -Jjmeter.save.saveservice.output_format=csv \
                   -Jjmeter.save.saveservice.timestamp_format=ms
 
-                # ✅ FIX: add header manually
-                echo "timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect" > results.jtl
-                cat results_raw.jtl >> results.jtl
+               # remove any header lines if present
+               grep -v "^timeStamp" results_raw.jtl > clean.jtl
+
+               # add header once
+               echo "timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect" > results.jtl
+
+               # append clean data
+               cat clean.jtl >> results.jtl
 
                 docker run --rm \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
