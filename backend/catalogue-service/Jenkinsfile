@@ -4,6 +4,7 @@ pipeline {
     stages {
         stage('Test') {
             steps {
+                echo 'test change'
                 sh './gradlew test'
             }
         }
