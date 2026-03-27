@@ -1,92 +1,90 @@
 pipeline {
-agent any
+    agent any
 
-```
-stages {
+    stages {
 
-    stage('Test') {
-        steps {
-            sh 'cd backend/catalogue-service && ./gradlew test'
+        stage('Test') {
+            steps {
+                sh 'cd backend/catalogue-service && ./gradlew test'
+            }
         }
-    }
 
-    stage('Build') {
-        steps {
-            sh 'cd backend/catalogue-service && ./gradlew build -x test'
+        stage('Build') {
+            steps {
+                sh 'cd backend/catalogue-service && ./gradlew build -x test'
+            }
         }
-    }
 
-    stage('Deploy (Docker Compose)') {
-        steps {
-            sh '''
-            cd backend/catalogue-service
-            docker-compose down || true
-            docker-compose up -d --build
-            '''
+        stage('Deploy (Docker Compose)') {
+            steps {
+                sh '''
+                cd backend/catalogue-service
+                docker-compose down || true
+                docker-compose up -d --build
+                '''
+            }
         }
-    }
 
-    stage('Wait for Service Health') {
-        steps {
-            sh '''
-            echo "Waiting for service to be ready..."
+        stage('Wait for Service Health') {
+            steps {
+                sh '''
+                echo "Waiting for service to be ready..."
 
-            timeout=60
-            interval=3
-            elapsed=0
+                timeout=60
+                interval=3
+                elapsed=0
 
-            while [ $elapsed -lt $timeout ]; do
-              if curl -s http://host.docker.internal:8081/actuator/health | grep '"status":"UP"' > /dev/null; then
-                echo "Service is UP"
-                exit 0
-              fi
+                while [ $elapsed -lt $timeout ]; do
+                  if curl -s http://host.docker.internal:8081/actuator/health | grep '"status":"UP"' > /dev/null; then
+                    echo "Service is UP"
+                    exit 0
+                  fi
 
-              echo "Still starting..."
-              sleep $interval
-              elapsed=$((elapsed + interval))
-            done
+                  echo "Still starting..."
+                  sleep $interval
+                  elapsed=$((elapsed + interval))
+                done
 
-            echo "Service failed to start in time"
-            exit 1
-            '''
+                echo "Service failed to start in time"
+                exit 1
+                '''
+            }
         }
-    }
 
-    stage('Performance Test (JMeter)') {
-        steps {
-            sh '''
-            cd backend/catalogue-service/jmeter
+        stage('Performance Test (JMeter)') {
+            steps {
+                sh '''
+                cd backend/catalogue-service/jmeter
 
-            rm -rf report results_raw.jtl jmeter.log
+                rm -rf report results.jtl results_raw.jtl jmeter.log
 
-            docker run --rm \
-              -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
-              --add-host=host.docker.internal:host-gateway \
-              justb4/jmeter \
-              -n \
-              -t /tests/catalogue-docker-test.jmx \
-              -l /tests/results_raw.jtl \
-              -j /tests/jmeter.log \
-              -JtestType=high \
-              -Jjmeter.save.saveservice.output_format=csv \
-              -Jjmeter.save.saveservice.timestamp_format=ms
+                docker run --rm \
+                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  --add-host=host.docker.internal:host-gateway \
+                  justb4/jmeter \
+                  -n \
+                  -t /tests/catalogue-docker-test.jmx \
+                  -l /tests/results_raw.jtl \
+                  -j /tests/jmeter.log \
+                  -JtestType=high \
+                  -Jjmeter.save.saveservice.output_format=csv \
+                  -Jjmeter.save.saveservice.timestamp_format=ms
 
-            docker run --rm \
-              -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
-              justb4/jmeter \
-              -g /tests/results_raw.jtl \
-              -o /tests/report
-            '''
+                # ✅ FIX: use raw file directly (no corruption)
+                docker run --rm \
+                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  justb4/jmeter \
+                  -g /tests/results_raw.jtl \
+                  -o /tests/report
+                '''
+            }
         }
-    }
 
-    stage('Archive JMeter Report') {
-        steps {
-            archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
+        stage('Archive JMeter Report') {
+            steps {
+                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
+            }
         }
+
     }
-
-}
-```
-
 }
