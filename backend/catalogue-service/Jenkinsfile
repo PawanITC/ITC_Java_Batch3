@@ -79,8 +79,8 @@ pipeline {
                   -Jjmeter.save.saveservice.assertion_results_failure_message=true \
                   -Jjmeter.save.saveservice.print_field_names=true
 
-                head -1 results_raw.jtl > results.jtl
-                grep -v "setUp Thread Group" results_raw.jtl | grep -v ",null," | tail -n +2 >> results.jtl
+                  head -1 results_raw.jtl > results.jtl
+                  tail -n +2 results_raw.jtl | grep -v "setUp Thread Group" | grep -v ",null," >> results.jtl
 
                 docker run --rm \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
