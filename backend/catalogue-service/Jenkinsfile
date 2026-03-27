@@ -25,5 +25,23 @@ pipeline {
             }
         }
 
+        stage('Performance Test (JMeter)') {
+            steps {
+                sh '''
+                cd backend/catalogue-service
+                docker run --rm \
+                  -v $(pwd)/jmeter:/tests \
+                  --add-host=host.docker.internal:host-gateway \
+                  justb4/jmeter \
+                  -n \
+                  -t /tests/catalogue-docker-test.jmx \
+                  -l /tests/results.jtl \
+                  -j /tests/jmeter.log \
+                  -e -o /tests/report \
+                  -JtestType=normal
+                '''
+            }
+        }
+
     }
 }
