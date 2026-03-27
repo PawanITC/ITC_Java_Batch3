@@ -75,7 +75,7 @@ pipeline {
                   -t /tests/catalogue-docker-test.jmx \
                   -l /tests/results.jtl \
                   -j /tests/jmeter.log \
-                  -JtestType=normal \
+                  -JtestType=high \
                   -Jjmeter.save.saveservice.output_format=csv \
                   -Jjmeter.save.saveservice.timestamp_format=ms \
                   -Jjmeter.save.saveservice.print_field_names=true
