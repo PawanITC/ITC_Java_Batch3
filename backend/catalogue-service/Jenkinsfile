@@ -21,5 +21,16 @@ pipeline {
             }
         }
 
+        stage('Docker Run') {
+            steps {
+                sh '''
+                docker stop catalogue-service || true
+                docker rm catalogue-service || true
+                docker run -d -p 8081:8081 --name catalogue-service catalogue-service
+                '''
+            }
+        }
+
     }
 }
+
