@@ -56,7 +56,7 @@ pipeline {
                 sh '''
                 cd backend/catalogue-service/jmeter
 
-                rm -rf report results.jtl jmeter.log
+                rm -rf report results.jtl results_raw.jtl jmeter.log
 
                 docker run --rm \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
@@ -64,9 +64,8 @@ pipeline {
                   justb4/jmeter \
                   -n \
                   -t /tests/catalogue-docker-test.jmx \
-                  -l /tests/results.jtl \
+                  -l /tests/results_raw.jtl \
                   -j /tests/jmeter.log \
-                  -e -o /tests/report \
                   -JtestType=high \
                   -Jjmeter.save.saveservice.output_format=csv \
                   -Jjmeter.save.saveservice.response_code=true \
@@ -79,6 +78,15 @@ pipeline {
                   -Jjmeter.save.saveservice.thread_name=true \
                   -Jjmeter.save.saveservice.assertion_results_failure_message=true \
                   -Jjmeter.save.saveservice.print_field_names=true
+
+                head -1 results_raw.jtl > results.jtl
+                grep -v "setUp Thread Group" results_raw.jtl | grep -v ",null," >> results.jtl
+
+                docker run --rm \
+                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  justb4/jmeter \
+                  -g /tests/results.jtl \
+                  -o /tests/report
                 '''
             }
         }
