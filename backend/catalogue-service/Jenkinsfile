@@ -87,7 +87,10 @@ pipeline {
                 publishHTML([
                     reportDir: 'backend/catalogue-service/jmeter/report',
                     reportFiles: 'index.html',
-                    reportName: 'JMeter Performance Report'
+                    reportName: 'JMeter Performance Report',
+                    allowMissing: false,
+                    keepAll: true,
+                    alwaysLinkToLastBuild: true
                 ])
             }
         }
