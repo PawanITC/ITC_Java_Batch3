@@ -15,16 +15,6 @@ pipeline {
             }
         }
 
-        stage('Deploy (Docker Compose)') {
-            steps {
-                sh '''
-                cd backend/catalogue-service
-                docker-compose down || true
-                docker-compose up -d --build
-                '''
-            }
-        }
-
         stage('Deploy (Docker)') {
             steps {
                 sh '''
