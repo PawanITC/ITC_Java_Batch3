@@ -35,9 +35,18 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void processOrderEvent(OrderEventDTO event) {
+    public Notification getNotification() {
+        return notification;
+    }
 
-        Notification notification = generateNotification(event);
+    private Notification notification;
+
+    @Override
+    public boolean processOrderEvent(OrderEventDTO event) {
+
+        boolean result = true;//verifying whether it was successful in sending email/sms
+
+        notification = generateNotification(event);
 
         repository.save(notification);//saves notification log to database
 
@@ -51,6 +60,7 @@ public class NotificationServiceImpl implements NotificationService {
                 sendEmailWithRetry(event.getEmail(),subject, message);
             }catch (Exception e) {
                 log.error("Failed to send email for order {} : {}", event.getOrderId(), e.getMessage());
+                result = false;
             }
 
         }
@@ -62,9 +72,10 @@ public class NotificationServiceImpl implements NotificationService {
             sendSmsWithRetry(event.getPhone(),message);
             }catch (Exception e) {
                 log.error("Failed to send sms for order {} : {}", event.getOrderId(), e.getMessage());
-
+                result = false;
             }
     }
+        return result;
     }
 
     public static Notification generateNotification(OrderEventDTO event) {

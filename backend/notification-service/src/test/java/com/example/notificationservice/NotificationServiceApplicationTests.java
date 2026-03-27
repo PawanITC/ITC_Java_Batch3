@@ -1,8 +1,10 @@
 package com.example.notificationservice;
 
+import com.example.notificationservice.controller.NotificationController;
 import com.example.notificationservice.dto.OrderEventDTO;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repository.NotificationRepository;
+import com.example.notificationservice.response.ApiResponse;
 import org.hibernate.validator.internal.constraintvalidators.bv.AssertTrueValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Assertions;
 import com.example.notificationservice.template.*;
 import com.example.notificationservice.event.OrderStatus;
 import com.example.notificationservice.service.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.io.ByteArrayInputStream;
@@ -46,8 +49,18 @@ class NotificationServiceApplicationTests {
     @InjectMocks
     private NotificationServiceImpl service;
 
+    @InjectMocks
+    NotificationController n ;
+
+    @Mock
+    private NotificationServiceImpl service2;
+
     @Test
     void contextLoads() {
+    }
+
+    void apiEndpointTests(){
+
     }
 
     //------------------------MAIN FUNCTIONAL TESTS-------------------------------------------------------------------------
@@ -59,7 +72,15 @@ class NotificationServiceApplicationTests {
 
     @Test //if our request is valid then a 'successful' response should be returned
     void validateEndpointSendSuccessfulResponse() {
+        OrderEventDTO eventDTO = new OrderEventDTO();
+        eventDTO.setOrderId("12453");
+        eventDTO.setEmail("joe@gmail.com");
+        eventDTO.setPhone("123456789");
+        eventDTO.setStatus(OrderStatus.DELIVERED);
 
+        n.receiveOrderEvent(eventDTO);
+
+        //TODO complete this test case
     }
 
     @Test //if our request is invalid then an 'unsuccessful' response should be returned

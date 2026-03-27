@@ -1,6 +1,7 @@
 package com.example.notificationservice.controller;
 
 import com.example.notificationservice.dto.OrderEventDTO;
+import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.response.ApiResponse;
 import com.example.notificationservice.service.NotificationService;
 import jakarta.validation.Valid;
@@ -20,10 +21,15 @@ public class NotificationController {
 
 
     @PostMapping("/order-event")
-    public ResponseEntity<ApiResponse<Void>> receiveOrderEvent(@RequestBody @Valid/*input validation*/ OrderEventDTO event) {
+    public ResponseEntity<ApiResponse<Notification>> receiveOrderEvent(@RequestBody @Valid/*input validation*/ OrderEventDTO event) {
 
-        notificationService.processOrderEvent(event);
-        return ResponseEntity.ok(new ApiResponse<>(null,"order event processed successfully"));
+        boolean outcome = notificationService.processOrderEvent(event);//if service layer processes everything without problems
+
+        if (outcome) {return ResponseEntity.ok(new ApiResponse<>(notificationService.getNotification(),"Order event processed successfully!"));}//is true
+        else {
+            return ResponseEntity.ok(new ApiResponse<>(null,"Order event processing failed! Please check field parameters and retry!"));//if not
+        }
+
     }
 }
 //
