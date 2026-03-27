@@ -25,7 +25,6 @@ pipeline {
             }
         }
 
-        //PRODUCTION (Needed so that app can boot first)
         stage('Wait for Service Health') {
             steps {
                 sh '''
@@ -69,7 +68,8 @@ pipeline {
                   -l /tests/results.jtl \
                   -j /tests/jmeter.log \
                   -e -o /tests/report \
-                  -JtestType=high
+                  -JtestType=high \
+                  -Jjmeter.save.saveservice.output_format=csv
                 '''
             }
         }
