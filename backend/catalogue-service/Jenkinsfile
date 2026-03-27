@@ -58,8 +58,13 @@ pipeline {
 
                 rm -rf report results.jtl jmeter.log
 
+                # Get workspace directory
+                WORKSPACE_DIR=$(pwd)
+                echo "Workspace directory: $WORKSPACE_DIR"
+
+                echo "=== Running JMeter test ==="
                 docker run --rm \
-                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  -v $WORKSPACE_DIR:/tests \
                   --add-host=host.docker.internal:host-gateway \
                   justb4/jmeter \
                   -n \
@@ -71,11 +76,61 @@ pipeline {
                   -Jjmeter.save.saveservice.timestamp_format=ms \
                   -Jjmeter.save.saveservice.print_field_names=true
 
+                # Check if results.jtl was created
+                if [ ! -f results.jtl ]; then
+                    echo "ERROR: results.jtl was not created!"
+                    exit 1
+                fi
+
+                echo "results.jtl created successfully"
+                ls -la results.jtl
+
+                echo "=== Generating HTML report ==="
                 docker run --rm \
-                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  -v $WORKSPACE_DIR:/tests \
                   justb4/jmeter \
                   -g /tests/results.jtl \
                   -o /tests/report
+
+                # Check if report was generated
+                if [ ! -f report/index.html ]; then
+                    echo "ERROR: report/index.html was not generated!"
+                    echo "Contents of report directory:"
+                    ls -la report/ || echo "report directory doesn't exist"
+                    exit 1
+                fi
+
+                echo "=== Report generated successfully ==="
+                ls -la report/
+
+                # Fix permissions so Jenkins can read them
+                chmod -R 777 report/
+                '''
+            }
+        }
+
+        stage('Verify Report Files') {
+            steps {
+                sh '''
+                cd backend/catalogue-service/jmeter
+                echo "=== Verifying report files ==="
+                echo "Current directory: $(pwd)"
+                echo ""
+                echo "=== Full directory structure ==="
+                find . -type f -name "*.html" | head -20
+                echo ""
+                echo "=== Checking if index.html exists ==="
+                if [ -f report/index.html ]; then
+                    echo "✅ index.html exists"
+                    ls -la report/index.html
+                    echo ""
+                    echo "=== First few lines of index.html ==="
+                    head -20 report/index.html
+                else
+                    echo "❌ index.html NOT found!"
+                    echo "Contents of report directory:"
+                    ls -la report/ || echo "report directory doesn't exist"
+                fi
                 '''
             }
         }
