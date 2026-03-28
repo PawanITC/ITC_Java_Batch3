@@ -22,11 +22,11 @@ pipeline {
                 cat backend/catalogue-service/jmeter/catalogue-docker-test.jmx
 
                 echo "===== CHECKING FOR OLD HOST ====="
-                if grep -q "catalogue-service" backend/catalogue-service/jmeter/catalogue-docker-test.jmx; then
-                    echo "❌ STILL USING OLD JMX (catalogue-service FOUND)"
+                if grep -q "host.docker.internal" backend/catalogue-service/jmeter/catalogue-docker-test.jmx; then
+                    echo "❌ STILL USING OLD HOST (host.docker.internal FOUND)"
                     exit 1
                 else
-                    echo "✅ JMX IS CORRECT"
+                    echo "✅ JMX CONFIG IS CORRECT"
                 fi
                 '''
             }
@@ -62,7 +62,7 @@ pipeline {
                 timeout=60
                 elapsed=0
 
-                until curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
+                until curl -s http://localhost:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
                     if [ $elapsed -ge $timeout ]; then
                         echo "Service failed"
                         exit 1
