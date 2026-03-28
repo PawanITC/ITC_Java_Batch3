@@ -28,10 +28,8 @@ pipeline {
         stage('Performance Test (JMeter)') {
             steps {
                 sh '''
-                cd backend/catalogue-service
-
                 docker run --rm \
-                  -v $(pwd)/jmeter:/tests \
+                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
                   --add-host=host.docker.internal:host-gateway \
                   justb4/jmeter \
                   -n \
