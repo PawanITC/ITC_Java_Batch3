@@ -54,7 +54,8 @@ pipeline {
                 reportFiles: 'index.html',
                 reportName: 'JMeter HTML Report',
                 keepAll: true,
-                alwaysLinkToLastBuild: true
+                alwaysLinkToLastBuild: true,
+                allowMissing: false
             ])
         }
     }
