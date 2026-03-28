@@ -21,7 +21,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Normal Load">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Normal Load" enabled="true">
           <stringProp name="IfController.condition">${__groovy(&quot;normal&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
@@ -30,7 +30,7 @@
         <hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products">
             <stringProp name="TestPlan.comments">Catalogue API call for normal load test</stringProp>
-            <stringProp name="HTTPSampler.domain">host.docker.internal</stringProp>
+            <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/catalogue/products</stringProp>
@@ -44,16 +44,16 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Rate Limit">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Rate Limit" enabled="true">
           <stringProp name="IfController.condition">${__groovy(&quot;ratelimit&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
           <stringProp name="TestPlan.comments">Triggers rate limiter when testType=ratelimit</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Rate Limit" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Rate Limit">
             <stringProp name="TestPlan.comments">Catalogue API call for rate limit test</stringProp>
-            <stringProp name="HTTPSampler.domain">host.docker.internal</stringProp>
+            <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/catalogue/products</stringProp>
@@ -67,7 +67,7 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Concurrency Load">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Concurrency Load" enabled="true">
           <stringProp name="IfController.condition">${__groovy(&quot;concurrency&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
@@ -76,7 +76,7 @@
         <hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Concurrency">
             <stringProp name="TestPlan.comments">Catalogue API call for concurrency test</stringProp>
-            <stringProp name="HTTPSampler.domain">host.docker.internal</stringProp>
+            <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/catalogue/products</stringProp>
@@ -90,16 +90,16 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Timeout Load">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Timeout Load" enabled="true">
           <stringProp name="IfController.condition">${__groovy(&quot;timeout&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
           <stringProp name="TestPlan.comments">Triggers timeout test when testType=timeout</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Timeout" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Timeout">
             <stringProp name="TestPlan.comments">Catalogue API call for timeout test</stringProp>
-            <stringProp name="HTTPSampler.domain">host.docker.internal</stringProp>
+            <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/catalogue/products</stringProp>
@@ -113,16 +113,16 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Circuit Breaker">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Circuit Breaker" enabled="true">
           <stringProp name="IfController.condition">${__groovy(&quot;circuitbreaker&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
           <stringProp name="TestPlan.comments">Triggers circuit breaker test when testType=circuit</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Circuit Breaker" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Circuit Breaker">
             <stringProp name="TestPlan.comments">Catalogue API call for circuit breaker test</stringProp>
-            <stringProp name="HTTPSampler.domain">host.docker.internal</stringProp>
+            <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/catalogue/products</stringProp>
@@ -136,16 +136,16 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="High Load">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="High Load" enabled="true">
           <stringProp name="IfController.condition">${__groovy(&quot;high&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
           <stringProp name="TestPlan.comments">Triggers high load test when testType=high</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - High Load" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - High Load">
             <stringProp name="TestPlan.comments">Catalogue API call for high load test</stringProp>
-            <stringProp name="HTTPSampler.domain">host.docker.internal</stringProp>
+            <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/catalogue/products</stringProp>
@@ -220,7 +220,7 @@
         </elementProp>
       </SetupThreadGroup>
       <hashTree>
-        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Mapping">
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Mapping" enabled="true">
           <stringProp name="cacheKey">true</stringProp>
           <stringProp name="filename"></stringProp>
           <stringProp name="parameters"></stringProp>
