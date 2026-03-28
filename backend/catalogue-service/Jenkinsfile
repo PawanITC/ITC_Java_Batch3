@@ -3,6 +3,35 @@ pipeline {
 
     stages {
 
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Verify JMX File') {
+            steps {
+                sh '''
+                echo "===== PRINTING JMX FILE ====="
+                cat backend/catalogue-service/jmeter/catalogue-docker-test.jmx
+
+                echo "===== CHECKING FOR OLD HOST ====="
+                if grep -q "catalogue-service" backend/catalogue-service/jmeter/catalogue-docker-test.jmx; then
+                    echo "❌ STILL USING OLD JMX (catalogue-service FOUND)"
+                    exit 1
+                else
+                    echo "✅ JMX IS CORRECT"
+                fi
+                '''
+            }
+        }
+
         stage('Test') {
             steps {
                 sh 'cd backend/catalogue-service && ./gradlew test'
@@ -25,24 +54,50 @@ pipeline {
             }
         }
 
+        stage('Wait for Service Health') {
+            steps {
+                sh '''
+                echo "Waiting for service..."
+
+                timeout=60
+                elapsed=0
+
+                until curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
+                    if [ $elapsed -ge $timeout ]; then
+                        echo "Service failed"
+                        exit 1
+                    fi
+                    sleep 3
+                    elapsed=$((elapsed+3))
+                done
+
+                echo "Service ready"
+                '''
+            }
+        }
+
         stage('Performance Test (JMeter)') {
             steps {
                 sh '''
-                # Clean previous reports
-                rm -rf backend/catalogue-service/jmeter/report
-                rm -f backend/catalogue-service/jmeter/results.jtl
-                rm -f backend/catalogue-service/jmeter/jmeter.log
+                cd backend/catalogue-service/jmeter
+                rm -rf report results.jtl jmeter.log
 
                 docker run --rm \
+                  --network catalogue-service_default \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
-                  --add-host=host.docker.internal:host-gateway \
                   justb4/jmeter \
                   -n \
                   -t /tests/catalogue-docker-test.jmx \
                   -l /tests/results.jtl \
                   -j /tests/jmeter.log \
-                  -e -o /tests/report \
                   -JtestType=normal
+
+                docker run --rm \
+                  --network catalogue-service_default \
+                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  justb4/jmeter \
+                  -g /tests/results.jtl \
+                  -o /tests/report
                 '''
             }
         }
@@ -51,13 +106,12 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/results.jtl', allowEmptyArchive: true
-            archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/report/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
 
             publishHTML([
                 reportDir: 'backend/catalogue-service/jmeter/report',
                 reportFiles: 'index.html',
-                reportName: 'JMeter HTML Report',
+                reportName: 'JMeter Report',
                 keepAll: true,
                 alwaysLinkToLastBuild: true,
                 allowMissing: false
