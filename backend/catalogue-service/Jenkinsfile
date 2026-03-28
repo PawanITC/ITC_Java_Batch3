@@ -42,5 +42,20 @@ pipeline {
             }
         }
 
+        post {
+            always {
+                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/results.jtl', allowEmptyArchive: true
+                archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/report/**', allowEmptyArchive: true
+
+                publishHTML([
+                    reportDir: 'backend/catalogue-service/jmeter/report',
+                    reportFiles: 'index.html',
+                    reportName: 'JMeter HTML Report',
+                    keepAll: true,
+                    alwaysLinkToLastBuild: true
+                ])
+            }
+        }
+
     }
 }
