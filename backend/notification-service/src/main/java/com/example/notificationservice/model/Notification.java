@@ -9,6 +9,8 @@ import jakarta.persistence.Id;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Entity
 @Getter
 @Setter
@@ -21,5 +23,8 @@ public class Notification {
     private String email;
     private String phone;
     private OrderStatus status;
-
+    private SentStatus emailSentStatus;//whether the smtp server successfully sent email or encountered issue
+    private SentStatus smsSentStatus;//whether the twilio server successfully sent sms or encountered issue
+    private Instant createdAt;
+    private Instant updatedAt;
 }
