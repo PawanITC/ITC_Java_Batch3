@@ -82,10 +82,8 @@ pipeline {
                 sh '''
                 cd backend/catalogue-service/jmeter
 
-                # CLEAN (FIXED)
-                rm -rf report results.jtl jmeter.log
-                mkdir -p report
-                rm -rf report/*
+                # CLEAN (DO NOT PRE-CREATE REPORT FOLDER)
+                rm -rf report* results.jtl jmeter.log
 
                 # RUN TEST
                 docker run --rm \
@@ -98,13 +96,13 @@ pipeline {
                   -j /tests/jmeter.log \
                   -JtestType=normal
 
-                # GENERATE REPORT
+                # GENERATE REPORT (UNIQUE FOLDER)
                 docker run --rm \
                   --network catalogue-service_default \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
                   justb4/jmeter \
                   -g /tests/results.jtl \
-                  -o /tests/report
+                  -o /tests/report-$(date +%s)
                 '''
             }
         }
@@ -114,9 +112,10 @@ pipeline {
         always {
             archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
             sh 'ls -la backend/catalogue-service/jmeter'
+
             publishHTML([
-                reportDir: 'backend/catalogue-service/jmeter/report',
-                reportFiles: 'index.html',
+                reportDir: 'backend/catalogue-service/jmeter',
+                reportFiles: 'report*/index.html',
                 reportName: 'JMeter Report',
                 keepAll: true,
                 alwaysLinkToLastBuild: true,
