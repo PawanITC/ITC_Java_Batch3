@@ -34,20 +34,13 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh '''
-                cd backend/catalogue-service
-                ./gradlew test --no-daemon
-                '''
+                sh 'cd backend/catalogue-service && ./gradlew test --no-daemon'
             }
         }
 
         stage('Build') {
             steps {
-                sh '''
-                cd backend/catalogue-service
-                export GRADLE_OPTS="-Xmx256m -Xms128m"
-                ./gradlew build -x test --no-daemon
-                '''
+                sh 'cd backend/catalogue-service && ./gradlew build -x test --no-daemon'
             }
         }
 
