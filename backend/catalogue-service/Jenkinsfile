@@ -81,8 +81,13 @@ pipeline {
             steps {
                 sh '''
                 cd backend/catalogue-service/jmeter
-                rm -rf report results.jtl jmeter.log
 
+                # CLEAN (FIXED)
+                rm -rf report results.jtl jmeter.log
+                mkdir -p report
+                rm -rf report/*
+
+                # RUN TEST
                 docker run --rm \
                   --network catalogue-service_default \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
@@ -93,6 +98,7 @@ pipeline {
                   -j /tests/jmeter.log \
                   -JtestType=normal
 
+                # GENERATE REPORT
                 docker run --rm \
                   --network catalogue-service_default \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
@@ -107,7 +113,7 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
-
+            sh 'ls -la backend/catalogue-service/jmeter'
             publishHTML([
                 reportDir: 'backend/catalogue-service/jmeter/report',
                 reportFiles: 'index.html',
