@@ -1,23 +1,25 @@
 package com.itc.funkart.product_service.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import lombok.Data;
-
+import jakarta.validation.constraints.*;
+import lombok.*;
 import java.math.BigDecimal;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProductUpdateRequest {
-    @NotBlank(message = "Product name is required")
+
+    @Size(min = 3, max = 100, message = "Name must be between 3 and 100 characters")
     private String name;
 
-    @NotBlank(message = "Description is required")
     private String description;
 
-    @NotNull(message = "Price is required")
     @Positive(message = "Price must be positive")
     private BigDecimal price;
+
+    @Min(value = 0, message = "Stock cannot be negative")
+    private Integer stockQuantity;
 
     private Boolean active;
 }
