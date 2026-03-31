@@ -56,7 +56,7 @@ pipeline {
                 timeout=60
                 elapsed=0
 
-                until curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
+                until docker run --rm --network shared-network appropriate/curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
                     if [ $elapsed -ge $timeout ]; then
                         docker logs catalogue-service
                         exit 1
@@ -74,55 +74,45 @@ pipeline {
                 cd backend/catalogue-service/jmeter
                 rm -rf results.jtl jmeter.log report-${BUILD_NUMBER}
 
-                # Ensure test containers are cleaned up even if script fails
                 trap "docker rm -f jmeter-run-${BUILD_NUMBER} jmeter-report-${BUILD_NUMBER} 2>/dev/null || true" EXIT
 
-                # Create container to run JMeter test
-                docker create --name jmeter-run-${BUILD_NUMBER} \\
-                  --network shared-network \\
-                  justb4/jmeter \\
-                  -n \\
-                  -t /catalogue-docker-test.jmx \\
-                  -l /results.jtl \\
-                  -j /jmeter.log \\
+                docker create --name jmeter-run-${BUILD_NUMBER} \
+                  --network shared-network \
+                  justb4/jmeter \
+                  -n \
+                  -t /catalogue-docker-test.jmx \
+                  -l /results.jtl \
+                  -j /jmeter.log \
                   -JtestType=veryhigh
-                
-                # Copy JMX file into the created container
+
                 docker cp catalogue-docker-test.jmx jmeter-run-${BUILD_NUMBER}:/catalogue-docker-test.jmx
-                
-                # Start and wait for test, capture exit code to ensure report is still attempted
+
                 set +e
                 docker start -a jmeter-run-${BUILD_NUMBER}
                 JMETER_EXIT=$?
                 set -e
-                
-                # Copy results back
+
                 docker cp jmeter-run-${BUILD_NUMBER}:/results.jtl . || true
                 docker cp jmeter-run-${BUILD_NUMBER}:/jmeter.log . || true
-                
+
                 if [ ! -f results.jtl ]; then
                     echo "Error: results.jtl not generated. JMeter test failed entirely."
                     exit 1
                 fi
 
-                # Create container to generate HTML report
-                docker create --name jmeter-report-${BUILD_NUMBER} \\
-                  justb4/jmeter \\
-                  -g /results.jtl \\
+                docker create --name jmeter-report-${BUILD_NUMBER} \
+                  justb4/jmeter \
+                  -g /results.jtl \
                   -o /report-${BUILD_NUMBER}
-                
-                # Copy results in
+
                 docker cp results.jtl jmeter-report-${BUILD_NUMBER}:/results.jtl
-                
-                # Start generation (ignore errors just in case, report will try its best)
+
                 set +e
                 docker start -a jmeter-report-${BUILD_NUMBER}
                 set -e
-                
-                # Copy report out
+
                 docker cp jmeter-report-${BUILD_NUMBER}:/report-${BUILD_NUMBER} ./report-${BUILD_NUMBER} || true
-                
-                # Fail the build if JMeter test actually failed
+
                 if [ $JMETER_EXIT -ne 0 ]; then
                     echo "JMeter test failed with exit code $JMETER_EXIT"
                     exit $JMETER_EXIT
