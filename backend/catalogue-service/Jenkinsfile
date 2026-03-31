@@ -79,7 +79,7 @@ pipeline {
 
                 # Create container to run JMeter test
                 docker create --name jmeter-run-${BUILD_NUMBER} \\
-                  --network catalogue-service_default \\
+                  --network shared-network \\
                   justb4/jmeter \\
                   -n \\
                   -t /catalogue-docker-test.jmx \\
