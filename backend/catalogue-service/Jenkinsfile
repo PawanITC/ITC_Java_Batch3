@@ -99,6 +99,9 @@ pipeline {
                  -j /tests/jmeter.log \
                  -JtestType=normal
 
+               rm -rf report
+               mkdir report
+
                # GENERATE REPORT
                docker run --rm \
                  --network catalogue-service_default \
