@@ -1,6 +1,7 @@
 package com.itc.funkart.product_service.controller;
 
 import com.itc.funkart.product_service.dto.request.AddToCartRequest;
+import com.itc.funkart.product_service.dto.request.CartItemUpdateDto;
 import com.itc.funkart.product_service.dto.request.CartResponse;
 import com.itc.funkart.product_service.service.CartService;
 import jakarta.validation.Valid;
@@ -27,7 +28,20 @@ public class CartController {
     }
 
     @DeleteMapping("/{userId}/items/{productId}")
-    public ResponseEntity<CartResponse> removeItem(@PathVariable Long userId, @PathVariable Long productId) {
-        return ResponseEntity.ok(cartService.removeItemFromCart(userId, productId));
+    public ResponseEntity<CartResponse> removeItems(@PathVariable Long userId, @PathVariable Long productId) {
+        return ResponseEntity.ok(cartService.removeItemsFromCart(userId, productId));
+    }
+
+    @PatchMapping("/{userId}/items/{productId}")
+    public ResponseEntity<CartResponse> updateItemQuantity(
+            @PathVariable Long userId,
+            @PathVariable Long productId,
+            @Valid @RequestBody CartItemUpdateDto updateDto) {
+        return ResponseEntity.ok(cartService.updateItemQuantity(userId, productId, updateDto));
+    }
+    @PostMapping("/{userId}/checkout")
+    public ResponseEntity<String> checkout(@PathVariable Long userId) {
+        cartService.checkout(userId);
+        return ResponseEntity.ok("Order processed and cart cleared");
     }
 }
