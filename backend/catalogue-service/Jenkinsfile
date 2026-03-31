@@ -71,14 +71,14 @@ pipeline {
         stage('Performance Test (JMeter)') {
             steps {
                 sh '''
-                cd backend/catalogue-service/jmeter
+                JMX_DIR="$WORKSPACE/backend/catalogue-service/jmeter"
 
-                rm -rf results.jtl jmeter.log report-${BUILD_NUMBER}
+                rm -rf "$JMX_DIR/results.jtl" "$JMX_DIR/jmeter.log" "$JMX_DIR/report-${BUILD_NUMBER}"
 
-                # 🔥 USE JENKINS CONTAINER PATH
+                # RUN TEST
                 docker run --rm \
                   --network catalogue-service_default \
-                  -v /var/jenkins_home/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  -v "$JMX_DIR:/tests" \
                   justb4/jmeter \
                   -n \
                   -t /tests/catalogue-docker-test.jmx \
@@ -86,9 +86,10 @@ pipeline {
                   -j /tests/jmeter.log \
                   -JtestType=normal
 
+                # GENERATE REPORT
                 docker run --rm \
                   --network catalogue-service_default \
-                  -v /var/jenkins_home/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  -v "$JMX_DIR:/tests" \
                   justb4/jmeter \
                   -g /tests/results.jtl \
                   -o /tests/report-${BUILD_NUMBER}
@@ -112,4 +113,3 @@ pipeline {
         }
     }
 }
-
