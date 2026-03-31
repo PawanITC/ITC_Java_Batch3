@@ -85,7 +85,7 @@ pipeline {
                   -t /catalogue-docker-test.jmx \\
                   -l /results.jtl \\
                   -j /jmeter.log \\
-                  -JtestType=high
+                  -JtestType=veryhigh
                 
                 # Copy JMX file into the created container
                 docker cp catalogue-docker-test.jmx jmeter-run-${BUILD_NUMBER}:/catalogue-docker-test.jmx
