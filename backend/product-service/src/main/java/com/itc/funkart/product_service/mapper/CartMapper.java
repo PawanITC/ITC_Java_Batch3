@@ -4,20 +4,18 @@ import com.itc.funkart.product_service.dto.request.CartItemResponse;
 import com.itc.funkart.product_service.dto.request.CartResponse;
 import com.itc.funkart.product_service.entity.Cart;
 import com.itc.funkart.product_service.entity.CartItem;
-import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Component
 public class CartMapper {
 
-    public CartResponse toResponse(Cart cart) {
+    public static CartResponse toResponse(Cart cart) {
         if (cart == null) return null;
 
         List<CartItemResponse> itemDtos = cart.getItems().stream()
-                .map(this::toItemResponse)
+                .map(CartMapper::toItemResponse)
                 .collect(Collectors.toList());
 
         BigDecimal total = itemDtos.stream()
@@ -32,7 +30,7 @@ public class CartMapper {
                 .build();
     }
 
-    private CartItemResponse toItemResponse(CartItem item) {
+    private static CartItemResponse toItemResponse(CartItem item) {
         if (item.getProduct() == null) {
             throw new IllegalStateException("CartItem must have a valid Product reference");
         }
@@ -45,7 +43,6 @@ public class CartMapper {
                 .productName(item.getProduct().getName())
                 .price(price)
                 .quantity(qty)
-                // subTotal = price * quantity
                 .subTotal(price.multiply(BigDecimal.valueOf(qty)))
                 .build();
     }

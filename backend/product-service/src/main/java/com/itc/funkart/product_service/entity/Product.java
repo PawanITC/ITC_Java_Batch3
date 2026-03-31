@@ -34,7 +34,9 @@ public class Product {
 
     private Boolean active = true;
 
-    // Cascade ALL ensures images are saved/deleted with the product
+    //@Column(nullable=false)
+    private String brand;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ProductImage> images = new ArrayList<>();

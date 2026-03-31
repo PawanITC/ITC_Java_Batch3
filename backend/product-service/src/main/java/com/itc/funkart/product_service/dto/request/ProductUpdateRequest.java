@@ -21,5 +21,8 @@ public class ProductUpdateRequest {
     @Min(value = 0, message = "Stock cannot be negative")
     private Integer stockQuantity;
 
+    @NotNull(message = "Brand is required")
+    private String brand;
+
     private Boolean active;
 }

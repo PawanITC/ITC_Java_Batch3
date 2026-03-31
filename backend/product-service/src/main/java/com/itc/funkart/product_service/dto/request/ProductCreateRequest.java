@@ -30,5 +30,8 @@ public class ProductCreateRequest {
     private Long categoryId;
 
     private List<String> imageUrls;
+
+    @NotNull(message = "Brand is required")
+    private String brand;
 }
 

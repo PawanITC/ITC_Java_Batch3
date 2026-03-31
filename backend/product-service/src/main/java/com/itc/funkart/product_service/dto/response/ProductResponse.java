@@ -18,5 +18,6 @@ public class ProductResponse {
     private String categoryName;
     private List<String> imageUrls;
     private Boolean active;
+    private String brand;
 }
 

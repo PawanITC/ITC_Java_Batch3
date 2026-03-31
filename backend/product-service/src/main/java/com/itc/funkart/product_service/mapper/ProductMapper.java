@@ -23,6 +23,7 @@ public class ProductMapper {
                 .stockQuantity(request.getStockQuantity())
                 .slug(generateSlug(request.getName()))
                 .active(true)
+                .brand(request.getBrand())
                 .images(new ArrayList<>()) // Initialize list
                 .build();
 
@@ -56,6 +57,7 @@ public class ProductMapper {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .active(product.getActive())
+                .brand(product.getBrand())
                 // Safely get category name if it exists
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 // Extract only the URLs for the response
