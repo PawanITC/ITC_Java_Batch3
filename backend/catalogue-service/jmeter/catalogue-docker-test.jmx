@@ -159,6 +159,29 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Very High Load" enabled="true">
+          <stringProp name="IfController.condition">${__groovy(&quot;veryhigh&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <boolProp name="IfController.useExpression">true</boolProp>
+          <stringProp name="TestPlan.comments">Triggers very high load test when testType=veryhigh</stringProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Very High Load">
+            <stringProp name="TestPlan.comments">Catalogue API call for very high load test</stringProp>
+            <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
+            <stringProp name="HTTPSampler.port">8081</stringProp>
+            <stringProp name="HTTPSampler.protocol">http</stringProp>
+            <stringProp name="HTTPSampler.path">/catalogue/products</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
         <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="Simple Data Writer" enabled="true">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
@@ -203,7 +226,7 @@
             <stringProp name="Argument.name">testType</stringProp>
             <stringProp name="Argument.value">${__P(testType,normal)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
-            <stringProp name="Argument.desc">normal, ratelimit, concurrency, timeout, circuit, high</stringProp>
+            <stringProp name="Argument.desc">normal, ratelimit, concurrency, timeout, circuit, high, veryhigh</stringProp>
           </elementProp>
         </collectionProp>
         <stringProp name="TestPlan.comments">Controls which resiliency test runs via CLI</stringProp>
@@ -248,6 +271,10 @@ if (&quot;normal&quot;.equals(type)) {
     props.put(&quot;loop&quot;, &quot;3&quot;)
 } else if (&quot;high&quot;.equals(type)) {
     props.put(&quot;threads&quot;, &quot;800&quot;)
+    props.put(&quot;ramp&quot;, &quot;1&quot;)
+    props.put(&quot;loop&quot;, &quot;1&quot;)
+} else if (&quot;veryhigh&quot;.equals(type)) {
+    props.put(&quot;threads&quot;, &quot;1200&quot;)
     props.put(&quot;ramp&quot;, &quot;1&quot;)
     props.put(&quot;loop&quot;, &quot;1&quot;)
 }
