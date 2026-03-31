@@ -82,8 +82,8 @@ pipeline {
                 sh '''
                 cd backend/catalogue-service/jmeter
 
-                # CLEAN EVERYTHING
-                rm -rf report results.jtl jmeter.log
+                # CLEAN
+                rm -rf results.jtl jmeter.log
 
                 # RUN TEST
                 docker run --rm \
@@ -96,16 +96,13 @@ pipeline {
                   -j /tests/jmeter.log \
                   -JtestType=normal
 
-                # 🔥 IMPORTANT: DO NOT CREATE FOLDER
-                rm -rf report
-
-                # GENERATE REPORT (JMeter creates folder itself)
+                # GENERATE REPORT (UNIQUE FOLDER PER BUILD)
                 docker run --rm \
                   --network catalogue-service_default \
                   -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
                   justb4/jmeter \
                   -g /tests/results.jtl \
-                  -o /tests/report
+                  -o /tests/report-${BUILD_NUMBER}
                 '''
             }
         }
@@ -116,7 +113,7 @@ pipeline {
             archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
 
             publishHTML([
-                reportDir: 'backend/catalogue-service/jmeter/report',
+                reportDir: "backend/catalogue-service/jmeter/report-${env.BUILD_NUMBER}",
                 reportFiles: 'index.html',
                 reportName: 'JMeter Report',
                 keepAll: true,
