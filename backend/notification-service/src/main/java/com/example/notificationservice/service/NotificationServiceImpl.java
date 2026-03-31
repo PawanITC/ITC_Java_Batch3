@@ -2,9 +2,7 @@ package com.example.notificationservice.service;
 
 import com.example.notificationservice.dto.OrderEventDTO;
 import com.example.notificationservice.model.Notification;
-import com.example.notificationservice.model.NotificationErrorMessages;
 import com.example.notificationservice.model.SentStatus;
-import com.example.notificationservice.repository.NotificationErrorRepository;
 import com.example.notificationservice.repository.NotificationRepository;
 import com.example.notificationservice.template.*;
 
@@ -16,25 +14,24 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Optional;
 
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository repository;
-    private final NotificationErrorRepository errorRepository;
+    private final ErrorRepoQuery errorRepoQuery;
     private final MockEmailSender mockEmailSender;
     private final MockSmsSender mockSmsSender;
     private final SmtpEmailSender smtpEmailSender;
     private final Logger log = LoggerFactory.getLogger(NotificationServiceImpl.class);
     private final TwilioSmsSender twilioSmsSender;
 
-    public NotificationServiceImpl(NotificationRepository repository, NotificationErrorRepository errorRepository,
+    public NotificationServiceImpl(NotificationRepository repository, ErrorRepoQuery errorRepoQuery,
                                    MockEmailSender mockEmailSender,
                                    MockSmsSender mockSmsSender , SmtpEmailSender smtpEmailSender, TwilioSmsSender twilioSmsSender) {
 
         this.repository = repository;
-        this.errorRepository = errorRepository;
+        this.errorRepoQuery = errorRepoQuery;
         this.mockEmailSender = mockEmailSender;
         this.mockSmsSender = mockSmsSender;
         this.smtpEmailSender = smtpEmailSender;
@@ -65,14 +62,9 @@ public class NotificationServiceImpl implements NotificationService {
                 // so we can update the status parameter
             }catch (Exception e) {
                 log.error("Failed to send email for order {} : {}", event.getOrderId(), e.getMessage());
-                if(errorRepository.existsByOrderIdAndOrderStatus(event.getOrderId(), event.getStatus())){//we'll check first if the error record already
-                    //exists in the database, if so we'll just update the record .
-                    Optional<NotificationErrorMessages> errorRecord = errorRepository.findByOrderIdAndOrderStatus(event.getOrderId(), event.getStatus());
-                    errorRecord.get().setEmailErrorMessage(e.getMessage());
-                    errorRepository.save(errorRecord.get());//update the missing parameter
-                }else{//otherwise well create a new error record
-                errorRepository.save(new NotificationErrorMessages(event.getOrderId(), e.getMessage(),null,event.getStatus()));
-                }//
+
+                errorRepoQuery.updateEmailErrorRecord(event,e);//call the function to update error repository with error message
+
                 notification.setEmailSentStatus(SentStatus.FAILED);//we can set the status as failed since we caught an error which means the email did not
                 //go through
             }
@@ -88,14 +80,8 @@ public class NotificationServiceImpl implements NotificationService {
                 // so we can update the status parameter
             }catch (Exception e) {
                 log.error("Failed to send sms for order {} : {}", event.getOrderId(), e.getMessage());
-                if(errorRepository.existsByOrderIdAndOrderStatus(event.getOrderId(), event.getStatus())) {//we'll check first if the error record already
-                    //exists in the database, if so we'll just update the record .
-                    Optional<NotificationErrorMessages> errorRecord = errorRepository.findByOrderIdAndOrderStatus(event.getOrderId(), event.getStatus());
-                    errorRecord.get().setSmsErrorMessage(e.getMessage());
-                    errorRepository.save(errorRecord.get());//update the missing parameter
-                }else {//otherwise well create a new error record
-                    errorRepository.save(new NotificationErrorMessages(event.getOrderId(), null,e.getMessage(), event.getStatus()));
-                }
+
+                errorRepoQuery.updateSmsErrorRecord(event,e);//call the function to update error repository with error message
 
                 notification.setSmsSentStatus(SentStatus.FAILED);//we can set the status as failed since we caught an error which means the sms did not
                 //go through
