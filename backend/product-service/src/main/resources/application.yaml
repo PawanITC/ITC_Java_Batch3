@@ -17,8 +17,8 @@ spring:
         format_sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
-  mongodb:
-    uri: mongodb://mongo_admin:mongo_password@localhost:27017/product_service_mongo?authSource=admin
+#  mongodb:
+#    uri: mongodb://mongo_admin:mongo_password@localhost:27017/product_service_mongo?authSource=admin
 
   kafka:
     bootstrap-servers: localhost:9092
