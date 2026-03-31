@@ -85,6 +85,10 @@ pipeline {
                 # CLEAN
                 rm -rf report results.jtl jmeter.log
 
+                # DEBUG (IMPORTANT - keep this)
+                echo "FILES INSIDE JENKINS:"
+                ls -la
+
                 # RUN TEST
                 docker run --rm \
                   --network catalogue-service_default \
