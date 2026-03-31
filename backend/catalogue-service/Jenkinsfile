@@ -77,47 +77,43 @@ pipeline {
             }
         }
 
-       stage('Performance Test (JMeter)') {
-           steps {
-               sh '''
-               cd backend/catalogue-service/jmeter
+        stage('Performance Test (JMeter)') {
+            steps {
+                sh '''
+                cd backend/catalogue-service/jmeter
 
-               # CLEAN
-               rm -rf report results.jtl jmeter.log
+                # CLEAN EVERYTHING
+                rm -rf report results.jtl jmeter.log
 
-               echo "FILES INSIDE JENKINS:"
-               ls -la
+                # RUN TEST
+                docker run --rm \
+                  --network catalogue-service_default \
+                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  justb4/jmeter \
+                  -n \
+                  -t /tests/catalogue-docker-test.jmx \
+                  -l /tests/results.jtl \
+                  -j /tests/jmeter.log \
+                  -JtestType=normal
 
-               # RUN TEST
-               docker run --rm \
-                 --network catalogue-service_default \
-                 -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
-                 justb4/jmeter \
-                 -n \
-                 -t /tests/catalogue-docker-test.jmx \
-                 -l /tests/results.jtl \
-                 -j /tests/jmeter.log \
-                 -JtestType=normal
+                # 🔥 IMPORTANT: DO NOT CREATE FOLDER
+                rm -rf report
 
-               rm -rf report
-               mkdir report
-
-               # GENERATE REPORT
-               docker run --rm \
-                 --network catalogue-service_default \
-                 -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
-                 justb4/jmeter \
-                 -g /tests/results.jtl \
-                 -o /tests/report
-               '''
-           }
-       }
+                # GENERATE REPORT (JMeter creates folder itself)
+                docker run --rm \
+                  --network catalogue-service_default \
+                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  justb4/jmeter \
+                  -g /tests/results.jtl \
+                  -o /tests/report
+                '''
+            }
+        }
     }
 
     post {
         always {
             archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
-            sh 'ls -la backend/catalogue-service/jmeter'
 
             publishHTML([
                 reportDir: 'backend/catalogue-service/jmeter/report',
