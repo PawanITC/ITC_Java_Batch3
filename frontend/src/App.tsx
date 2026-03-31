@@ -7,6 +7,9 @@ import OAuthCallback from "./pages/OAuthCallback";
 import { AuthProvider } from "./context/AuthProvider";
 import ProductManagement from "./pages/product/ProductManagement";
 
+import UserProductStore from "./pages/product/UserProductStore";
+import AdminProductManagement from "./pages/product/AdminProductManagement";
+
 function App() {
     return (
         <AuthProvider>
@@ -17,7 +20,13 @@ function App() {
                         <Route path="login" element={<Login />} />
                         <Route path="signup" element={<Signup />} />
                         <Route path="oauth-success" element={<OAuthCallback />} />
-                        <Route path="products" element={<ProductManagement />} />
+                        {/* <Route path="products" element={<ProductManagement />} /> */}
+
+                        {/* USER STOREFRONT: List, View, and Cart logic */}
+                        <Route path="products" element={<UserProductStore />} />
+                        
+                        {/* ADMIN DASHBOARD: Create, Update, Delete logic */}
+                        <Route path="admin-products" element={<AdminProductManagement />} />
                     </Route>
                 </Routes>
             </BrowserRouter>
