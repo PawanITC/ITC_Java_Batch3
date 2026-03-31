@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        WORKSPACE_JMETER_DIR = "${WORKSPACE}/backend/catalogue-service/jmeter"
+        HOST_JMETER_DIR = "/var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter"
+    }
+
     stages {
 
         stage('Clean Workspace') {
@@ -71,14 +76,13 @@ pipeline {
         stage('Performance Test (JMeter)') {
             steps {
                 sh '''
-                cd backend/catalogue-service/jmeter
+                rm -rf "${WORKSPACE_JMETER_DIR}/results.jtl" \
+                       "${WORKSPACE_JMETER_DIR}/jmeter.log" \
+                       "${WORKSPACE_JMETER_DIR}/report-${BUILD_NUMBER}"
 
-                rm -rf results.jtl jmeter.log
-
-                # RUN TEST (use current workspace path)
                 docker run --rm \
                   --network catalogue-service_default \
-                  -v $(pwd):/tests \
+                  -v "${HOST_JMETER_DIR}:/tests" \
                   justb4/jmeter \
                   -n \
                   -t /tests/catalogue-docker-test.jmx \
@@ -86,13 +90,15 @@ pipeline {
                   -j /tests/jmeter.log \
                   -JtestType=normal
 
-                # GENERATE REPORT (same workspace mount)
                 docker run --rm \
                   --network catalogue-service_default \
-                  -v $(pwd):/tests \
+                  -v "${HOST_JMETER_DIR}:/tests" \
                   justb4/jmeter \
                   -g /tests/results.jtl \
                   -o /tests/report-${BUILD_NUMBER}
+
+                test -f "${WORKSPACE_JMETER_DIR}/results.jtl"
+                test -f "${WORKSPACE_JMETER_DIR}/report-${BUILD_NUMBER}/index.html"
                 '''
             }
         }
