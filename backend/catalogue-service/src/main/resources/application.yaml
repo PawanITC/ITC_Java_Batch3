@@ -13,7 +13,7 @@ resilience4j:
     instances:
       productService:
         limitForPeriod: 800
-        limitRefreshPeriod: 2s
+        limitRefreshPeriod: 1s
         #timeoutDuration: 0s
 
   timelimiter:
