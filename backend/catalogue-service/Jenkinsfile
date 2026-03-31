@@ -18,12 +18,8 @@ pipeline {
         stage('Verify JMX File') {
             steps {
                 sh '''
-                echo "===== PRINTING JMX FILE ====="
-                cat backend/catalogue-service/jmeter/catalogue-docker-test.jmx
-
-                echo "===== CHECKING FOR OLD HOST ====="
                 if grep -q "host.docker.internal" backend/catalogue-service/jmeter/catalogue-docker-test.jmx; then
-                    echo "JMX INVALID: still using host.docker.internal"
+                    echo "JMX INVALID"
                     exit 1
                 else
                     echo "JMX OK"
@@ -57,22 +53,17 @@ pipeline {
         stage('Wait for Service Health') {
             steps {
                 sh '''
-                echo "Waiting for service..."
-
                 timeout=60
                 elapsed=0
 
                 until curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
                     if [ $elapsed -ge $timeout ]; then
-                        echo "Service failed"
                         docker logs catalogue-service
                         exit 1
                     fi
                     sleep 3
                     elapsed=$((elapsed+3))
                 done
-
-                echo "Service ready"
                 '''
             }
         }
@@ -82,13 +73,12 @@ pipeline {
                 sh '''
                 cd backend/catalogue-service/jmeter
 
-                # CLEAN
                 rm -rf results.jtl jmeter.log
 
-                # RUN TEST
+                # RUN TEST (use current workspace path)
                 docker run --rm \
                   --network catalogue-service_default \
-                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  -v $(pwd):/tests \
                   justb4/jmeter \
                   -n \
                   -t /tests/catalogue-docker-test.jmx \
@@ -96,10 +86,10 @@ pipeline {
                   -j /tests/jmeter.log \
                   -JtestType=normal
 
-                # GENERATE REPORT (UNIQUE FOLDER PER BUILD)
+                # GENERATE REPORT (same workspace mount)
                 docker run --rm \
                   --network catalogue-service_default \
-                  -v /var/lib/docker/volumes/jenkins_home/_data/workspace/catalogue-pipeline/backend/catalogue-service/jmeter:/tests \
+                  -v $(pwd):/tests \
                   justb4/jmeter \
                   -g /tests/results.jtl \
                   -o /tests/report-${BUILD_NUMBER}
