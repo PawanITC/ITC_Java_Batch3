@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 
 @Service
 @Slf4j
@@ -28,6 +30,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "product-service:products", allEntries = true)
     public ProductResponse createProduct(ProductCreateRequest request) {
         log.info("Creating product with name: {}", request.getName());
 
@@ -47,6 +50,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "product-service:products", allEntries = true)
     public ProductResponse updateProduct(Long id, ProductUpdateRequest request) {
         log.info("Updating product id: {}", id);
 
@@ -77,7 +81,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "product-service:products")
     public List<ProductResponse> getAllProducts() {
+        log.info("Fetching all products from database");
         return productRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(ProductMapper::toResponse)
@@ -86,6 +92,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "product-service:products", allEntries = true)
     public void deleteProduct(Long id) {
         if (!productRepository.existsById(id)) {
             throw new ResourceNotFoundException("Product not found with id: " + id);

@@ -90,6 +90,27 @@ services:
     networks:
       - product-network
 
+  # REDIS - The Caching Engine
+  redis:
+    image: redis:7-alpine
+    container_name: product-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - product-network
+
+  # REDIS INSIGHT (Optional GUI to see your cache)
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-insight
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+    networks:
+      - product-network
+
 
 volumes:
   product_postgres_data:
