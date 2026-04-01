@@ -1,5 +1,7 @@
 package com.example.notificationservice.service;
 
+import com.example.notificationservice.customException.FailedToSendEmailException;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.*;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,10 @@ public class SmtpEmailSender implements EmailSender {//uses the SMTP implemented
         msg.setTo(email);
         msg.setSubject(Subject);
         msg.setText(message);
-        mailSender.send(msg);
+        try{
+        mailSender.send(msg);}
+        catch (MailException ex){//dont just catch any error only catch this specific mail error
+            throw new FailedToSendEmailException("Error Encountered! Failed To Send Email to: "+email+", "+ex.getMessage());//rethrow as our own exception
+        }
     }
 }

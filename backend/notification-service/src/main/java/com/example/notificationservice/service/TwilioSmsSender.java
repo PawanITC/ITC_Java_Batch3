@@ -1,6 +1,8 @@
 package com.example.notificationservice.service;
 
+import com.example.notificationservice.customException.FailedToSendSmsException;
 import com.twilio.Twilio;
+import com.twilio.exception.TwilioException;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,11 +33,15 @@ public class TwilioSmsSender implements SmsSender {
 
     @Override
     public void sendSms(String recipientNumber, String message) {
-        Message.creator(new PhoneNumber(recipientNumber), new PhoneNumber(fromNumber), message).create();
-        //Twilio provided class and method to build message and send to twilio api
-        // builds an HTTP POST request
-        // sends it to Twilio servers
-        // waits for response
-        // returns a Message object
+        try {
+            Message.creator(new PhoneNumber(recipientNumber), new PhoneNumber(fromNumber), message).create();
+            //Twilio provided class and method to build message and send to twilio api
+            // builds an HTTP POST request
+            // sends it to Twilio servers
+            // waits for response
+            // returns a Message object
+        }catch (TwilioException e) {
+            throw new FailedToSendSmsException("Error Encountered! Failed To Send Email to: "+recipientNumber+", "+e.getMessage());
+        }
     }
 }

@@ -1,5 +1,7 @@
 package com.example.notificationservice.service;
 
+import com.example.notificationservice.customException.FailedToSendEmailException;
+import com.example.notificationservice.customException.FailedToSendSmsException;
 import com.example.notificationservice.dto.OrderEventDTO;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.model.SentStatus;
@@ -60,7 +62,7 @@ public class NotificationServiceImpl implements NotificationService {
                 sendEmailWithRetry(event.getEmail(),subject, message);
                 notification.setEmailSentStatus(SentStatus.SENT);//if we don't get any errors it means the email was sent successfully,
                 // so we can update the status parameter
-            }catch (Exception e) {
+            }catch (FailedToSendEmailException e) {//we're only concerned with this specific error to catch thrown by smtp server, any other error thrown by unrelated events can be handled by global handler
                 log.error("Failed to send email for order {} : {}", event.getOrderId(), e.getMessage());
 
                 errorRepoQuery.updateEmailErrorRecord(event,e);//call the function to update error repository with error message
@@ -78,7 +80,7 @@ public class NotificationServiceImpl implements NotificationService {
             sendSmsWithRetry(event.getPhone(),message);
             notification.setSmsSentStatus(SentStatus.SENT);//if we don't get any errors it means the sms was sent successfully,
                 // so we can update the status parameter
-            }catch (Exception e) {
+            }catch (FailedToSendSmsException e) {
                 log.error("Failed to send sms for order {} : {}", event.getOrderId(), e.getMessage());
 
                 errorRepoQuery.updateSmsErrorRecord(event,e);//call the function to update error repository with error message
