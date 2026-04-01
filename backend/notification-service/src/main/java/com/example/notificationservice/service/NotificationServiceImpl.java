@@ -40,17 +40,11 @@ public class NotificationServiceImpl implements NotificationService {
         this.twilioSmsSender = twilioSmsSender;
     }
 
-    @Override
-    public Notification getNotification() {
-        return notification;
-    }
-
-    private Notification notification;
 
     @Override
-    public void processOrderEvent(OrderEventDTO event) {
+    public Notification processOrderEvent(OrderEventDTO event) {
 
-        notification = generateNotification(event);
+        Notification notification = generateNotification(event);
 
         String message = MessageBuilderTemplate.generateMessage(event.getOrderId(), event.getStatus());//message body in email
         String subject = MessageBuilderTemplate.generateSubject(event.getOrderId(), event.getStatus());//subject header for email
@@ -90,6 +84,8 @@ public class NotificationServiceImpl implements NotificationService {
             }
     }
         repository.save(notification);//saves notification log to database
+
+        return notification;
     }
 
     public static Notification generateNotification(OrderEventDTO event) {

@@ -27,18 +27,18 @@ public class NotificationController {
     @PostMapping("/order-event")
     public ResponseEntity<ApiResponse<Notification>> receiveOrderEvent(@RequestBody @Valid/*input validation*/ OrderEventDTO event) {
 
-        notificationService.processOrderEvent(event);//if service layer processes everything without problems
+        Notification notification = notificationService.processOrderEvent(event);//if service layer processes everything without problems
 
-        if (notificationService.getNotification().getEmailSentStatus() == SentStatus.SENT && notificationService.getNotification().getSmsSentStatus() == SentStatus.SENT) {
-            return ResponseEntity.ok(new ApiResponse<>(notificationService.getNotification(),"Order event processed successfully!"));
+        if (notification.getEmailSentStatus() == SentStatus.SENT && notification.getSmsSentStatus() == SentStatus.SENT) {
+            return ResponseEntity.ok(new ApiResponse<>(notification,"Order event processed successfully!"));
         }//is true
-        else if(notificationService.getNotification().getEmailSentStatus() == SentStatus.FAILED && notificationService.getNotification().getSmsSentStatus() == SentStatus.SENT){
-            return ResponseEntity.ok(new ApiResponse<>(notificationService.getNotification(),"Order event processing: Partially failed! Unable To Send Email To Recipient, Please Check Recipient Email and Try Again!"));//if not
-        } else if (notificationService.getNotification().getEmailSentStatus() == SentStatus.SENT && notificationService.getNotification().getSmsSentStatus() == SentStatus.FAILED) {
-            return ResponseEntity.ok(new ApiResponse<>(notificationService.getNotification(),"Order event processing: Partially failed! Unable To Send SMS To Recipient Phone Number, Please Check Recipient Phone Number and Try Again!"));
-        } else if (notificationService.getNotification().getEmailSentStatus() == SentStatus.FAILED && notificationService.getNotification().getSmsSentStatus() == SentStatus.FAILED) {
-            return ResponseEntity.ok(new ApiResponse<>(notificationService.getNotification(),"Order event processing: Failed! Unable To Send SMS To Recipient Phone Number, Unable To Send Email To Recipient Email! Please Check Both Parameters And Try Again!"));
-        }else return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(notificationService.getNotification(),"Order event processing failed! An Unexpected error occurred!"));
+        else if(notification.getEmailSentStatus() == SentStatus.FAILED && notification.getSmsSentStatus() == SentStatus.SENT){
+            return ResponseEntity.ok(new ApiResponse<>(notification,"Order event processing: Partially failed! Unable To Send Email To Recipient, Please Check Recipient Email and Try Again!"));//if not
+        } else if (notification.getEmailSentStatus() == SentStatus.SENT && notification.getSmsSentStatus() == SentStatus.FAILED) {
+            return ResponseEntity.ok(new ApiResponse<>(notification,"Order event processing: Partially failed! Unable To Send SMS To Recipient Phone Number, Please Check Recipient Phone Number and Try Again!"));
+        } else if (notification.getEmailSentStatus() == SentStatus.FAILED && notification.getSmsSentStatus() == SentStatus.FAILED) {
+            return ResponseEntity.ok(new ApiResponse<>(notification,"Order event processing: Failed! Unable To Send SMS To Recipient Phone Number, Unable To Send Email To Recipient Email! Please Check Both Parameters And Try Again!"));
+        }else return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(notification,"Order event processing failed! An Unexpected error occurred!"));
 
     }
 }
