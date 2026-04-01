@@ -6,9 +6,9 @@ import com.example.notificationservice.model.SentStatus;
 import com.example.notificationservice.response.ApiResponse;
 import com.example.notificationservice.service.NotificationService;
 import jakarta.validation.Valid;
-import org.apache.http.HttpStatus;
-import org.springframework.boot.actuate.autoconfigure.observation.ObservationProperties;
-import org.springframework.http.HttpStatusCode;
+
+import org.springframework.http.HttpStatus;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +38,7 @@ public class NotificationController {
             return ResponseEntity.ok(new ApiResponse<>(notificationService.getNotification(),"Order event processing: Partially failed! Unable To Send SMS To Recipient Phone Number, Please Check Recipient Phone Number and Try Again!"));
         } else if (notificationService.getNotification().getEmailSentStatus() == SentStatus.FAILED && notificationService.getNotification().getSmsSentStatus() == SentStatus.FAILED) {
             return ResponseEntity.ok(new ApiResponse<>(notificationService.getNotification(),"Order event processing: Failed! Unable To Send SMS To Recipient Phone Number, Unable To Send Email To Recipient Email! Please Check Both Parameters And Try Again!"));
-        }else return ResponseEntity.internalServerError().build();
+        }else return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(notificationService.getNotification(),"Order event processing failed! An Unexpected error occurred!"));
 
     }
 }
