@@ -3,6 +3,7 @@ package com.example.notificationservice.service;
 import com.example.notificationservice.dto.OrderEventDTO;
 import com.example.notificationservice.model.NotificationErrorMessages;
 import com.example.notificationservice.repository.NotificationErrorRepository;
+import io.micrometer.observation.annotation.Observed;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -15,7 +16,7 @@ public class ErrorRepoQuery {
     }
 
     private final NotificationErrorRepository notificationErrorRepository;
-
+    @Observed(name = "update-Email-Error-Record")
     public void updateEmailErrorRecord(OrderEventDTO event, Exception e){
         Boolean exists = checkRecordExists(event);
 
@@ -29,7 +30,7 @@ public class ErrorRepoQuery {
             notificationErrorRepository.save(new NotificationErrorMessages(event.getOrderId(), e.getMessage(),null,event.getStatus()));
         }//
     }
-
+    @Observed(name = "update-Sms-Error-Record")
     public void updateSmsErrorRecord(OrderEventDTO event, Exception e){
         Boolean exists = checkRecordExists(event);
 

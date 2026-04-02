@@ -1,6 +1,7 @@
 package com.example.notificationservice.service;
 
 import com.example.notificationservice.customException.FailedToSendEmailException;
+import io.micrometer.observation.annotation.Observed;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.*;
@@ -15,7 +16,7 @@ public class SmtpEmailSender implements EmailSender {//uses the SMTP implemented
         this.mailSender = mailSender;
     }
 
-
+    @Observed(name = "Smtp-send-email")
     @Override
     public void sendEmail(String email, String Subject, String message) {
         SimpleMailMessage msg = new SimpleMailMessage();

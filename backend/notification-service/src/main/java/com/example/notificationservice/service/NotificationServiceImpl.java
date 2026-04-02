@@ -11,6 +11,7 @@ import com.example.notificationservice.template.*;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -40,7 +41,7 @@ public class NotificationServiceImpl implements NotificationService {
         this.twilioSmsSender = twilioSmsSender;
     }
 
-
+    @Observed(name = "process-order-event")//tracing for jaegar, to span service level
     @Override
     public Notification processOrderEvent(OrderEventDTO event) {
 
@@ -88,6 +89,7 @@ public class NotificationServiceImpl implements NotificationService {
         return notification;
     }
 
+    @Observed(name = "generate-Notification")
     public static Notification generateNotification(OrderEventDTO event) {
         Notification notification = new Notification();
         notification.setOrderId(event.getOrderId());
@@ -98,6 +100,7 @@ public class NotificationServiceImpl implements NotificationService {
         return notification;
     }
 
+    @Observed(name = "send-Email-With-Retry")
     //adding logic to retry with resilience4j should request fail (implemented retry here ,
     // rather than SmtpEmailSender because of following separation of concern)
     @Retry(name="emailRetry", fallbackMethod="emailFallback")
@@ -107,6 +110,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     }
 
+    @Observed(name = "send-Sms-With-Retry")
     @Retry(name="smsRetry" , fallbackMethod="smsFallback")
     @CircuitBreaker(name = "smsCircuit")
     @TimeLimiter(name = "smsTimeout")
