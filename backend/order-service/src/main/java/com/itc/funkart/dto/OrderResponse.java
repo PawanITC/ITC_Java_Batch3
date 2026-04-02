@@ -1,14 +1,13 @@
 package com.itc.funkart.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.UUID;
 
 @Data
 @Builder
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderResponse {
@@ -19,4 +18,6 @@ public class OrderResponse {
     private Integer quantity;
     private Double price;
     private String orderStatus;
+    private String eventStatus;
+//    private String message;
 }

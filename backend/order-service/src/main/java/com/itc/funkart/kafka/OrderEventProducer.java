@@ -1,51 +1,61 @@
+
+
 package com.itc.funkart.kafka;
 
 import com.itc.funkart.entity.Order;
+import com.itc.funkart.dto.OrderEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderEventProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private static final String TOPIC = "order-events3";
 
-    private static final String TOPIC = "order-events";
-
-    public void publishOrderCreated(Order order) {
-
-        Map<String, Object> event = Map.of(
-                "eventType", "ORDER_CREATED",
-                "orderId", order.getOrderId(),
-                "customerId", order.getCustomerId(),
-                "timestamp", LocalDateTime.now()
-        );
-
-        kafkaTemplate.send(TOPIC, event);
+    private boolean sendEvent(OrderEvent event, UUID key) {
+        try {
+            kafkaTemplate.send(TOPIC, key.toString(), event).get();
+            log.info("✅ Kafka event sent for key={}", key);
+            return true;
+        } catch (Exception e) {
+            log.error("❌ Kafka send failed for key={}: {}", key, e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
-    public void publishOrderUpdated(Order order) {
+    public boolean publishOrderCreated(Order order) {
+        OrderEvent event = new OrderEvent();
+        event.setEventType("ORDER_CREATED");
+        event.setOrderId(order.getOrderId());
+        event.setCustomerId(order.getCustomerId());
+        event.setTimestamp(LocalDateTime.now());
 
-        Map<String, Object> event = Map.of(
-                "eventType", "ORDER_UPDATED",
-                "orderId", order.getOrderId()
-        );
-
-        kafkaTemplate.send(TOPIC, event);
+        return sendEvent(event, order.getOrderId());
     }
 
-    public void publishOrderCancelled(UUID orderId) {
+    public boolean publishOrderUpdated(Order order) {
+        OrderEvent event = new OrderEvent();
+        event.setEventType("ORDER_UPDATED");
+        event.setOrderId(order.getOrderId());
+        event.setTimestamp(LocalDateTime.now());
 
-        Map<String, Object> event = Map.of(
-                "eventType", "ORDER_CANCELLED",
-                "orderId", orderId
-        );
+        return sendEvent(event, order.getOrderId());
+    }
 
-        kafkaTemplate.send(TOPIC, event);
+    public boolean publishOrderCancelled(UUID orderId) {
+        OrderEvent event = new OrderEvent();
+        event.setEventType("ORDER_CANCELLED");
+        event.setOrderId(orderId);
+        event.setTimestamp(LocalDateTime.now());
+
+        return sendEvent(event, orderId);
     }
 }

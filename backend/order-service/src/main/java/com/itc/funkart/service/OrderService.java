@@ -2,6 +2,7 @@ package com.itc.funkart.service;
 
 import com.itc.funkart.dto.OrderRequest;
 import com.itc.funkart.dto.OrderResponse;
+import com.itc.funkart.exception.OrderNotFound;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +18,6 @@ import java.util.UUID;
 
         OrderResponse updateOrder(UUID id, OrderRequest request);
 
-        void deleteOrder(UUID id);
+        String deleteOrder(UUID id) throws OrderNotFound;
     }
 

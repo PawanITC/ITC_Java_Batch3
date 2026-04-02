@@ -30,6 +30,7 @@ import java.util.UUID;
         private Double price;
 
         private String orderStatus;
+//        private String eventStatus;
 
         private LocalDateTime createdAt;
 

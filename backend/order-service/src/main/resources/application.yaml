@@ -1,11 +1,14 @@
+
+
+
 spring:
   application:
     name: order-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/anjalidb
-    username: admin
-    password: secret
+    url: jdbc:postgresql://18.132.197.27:31369/order-service
+    username: postgres
+    password: pYOXcbv2aV
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -14,10 +17,25 @@ spring:
     show-sql: true
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:29092
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
+    consumer:
+      group-id: service-events
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.itc.funkart.dto.OrderEvent
+
 server:
   port: 8081
+management:
+  tracing:
+    sampling:
+      probability: 1.0   # 100% traces capture karo
