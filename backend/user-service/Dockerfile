@@ -35,9 +35,9 @@ LABEL service.description="User Service - Manages user registration, authenticat
 LABEL service.version="1.0.0"
 
 # Copy jar from build stage
-COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /app/build/libs/*-SNAPSHOT.jar app.jar
 
 EXPOSE 8081
 
 # Run the jar
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

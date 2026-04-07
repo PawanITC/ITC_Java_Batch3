@@ -36,9 +36,9 @@ LABEL service.description="API Gateway - Routes requests to microservices"
 LABEL service.version="1.0.0"
 
 # Copy jar from build stage
-COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /app/build/libs/*-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 
 # Run the jar
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

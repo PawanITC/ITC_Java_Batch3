@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,7 +19,7 @@ public class Payment {
 
     private Long userId;
     private Long orderId;
-    private BigDecimal amount;
+    private Long amount;
     private String currency;
     private String stripePaymentIntentId;
     private String status;
@@ -28,7 +27,7 @@ public class Payment {
     private LocalDateTime updatedAt;
 
     // Custom constructor for creating pending payments
-    public Payment(Long userId, Long orderId, BigDecimal amount, String currency) {
+    public Payment(Long userId, Long orderId, Long amount, String currency) {
         this.userId = userId;
         this.orderId = orderId;
         this.amount = amount;

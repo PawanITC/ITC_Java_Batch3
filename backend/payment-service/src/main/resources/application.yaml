@@ -7,7 +7,7 @@ server:
   address: 0.0.0.0  # bind all interfaces
 
 api:
-  version: /api/v1
+  version: api/v1
 
 management:
   endpoints:
@@ -17,8 +17,3 @@ management:
   endpoint:
     health:
       show-details: never
-
-logging:
-  level:
-    root: INFO
-    com.itc.funkart: DEBUG
