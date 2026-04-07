@@ -36,6 +36,9 @@ public class OrderEventProducer {
         event.setEventType("ORDER_CREATED");
         event.setOrderId(order.getOrderId());
         event.setCustomerId(order.getCustomerId());
+        event.setProductId(order.getProductId());
+        event.setQuantity(order.getQuantity());
+        event.setPrice(order.getPrice());
         event.setTimestamp(LocalDateTime.now());
 
         return sendEvent(event, order.getOrderId());

@@ -42,6 +42,10 @@ dependencies {
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel:1.3.2'
 
+//    Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

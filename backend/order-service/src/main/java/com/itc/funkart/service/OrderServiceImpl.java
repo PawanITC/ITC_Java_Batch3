@@ -1,4 +1,3 @@
-
 package com.itc.funkart.service;
 
 import com.itc.funkart.dto.OrderRequest;
@@ -14,7 +13,9 @@ import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.weaver.ast.Call;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -35,6 +36,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @CircuitBreaker(name = "orderServiceCircuitBreaker", fallbackMethod = "fallbackCreateOrder")
     @RateLimiter(name = "orderServiceRateLimiter")
+    @CacheEvict(value = "allOrders", allEntries = true)
     public OrderResponse createOrder(OrderRequest request) {
         log.info("Creating order for customerId={} and productId={}", request.getCustomerId(), request.getProductId());
 
@@ -54,26 +56,19 @@ public class OrderServiceImpl implements OrderService {
 
         OrderResponse response = mapper.toResponse(saved);
         response.setEventStatus(eventPublished ? "PUBLISHED" : "NOT_PUBLISHED");
-//        response.setMessage(eventPublished ? "Order created successfully" : "Order created but event failed");
 
         log.info("Order created successfully: orderId={} | eventStatus={}", saved.getOrderId(), response.getEventStatus());
         return response;
     }
 
     public OrderResponse fallbackCreateOrder(OrderRequest request, Throwable t) {
-        if(t instanceof RequestNotPermitted) {
-            throw (RequestNotPermitted) t;
-        }
-        if(t instanceof CallNotPermittedException) {
-            throw (CallNotPermittedException) t;
-
-        }
+        if (t instanceof RequestNotPermitted) throw (RequestNotPermitted) t;
+        if (t instanceof CallNotPermittedException) throw (CallNotPermittedException) t;
 
         log.error("Fallback triggered for createOrder due to: {}", t.getMessage());
         OrderResponse response = new OrderResponse();
         response.setOrderStatus("SERVICE_UNAVAILABLE");
         response.setEventStatus("NOT_PUBLISHED");
-//        response.setMessage("Service temporarily unavailable, please try again later");
         return response;
     }
 
@@ -81,8 +76,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @CircuitBreaker(name = "orderServiceCircuitBreaker", fallbackMethod = "fallbackGetOrder")
     @RateLimiter(name = "orderServiceRateLimiter")
+    @Cacheable(value = "orders", key = "#id")
     public OrderResponse getOrder(UUID id) {
-        log.info("Fetching order with id={}", id);
+        log.info("Fetching order from DB with id={}", id);
         Order order = repository.findById(id)
                 .orElseThrow(() -> new OrderNotFound("Order not found"));
 
@@ -92,19 +88,15 @@ public class OrderServiceImpl implements OrderService {
     }
 
     public OrderResponse fallbackGetOrder(UUID id, Throwable t) {
-        if (t instanceof RequestNotPermitted) {
-            throw (RequestNotPermitted) t; // let it go to GlobalExceptionHandler
-        }
-        if(t instanceof CallNotPermittedException) {
-            throw (CallNotPermittedException) t;
-        }
+        if (t instanceof RequestNotPermitted) throw (RequestNotPermitted) t;
+        if (t instanceof CallNotPermittedException) throw (CallNotPermittedException) t;
         if (t instanceof OrderNotFound) throw (OrderNotFound) t;
+
         log.error("Fallback triggered for getOrder due to: {}", t.getMessage());
         OrderResponse response = new OrderResponse();
         response.setOrderId(id);
         response.setOrderStatus("SERVICE_UNAVAILABLE");
         response.setEventStatus("NOT_PUBLISHED");
-//        response.setMessage("Service temporarily unavailable, please try again later");
         return response;
     }
 
@@ -112,7 +104,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @CircuitBreaker(name = "orderServiceCircuitBreaker", fallbackMethod = "fallbackGetAllOrders")
     @RateLimiter(name = "orderServiceRateLimiter")
+    @Cacheable(value = "allOrders")
     public List<OrderResponse> getAllOrders() {
+        log.info("Fetching all orders from DB");
         return repository.findAll().stream()
                 .map(order -> {
                     OrderResponse res = mapper.toResponse(order);
@@ -123,13 +117,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     public List<OrderResponse> fallbackGetAllOrders(Throwable t) {
-        if(t instanceof RequestNotPermitted) {
-            throw (RequestNotPermitted) t;
-        }
-        if(t instanceof CallNotPermittedException)
-        {
-            throw (CallNotPermittedException) t;
-        }
+        if (t instanceof RequestNotPermitted) throw (RequestNotPermitted) t;
+        if (t instanceof CallNotPermittedException) throw (CallNotPermittedException) t;
 
         log.error("Fallback triggered for getAllOrders due to: {}", t.getMessage());
         return List.of();
@@ -139,6 +128,10 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @CircuitBreaker(name = "orderServiceCircuitBreaker", fallbackMethod = "fallbackUpdateOrder")
     @RateLimiter(name = "orderServiceRateLimiter")
+    @Caching(evict = {
+            @CacheEvict(value = "orders", key = "#id"),
+            @CacheEvict(value = "allOrders", allEntries = true)
+    })
     public OrderResponse updateOrder(UUID id, OrderRequest request) {
         log.info("Updating order with id={}", id);
         Order order = repository.findById(id)
@@ -151,34 +144,27 @@ public class OrderServiceImpl implements OrderService {
         order.setPrice(request.getPrice());
         order.setUpdatedAt(LocalDateTime.now());
 
-
         repository.save(order);
 
         boolean eventPublished = sendKafkaEvent(() -> producer.publishOrderUpdated(order), id);
 
         OrderResponse response = mapper.toResponse(order);
         response.setEventStatus(eventPublished ? "PUBLISHED" : "NOT_PUBLISHED");
-//        response.setMessage(eventPublished ? "Order updated successfully" : "Order updated but event failed");
 
         log.info("Order updated successfully: orderId={} | eventStatus={}", id, response.getEventStatus());
         return response;
     }
 
     public OrderResponse fallbackUpdateOrder(UUID id, OrderRequest request, Throwable t) {
-        if(t instanceof RequestNotPermitted) {
-            throw (RequestNotPermitted) t;
-        }
-        if(t instanceof CallNotPermittedException)
-        {
-            throw (CallNotPermittedException) t;
-        }
+        if (t instanceof RequestNotPermitted) throw (RequestNotPermitted) t;
+        if (t instanceof CallNotPermittedException) throw (CallNotPermittedException) t;
         if (t instanceof OrderNotFound) throw (OrderNotFound) t;
+
         log.error("Fallback triggered for updateOrder due to: {}", t.getMessage());
         OrderResponse response = new OrderResponse();
         response.setOrderId(id);
         response.setOrderStatus("SERVICE_UNAVAILABLE");
         response.setEventStatus("NOT_PUBLISHED");
-//        response.setMessage("Service temporarily unavailable, please try again later");
         return response;
     }
 
@@ -186,13 +172,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @CircuitBreaker(name = "orderServiceCircuitBreaker", fallbackMethod = "fallbackDeleteOrder")
     @RateLimiter(name = "orderServiceRateLimiter")
-    public String deleteOrder(UUID id)  {
+    @Caching(evict = {
+            @CacheEvict(value = "orders", key = "#id"),
+            @CacheEvict(value = "allOrders", allEntries = true)
+    })
+    public String deleteOrder(UUID id) {
         log.info("Deleting order with id={}", id);
-        if (!repository.existsById(id))
-        {
-//            log.warn("Order with id={} not found for deletion", id);
+        if (!repository.existsById(id)) {
             throw new OrderNotFound("Order with id " + id + " not found for deletion");
-//            return;
         }
         repository.deleteById(id);
 
@@ -201,14 +188,9 @@ public class OrderServiceImpl implements OrderService {
         return "Order deleted successfully";
     }
 
-
     public void fallbackDeleteOrder(UUID id, Throwable t) {
-        if(t instanceof RequestNotPermitted) {
-            throw (RequestNotPermitted) t;
-        }
-        if (t instanceof CallNotPermittedException) {
-            throw (CallNotPermittedException) t; // let handler return 503
-        }
+        if (t instanceof RequestNotPermitted) throw (RequestNotPermitted) t;
+        if (t instanceof CallNotPermittedException) throw (CallNotPermittedException) t;
         log.error("Fallback triggered for deleteOrder due to: {}", t.getMessage());
     }
 
@@ -226,7 +208,7 @@ public class OrderServiceImpl implements OrderService {
             return call.send();
         } catch (Exception e) {
             log.error("Kafka event failed for key={}: {}", key, e.getMessage(), e);
-            throw new RuntimeException(e); // propagate to circuit breaker/fallback
+            throw new RuntimeException(e);
         }
     }
 
@@ -235,5 +217,3 @@ public class OrderServiceImpl implements OrderService {
         boolean send() throws Exception;
     }
 }
-
-

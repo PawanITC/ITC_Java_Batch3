@@ -1,6 +1,4 @@
 
-
-
 package com.itc.funkart.kafka;
 
 import com.itc.funkart.dto.OrderEvent;
