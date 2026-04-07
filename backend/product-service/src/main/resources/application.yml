@@ -1,7 +1,8 @@
 spring:
   application:
     name: product-service
-
+  profiles:
+    active: prod
   jpa:
     hibernate:
       ddl-auto: update
@@ -49,5 +50,3 @@ logging:
   level:
     org.springframework.kafka: DEBUG
     org.apache.kafka: WARN
-profiles:
-  active: dev

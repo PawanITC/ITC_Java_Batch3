@@ -3,6 +3,7 @@ package com.itc.funkart.product_service.controller;
 import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
 import com.itc.funkart.product_service.dto.request.ProductUpdateRequest;
 import com.itc.funkart.product_service.dto.response.ProductResponse;
+import com.itc.funkart.product_service.dto.response.ProductsResponse;
 import com.itc.funkart.product_service.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -84,5 +85,9 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProduct(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProduct(id));
+    }
+    @PostMapping("/by-ids")
+    public ResponseEntity<ProductsResponse> getProductsByIds(@RequestBody List<Long> ids) {
+        return ResponseEntity.ok(productService.getProductsByIds(ids));
     }
 }
