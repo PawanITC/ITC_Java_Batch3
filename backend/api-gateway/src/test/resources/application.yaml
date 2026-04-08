@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: api-gateway-test
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://localhost:8081 # Dummy for test
+          predicates:
+            - Path=/api/v1/users/**
+        - id: payment-service
+          uri: http://localhost:8082 # Dummy for test
+          predicates:
+            - Path=/api/v1/payments/**
+
+server:
+  port: 0 # Random port for testing hygiene
+
+# Hardcoded "Oxygen" for your beans
+jwt:
+  secret: "mXxbssTvw7+m8gAlzYhTCP4IyxMeOK2tDqSDPQAv6Qk="
+  expiration-ms: 3600000
+  cookie-max-age-seconds: 3600
+
+frontend:
+  url: "http://localhost:5173"
+
+api:
+  version: /api/v1
+
+app:
+  secure-cookie: false
+  cookie-name: "token"
+
+github:
+  client-id: "mock-id"
+  client-secret: "mock-secret"
+  redirect-uri: "http://localhost:8080/oauth/github/callback"
+
+user:
+  service:
+    url: "http://localhost:8081"

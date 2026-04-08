@@ -1,6 +1,7 @@
 package com.itc.funkart.gateway.security;
 
 import com.itc.funkart.gateway.config.JwtConfig;
+import com.itc.funkart.gateway.exception.OAuthException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -27,10 +28,16 @@ public class JwtTokenValidator {
      * Parse and validate JWT claims
      */
     public Claims validateAndParseClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (Exception e) {
+            // Wrap JJWT technical errors into our domain's OAuthException
+            throw new OAuthException("Token validation failed: " + e.getMessage(), e);
+        }
+
     }
 }
