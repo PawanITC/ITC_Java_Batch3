@@ -9,15 +9,15 @@ api:
   version: /api/v1
 
 jwt:
-  secret: ${JWT_SECRET:mXxbssTvw7+m8gAlzYhTCP4IyxMeOK2tDqSDPQAv6Qk=}
-  expiration-ms: ${EXPIRATION_MS:3600000}
-  cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
+  secret: ${JWT_SECRET}
+  expiration-ms: ${EXPIRATION_MS}
+  cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
 
 frontend:
-  url: ${FRONTEND_URL:http://localhost:5173}
+  url: ${FRONTEND_URL}
 
 app:
-  secure-cookie: ${APP_SECURE_COOKIE:false}
+  secure-cookie: ${APP_SECURE_COOKIE}
 
 logging:
   level:
@@ -27,4 +27,4 @@ github:
   oauth:
     client-id: ${GITHUB_CLIENT_ID}
     client-secret: ${GITHUB_CLIENT_SECRET}
-    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8080/oauth/github/callback}
+    redirect-uri: ${GITHUB_REDIRECT_URI}
