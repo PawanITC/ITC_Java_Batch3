@@ -11,7 +11,12 @@ import com.example.notificationservice.template.*;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+
 import io.micrometer.observation.annotation.Observed;
+import io.micrometer.core.instrument.Counter;//important for implementing custom metrics to track in prometheus
+import io.micrometer.core.instrument.MeterRegistry;
+
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,6 +26,7 @@ import java.time.Instant;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
+
     private final NotificationRepository repository;
     private final ErrorRepoQuery errorRepoQuery;
     private final MockEmailSender mockEmailSender;
@@ -28,10 +34,17 @@ public class NotificationServiceImpl implements NotificationService {
     private final SmtpEmailSender smtpEmailSender;
     private final Logger log = LoggerFactory.getLogger(NotificationServiceImpl.class);
     private final TwilioSmsSender twilioSmsSender;
+    // custom metric counters to implement , so can observe in Prometheus metrics
+    private Counter emailSentCounter;
+    private Counter emailFailedCounter;
+    private Counter smsSentCounter;
+    private Counter smsFailedCounter;
+    //will add counters to the meter registry class to 'register' and send to Prometheus metrics
+    private final MeterRegistry meterRegistry;
 
     public NotificationServiceImpl(NotificationRepository repository, ErrorRepoQuery errorRepoQuery,
                                    MockEmailSender mockEmailSender,
-                                   MockSmsSender mockSmsSender , SmtpEmailSender smtpEmailSender, TwilioSmsSender twilioSmsSender) {
+                                   MockSmsSender mockSmsSender , SmtpEmailSender smtpEmailSender, TwilioSmsSender twilioSmsSender, Counter emailSentCounter, Counter emailFailedCounter, Counter smsSentCounter, Counter smsFailedCounter, MeterRegistry meterRegistry) {
 
         this.repository = repository;
         this.errorRepoQuery = errorRepoQuery;
@@ -39,6 +52,11 @@ public class NotificationServiceImpl implements NotificationService {
         this.mockSmsSender = mockSmsSender;
         this.smtpEmailSender = smtpEmailSender;
         this.twilioSmsSender = twilioSmsSender;
+        this.emailSentCounter = emailSentCounter;
+        this.emailFailedCounter = emailFailedCounter;
+        this.smsSentCounter = smsSentCounter;
+        this.smsFailedCounter = smsFailedCounter;
+        this.meterRegistry = meterRegistry;
     }
 
     @Observed(name = "process-order-event")//tracing for jaegar, to span service level
@@ -57,6 +75,7 @@ public class NotificationServiceImpl implements NotificationService {
                 sendEmailWithRetry(event.getEmail(),subject, message);
                 notification.setEmailSentStatus(SentStatus.SENT);//if we don't get any errors it means the email was sent successfully,
                 // so we can update the status parameter
+                emailSentCounter.increment();
             }catch (FailedToSendEmailException e) {//we're only concerned with this specific error to catch thrown by smtp server, any other error thrown by unrelated events can be handled by global handler
                 log.error("Failed to send email for order {} : {}", event.getOrderId(), e.getMessage());
 
@@ -64,6 +83,7 @@ public class NotificationServiceImpl implements NotificationService {
 
                 notification.setEmailSentStatus(SentStatus.FAILED);//we can set the status as failed since we caught an error which means the email did not
                 //go through
+                emailFailedCounter.increment();
             }
 
         }
@@ -75,6 +95,8 @@ public class NotificationServiceImpl implements NotificationService {
             sendSmsWithRetry(event.getPhone(),message);
             notification.setSmsSentStatus(SentStatus.SENT);//if we don't get any errors it means the sms was sent successfully,
                 // so we can update the status parameter
+                smsSentCounter.increment();//since it did not catch any FailedToSendSmsException we can be sure it was sent through, so we can increment
+                //this metric counter which will then update on the Prometheus metrics
             }catch (FailedToSendSmsException e) {
                 log.error("Failed to send sms for order {} : {}", event.getOrderId(), e.getMessage());
 
@@ -82,6 +104,8 @@ public class NotificationServiceImpl implements NotificationService {
 
                 notification.setSmsSentStatus(SentStatus.FAILED);//we can set the status as failed since we caught an error which means the sms did not
                 //go through
+                smsFailedCounter.increment();//since we caught the exception it means the e-mail did not go through, hence we can increment this failed counter,
+                //whihc will then be passed to meter registry which will update this metric with Prometheus
             }
     }
         repository.save(notification);//saves notification log to database
@@ -129,4 +153,23 @@ public class NotificationServiceImpl implements NotificationService {
         System.out.println("❌ SMS failed after retries: " + ex.getMessage());
         // Save FAILED status here
     }
+
+    @PostConstruct
+    public void initCounters() {//initialisng our Counter objects and then registering it with meter registry ,
+        //meter registry then ensures this gets passed on as new metrics to Prometheus
+        //this way promethues will now scrape our newly built custom metrics and update
+        emailSentCounter = Counter.builder("notification.email.sent")
+                .description("Number of emails successfully sent")
+                .register(meterRegistry);
+        emailFailedCounter = Counter.builder("notification.email.failed")
+                .description("Number of emails that failed to send")
+                .register(meterRegistry);
+        smsSentCounter = Counter.builder("notification.sms.sent")
+                .description("Number of SMS successfully sent")
+                .register(meterRegistry);
+        smsFailedCounter = Counter.builder("notification.sms.failed")
+                .description("Number of SMS that failed to send")
+                .register(meterRegistry);
+    }
+
 }
