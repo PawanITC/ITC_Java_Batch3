@@ -43,6 +43,11 @@ public class JwtWebFilter extends OncePerRequestFilter {
                 // 1. Validate and Parse
                 Claims claims = jwtService.parseJwtToken(token);
 
+                String subject = claims.getSubject();
+                if (subject == null) {
+                    throw new RuntimeException("Subject is missing in JWT");
+                }
+
                 // 2. Map Claims to our Internal DTO
                 JwtUserDto user = new JwtUserDto(
                         Long.parseLong(claims.getSubject()),

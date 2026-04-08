@@ -1,5 +1,6 @@
 package com.itc.funkart.payment.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -14,13 +15,16 @@ import jakarta.validation.constraints.Positive;
  * </p>
  */
 public record CreatePaymentIntentRequest(
+        @JsonProperty("orderId")
         @NotNull(message = "Order ID is required")
         Long orderId,
 
+        @JsonProperty("amount")
         @NotNull(message = "Amount is required")
         @Positive(message = "Amount must be positive")
-        Long amount, // Represented in cents (e.g., 100 for $1.00)
+        Long amount,
 
+        @JsonProperty("currency")
         @NotNull(message = "Currency is required")
-        String currency // ISO code (e.g., "usd")
+        String currency
 ) {}

@@ -23,17 +23,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtWebFilter jwtWebFilter;
-    private final ApiConfig apiConfig;
 
-    public SecurityConfig(JwtWebFilter jwtWebFilter, ApiConfig apiConfig) {
+    public SecurityConfig(JwtWebFilter jwtWebFilter) {
         this.jwtWebFilter = jwtWebFilter;
-        this.apiConfig = apiConfig;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        String baseApi = "/" + apiConfig.getVersion();
-
         http
                 // 1. Disable CSRF because we are a Stateless REST API
                 // (Stripe Webhooks would fail if this was enabled)
@@ -47,8 +43,11 @@ public class SecurityConfig {
                 // 3. Routing Permissions
                 .authorizeHttpRequests(auth -> auth
                         // Public: The "Back Door" for Stripe events and Health Checks
-                        .requestMatchers(baseApi + "/payments/webhook", "/actuator/**")
-                        .permitAll()
+                        // 1. Specific public path for Webhooks
+                        .requestMatchers("/api/v1/payments/webhook").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        // 2. Secure everything else under the payments umbrella
+                        .requestMatchers("/api/v1/payments/**").authenticated()
                         // Private: Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
