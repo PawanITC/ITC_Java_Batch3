@@ -44,7 +44,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     public NotificationServiceImpl(NotificationRepository repository, ErrorRepoQuery errorRepoQuery,
                                    MockEmailSender mockEmailSender,
-                                   MockSmsSender mockSmsSender , SmtpEmailSender smtpEmailSender, TwilioSmsSender twilioSmsSender, Counter emailSentCounter, Counter emailFailedCounter, Counter smsSentCounter, Counter smsFailedCounter, MeterRegistry meterRegistry) {
+                                   MockSmsSender mockSmsSender , SmtpEmailSender smtpEmailSender, TwilioSmsSender twilioSmsSender, MeterRegistry meterRegistry) {
 
         this.repository = repository;
         this.errorRepoQuery = errorRepoQuery;
@@ -52,11 +52,11 @@ public class NotificationServiceImpl implements NotificationService {
         this.mockSmsSender = mockSmsSender;
         this.smtpEmailSender = smtpEmailSender;
         this.twilioSmsSender = twilioSmsSender;
-        this.emailSentCounter = emailSentCounter;
-        this.emailFailedCounter = emailFailedCounter;
-        this.smsSentCounter = smsSentCounter;
-        this.smsFailedCounter = smsFailedCounter;
-        this.meterRegistry = meterRegistry;
+//        this.emailSentCounter = emailSentCounter; //this is wrong here, you cant initialise via spring injection
+//        this.emailFailedCounter = emailFailedCounter; // as spring cannot create beans from a Counter
+//        this.smsSentCounter = smsSentCounter;//hence ive only commented out so to learn and reference for next time
+//        this.smsFailedCounter = smsFailedCounter;//either we can define the counters here and now in the constructors
+        this.meterRegistry = meterRegistry;//or define in @Postconstruct method
     }
 
     @Observed(name = "process-order-event")//tracing for jaegar, to span service level
@@ -154,6 +154,7 @@ public class NotificationServiceImpl implements NotificationService {
         // Save FAILED status here
     }
 
+    //counters are not beans, hence spring can't inject them, spring can only inject into meter registry ,
     @PostConstruct
     public void initCounters() {//initialisng our Counter objects and then registering it with meter registry ,
         //meter registry then ensures this gets passed on as new metrics to Prometheus
