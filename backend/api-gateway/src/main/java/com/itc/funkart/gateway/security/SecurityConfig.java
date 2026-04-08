@@ -34,7 +34,8 @@ public class SecurityConfig {
                                 "/oauth/github/callback",
                                 "/oauth/github/logout",
                                            api + "/users/login",
-                                api + "/users/signup"
+                                api + "/users/signup",
+                                api + "/payments/webhook"
                         ).permitAll()
                         // All other requests require authentication
                         .anyExchange().authenticated()
