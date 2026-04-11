@@ -8,18 +8,12 @@ import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.StripeObject;
 import com.stripe.net.Webhook;
-import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.nio.charset.StandardCharsets;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Public Webhook Listener for Stripe Events.
@@ -48,12 +42,10 @@ public class PaymentWebhookController {
      * Path: /api/v1/payments/webhook
      */
     @PostMapping("/webhook")
-    public ResponseEntity<StripeWebhookResponse> handleWebhook(HttpServletRequest request,
+    public ResponseEntity<StripeWebhookResponse> handleWebhook(@RequestBody String payload,
                                                                @RequestHeader("Stripe-Signature") String sigHeader) {
         Event event;
         try {
-            byte[] rawBody = request.getInputStream().readAllBytes();
-            String payload = new String(rawBody, StandardCharsets.UTF_8);
 
             event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
             logger.debug("Stripe Webhook Verified | Event ID: {}", event.getId());

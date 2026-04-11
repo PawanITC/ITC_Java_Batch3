@@ -2,6 +2,7 @@ package com.itc.funkart.payment.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.method.HandlerTypePredicate;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -31,15 +32,12 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void configurePathMatch(PathMatchConfigurer configurer) {
-        // 1. Retrieve the prefix from YAML (e.g., "api/v1")
-        // We add a leading slash to ensure valid URL construction: "/api/v1"
-        String prefix = "/" + apiConfig.getVersion();
+        // Fallback to "api/v1" if the mock/config returns null
+        String version = (apiConfig != null && apiConfig.getVersion() != null)
+                ? apiConfig.getVersion()
+                : "api/v1";
 
-        // 2. Apply the prefix dynamically
-        // The lambda expression 'c -> c.isAnnotationPresent(RestController.class)'
-        // ensures this prefix ONLY applies to API controllers.
-        // This keeps system endpoints like '/actuator/health' or '/swagger-ui'
-        // at the root, which is standard for monitoring tools.
-        configurer.addPathPrefix(prefix, beanType -> beanType.isAnnotationPresent(RestController.class));
+        configurer.addPathPrefix("/" + version,
+                HandlerTypePredicate.forAnnotation(RestController.class));
     }
 }
