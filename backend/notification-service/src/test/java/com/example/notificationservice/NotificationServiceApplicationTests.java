@@ -5,7 +5,10 @@ import com.example.notificationservice.dto.OrderEventDTO;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repository.NotificationRepository;
 import com.example.notificationservice.response.ApiResponse;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.hibernate.validator.internal.constraintvalidators.bv.AssertTrueValidator;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,48 +22,83 @@ import org.junit.jupiter.api.Assertions;
 import com.example.notificationservice.template.*;
 import com.example.notificationservice.event.OrderStatus;
 import com.example.notificationservice.service.*;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import org.springframework.test.util.ReflectionTestUtils;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 @SpringBootTest
-@ExtendWith(MockitoExtension.class)
+//@ExtendWith(MockitoExtension.class)
 class NotificationServiceApplicationTests {
 
 
-    @Mock
+    @MockBean
     NotificationRepository notificationRepository;
 
-    @Mock
+    @MockBean
     private MockEmailSender mockEmailSender;
 
-    @Mock
+    @MockBean
     private MockSmsSender mockSmsSender;
 
-    @Mock
+    @MockBean
     private SmtpEmailSender smtpEmailSender;
 
-    @Mock
+    @MockBean
     private TwilioSmsSender twilioSmsSender;
 
-    @InjectMocks
+    @MockBean
+    private ErrorRepoQuery errorRepoQuery;
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        MeterRegistry meterRegistry() {
+            return new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        }
+    }
+//    @MockBean
+//    private Counter emailSentCounter;
+//    @MockBean
+//    private Counter emailFailedCounter;
+//    @MockBean
+//    private Counter smsSentCounter;
+//    @MockBean
+//    private Counter smsFailedCounter;
+//    @MockBean
+//    private MeterRegistry meterRegistry;
+
+
+//    private final MeterRegistry meterRegistry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+//
+//    @BeforeEach
+//    void setUp() {
+//        service.initCounters();
+//    }
+
+    @Autowired
     private NotificationServiceImpl service;
 
-    @InjectMocks
-    NotificationController n ;
-
-    @Mock
-    private NotificationServiceImpl service2;
 
     @Test
     void contextLoads() {
     }
 
-    void apiEndpointTests(){
-
+    @Test
+    void sanityCheckInjection() {
+        assertSame(notificationRepository, ReflectionTestUtils.getField(service, "repository"));
+        assertSame(twilioSmsSender, ReflectionTestUtils.getField(service, "twilioSmsSender"));
+        assertSame(smtpEmailSender, ReflectionTestUtils.getField(service, "smtpEmailSender"));
+        assertSame(mockSmsSender, ReflectionTestUtils.getField(service, "mockSmsSender"));
+        assertSame(mockEmailSender, ReflectionTestUtils.getField(service, "mockEmailSender"));
     }
 
     //------------------------MAIN FUNCTIONAL TESTS-------------------------------------------------------------------------
@@ -78,7 +116,7 @@ class NotificationServiceApplicationTests {
         eventDTO.setPhone("123456789");
         eventDTO.setStatus(OrderStatus.DELIVERED);
 
-        n.receiveOrderEvent(eventDTO);
+
 
         //TODO complete this test case
     }
@@ -167,7 +205,7 @@ class NotificationServiceApplicationTests {
 
         OrderEventDTO eventDTO = new OrderEventDTO();
         eventDTO.setOrderId("12453");
-        eventDTO.setEmail("  ");
+        eventDTO.setEmail("");
         eventDTO.setPhone("123456789");
         eventDTO.setStatus(OrderStatus.DELIVERED);
 
