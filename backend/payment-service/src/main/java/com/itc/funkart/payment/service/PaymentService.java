@@ -26,8 +26,11 @@ import java.time.LocalDateTime;
  * Core Orchestrator for the FunKart Payment Ecosystem.
  * <p>
  * DESIGN PRINCIPLES:
+ * <p>
  * 1. Synchronous API: Intent creation, confirmation, and manual ↺ refunds.
+ * <p>
  * 2. Asynchronous Webhooks: Listens to Stripe events to update DB and notify Kafka.
+ * <p>
  * 3. Security: Ensures users can only access or refund their own payments.
  * </p>
  */
@@ -63,15 +66,19 @@ public class PaymentService {
 
             // Call Stripe with our local payment ID as the Idempotency Key
             PaymentIntent stripeIntent = stripeService.createPaymentIntent(
-                    request.amount(), request.currency(), userId, payment.getId());
+                    request.amount(),
+                    request.currency(),
+                    userId,
+                    payment.getId());
 
             payment.setStripePaymentIntentId(stripeIntent.getId());
             paymentRepository.save(payment);
 
             return new ApiResponse<>(PaymentIntentResponse.from(stripeIntent), "Payment intent created successfully");
 
-        } catch (StripeException ex) {
-            throw new PaymentException("Stripe error: " + ex.getMessage());
+        } catch (Exception ex) { // <--- Changed from StripeException to Exception
+            // This catches StripeException, RuntimeException, and anything else
+            throw new PaymentException("Failed to create payment intent: " + ex.getMessage());
         }
     }
 
@@ -80,7 +87,7 @@ public class PaymentService {
         try {
             Payment payment = findPaymentForUser(request.paymentIntentId(), userId);
 
-            PaymentIntent confirmedIntent = stripeService.confirmPaymentIntent(
+            stripeService.confirmPaymentIntent(
                     request.paymentIntentId(), request.paymentMethodId(), request.returnUrl()
             );
 
@@ -96,56 +103,70 @@ public class PaymentService {
 
     // ================= REFUND PAYMENT (Manual Trigger) =================
     public ApiResponse<PaymentResponse> refundPayment(Long userId, Long paymentId) {
-        Payment payment = findPaymentByUser(paymentId, userId);
-
-        if (!STATUS_SUCCEEDED.equals(payment.getStatus())) {
-            throw new PaymentException("Can only refund succeeded payments");
-        }
-
         try {
-            // CALL: Actually trigger the refund in Stripe (returns a Refund object)
+            // 1. Check if the "Ghost" can even find the record
+            Payment payment = findPaymentByUser(userId, paymentId);
+
+            if (!STATUS_SUCCEEDED.equals(payment.getStatus())) {
+                throw new PaymentException("Can only refund succeeded payments");
+            }
+
+            // 2. Stripe Call
             Refund stripeRefund = stripeService.refundPayment(payment.getStripePaymentIntentId());
 
+            // 3. Update DB
             payment.setStatus(STATUS_REFUNDED);
             paymentRepository.save(payment);
 
-            // EVENT: Uses the Refund-specific factory overload ↺
-            kafkaEventPublisher.publishPaymentRefundedEvent(
-                    PaymentRefundedEvent.from(payment, stripeRefund));
+            kafkaEventPublisher.publishPaymentRefundedEvent(PaymentRefundedEvent.from(payment, stripeRefund));
 
             return new ApiResponse<>(PaymentResponse.from(payment), "Payment refunded successfully");
-        } catch (StripeException ex) {
-            throw new PaymentException("Stripe rejected the refund: " + ex.getMessage());
+
+        } catch (PaymentException e) {
+            throw e; // Rethrow our own known errors
+        } catch (Exception e) {
+            // Catch EVERYTHING else (StripeException, RuntimeException, etc.)
+            throw new PaymentException("Refund process failed: " + e.getMessage());
         }
     }
 
     // ================= GET PAYMENT =================
     public ApiResponse<PaymentResponse> getPayment(Long userId, Long paymentId) {
-        Payment payment = findPaymentByUser(paymentId, userId);
+        Payment payment = findPaymentByUser(userId, paymentId);
         return new ApiResponse<>(PaymentResponse.from(payment), "Payment retrieved successfully");
     }
 
     // ================= HANDLE WEBHOOK EVENTS (Success) =================
     @Transactional
     public void handlePaymentSuccess(PaymentIntent intent) {
-        String stripeId = intent.getId();
-        Payment payment = paymentRepository.findByStripePaymentIntentId(stripeId)
-                .orElseThrow(() -> new PaymentException("CRITICAL: Received success webhook for unknown Stripe ID: " + stripeId));
 
-        if (STATUS_SUCCEEDED.equals(payment.getStatus())) {
-            logger.info("Ignored duplicate success webhook for Stripe ID: {}", stripeId);
-            return;
+        try {
+            String stripeId = intent.getId();
+            Payment payment = paymentRepository.findByStripePaymentIntentId(stripeId)
+                    .orElseThrow(() -> new PaymentException("CRITICAL: Received success webhook for unknown Stripe ID: " + stripeId));
+
+            if (STATUS_SUCCEEDED.equals(payment.getStatus())) {
+                logger.info("Ignored duplicate success webhook for Stripe ID: {}", stripeId);
+                return;
+            }
+
+            payment.setStatus(STATUS_SUCCEEDED);
+            payment.setUpdatedAt(LocalDateTime.now());
+            paymentRepository.save(payment);
+
+            kafkaEventPublisher.publishPaymentCompletedEvent(PaymentCompletedEvent.from(payment, intent));
+
+            logger.info("✓ Payment SUCCEEDED | Local ID: {} | Stripe ID: {} | User: {} | Order: {}",
+                    payment.getId(), stripeId, payment.getUserId(), payment.getOrderId());
+
+        } catch (PaymentException pex) {
+            throw pex;
+        } catch (Exception e) {
+            logger.error("Failed to process payment success for Stripe ID: {}", intent.getId(), e);
+            throw new PaymentException("Failed to finalize payment: " + e.getMessage());
         }
-
-        payment.setStatus(STATUS_SUCCEEDED);
-        payment.setUpdatedAt(LocalDateTime.now());
-        paymentRepository.save(payment);
-
-        kafkaEventPublisher.publishPaymentCompletedEvent(PaymentCompletedEvent.from(payment, intent));
-
-        logger.info("✓ Payment SUCCEEDED | Local ID: {} | Stripe ID: {} | User: {} | Order: {}",
-                payment.getId(), stripeId, payment.getUserId(), payment.getOrderId());
     }
+
 
     // ================= HANDLE WEBHOOK EVENTS (Failure) =================
     public void handlePaymentFailure(PaymentIntent intent) {
@@ -190,6 +211,19 @@ public class PaymentService {
     }
 
     // ================= HELPER METHODS =================
+
+    /**
+     * Retrieves a payment by its Stripe ID and validates ownership.
+     * <p>
+     * This helper ensures that the requesting user is the legitimate owner of the
+     * transaction record before returning the data.
+     * </p>
+     * * @param stripePaymentIntentId The unique identifier generated by Stripe (pi_XXX).
+     *
+     * @param userId The internal FunKart User ID for authorization.
+     * @return The validated {@link Payment} entity.
+     * @throws PaymentException If the record is missing or the user is unauthorized.
+     */
     private Payment findPaymentForUser(String stripePaymentIntentId, Long userId) {
         Payment payment = paymentRepository.findByStripePaymentIntentId(stripePaymentIntentId)
                 .orElseThrow(() -> new PaymentException("Payment not found"));
@@ -199,7 +233,21 @@ public class PaymentService {
         return payment;
     }
 
-    private Payment findPaymentByUser(Long paymentId, Long userId) {
+    /**
+     * Internal helper to retrieve a payment and verify caller authorization.
+     * <p>
+     * This method acts as a security gate. It first attempts to locate the record by ID,
+     * then ensures the {@code userId} associated with the record matches the {@code userId}
+     * of the requester.
+     * </p>
+     *
+     * @param userId    The ID of the user requesting the operation.
+     * @param paymentId The database primary key of the payment.
+     * @return The validated {@link Payment} entity.
+     * @throws PaymentException if the payment is not found (404 logic)
+     *                          or if the user ID does not match (403 logic).
+     */
+    private Payment findPaymentByUser(Long userId , Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentException("Payment not found"));
         if (!payment.getUserId().equals(userId)) {
