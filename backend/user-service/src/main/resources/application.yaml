@@ -1,12 +1,12 @@
 spring:
   application:
-    name: funkart
+    name: user-service
   web:
     resources:
       add-mappings: false
 
 api:
-  version: /api/v1
+  version: api/v1
 
 jwt:
   secret: ${JWT_SECRET}

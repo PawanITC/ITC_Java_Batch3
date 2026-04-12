@@ -19,52 +19,53 @@ repositories {
 }
 
 dependencies {
-    // Spring Data & Web (MVC - blocking stack)
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // --- Core Framework & Web ---
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux' // Non-blocking support (WebClient)
+    implementation 'org.springframework.boot:spring-boot-starter-validation' // Jakarta/Hibernate Validation
+    implementation 'org.springframework.boot:spring-boot-starter-actuator' // Monitoring & Management
 
-    // Database - PostgresSQL
-    implementation 'org.postgresql:postgresql:42.7.7'
+    // --- Persistence & Database ---
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.postgresql:postgresql:42.7.7' // Production DB driver
+    runtimeOnly 'com.h2database:h2' // Runtime support for H2
 
-    // Security - Spring Security
+    // --- Security & Identity ---
     implementation 'org.springframework.boot:spring-boot-starter-security'
-
-    // Validation - Bean Validation (Jakarta Validation / Hibernate Validator)
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-    // Reactive Web - Spring WebFlux (non-blocking stack)
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
-
-    // Authentication - JWT (JSON Web Token)
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // Bean Monitoring & Management - Spring Actuator
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // --- Messaging ---
+    implementation 'org.springframework.kafka:spring-kafka'
 
-    // Testing - H2 in-memory DB & Spring Test
-    testImplementation('com.h2database:h2')
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    runtimeOnly 'com.h2database:h2'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-    // Code Generation - Lombok
+    // --- Logic Generation (Lombok) ---
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    testCompileOnly 'org.projectlombok:lombok:1.18.30' // Needed to use Lombok in tests
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-    // Messaging - Apache Kafka
-    implementation 'org.springframework.kafka:spring-kafka'
+    // --- Testing ---
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test' // Security mocking (@WithMockUser)
+    testImplementation 'org.springframework.kafka:spring-kafka-test' // Embedded Kafka for testing
+    testImplementation 'com.h2database:h2' // In-memory DB for integration tests
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0' // Mocking external API responses
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Note: mockito-inline removed as Mockito 5 (included in Boot 3.3) handles inline mocking natively
 }
 
 tasks.named('test') {
     useJUnitPlatform()
 }
 
+// Disable standard JAR task to prioritize BootJar
 tasks.named('jar') {
     enabled = false
 }
 
+// Configures the final executable artifact
 tasks.named('bootJar') {
-    archiveFileName = "payment-service-0.0.1-SNAPSHOT.jar"
+    archiveFileName = "user-service-0.0.1-SNAPSHOT.jar" // Updated to match project description
 }
