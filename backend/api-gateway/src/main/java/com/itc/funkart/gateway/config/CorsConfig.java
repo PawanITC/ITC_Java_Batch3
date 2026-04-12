@@ -1,6 +1,5 @@
 package com.itc.funkart.gateway.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -12,16 +11,16 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-
-    @Value("${frontend.url}")
-    private String frontendUrl;
-
     @Bean
-    public CorsWebFilter corsWebFilter() {
+    public CorsWebFilter corsWebFilter(AppConfig appConfig) {
         CorsConfiguration config = new CorsConfiguration();
 
         // Allowed origins (frontend + localhost for dev)
-        config.setAllowedOrigins(List.of(frontendUrl, "http://localhost:3000"));
+        String frontend = appConfig.frontendUrl();
+        if (frontend != null && !frontend.isBlank()) {
+            config.addAllowedOrigin(frontend);
+        }
+        config.addAllowedOrigin("http://localhost:3000");
 
         // Allow credentials (cookies, auth headers)
         config.setAllowCredentials(true);
