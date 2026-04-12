@@ -7,66 +7,66 @@ import com.itc.funkart.user.exceptions.AlreadyExistsException;
 import com.itc.funkart.user.exceptions.BadRequestException;
 import com.itc.funkart.user.exceptions.UnauthorizedException;
 import com.itc.funkart.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+/**
+ * Service class handling core user operations such as registration, authentication,
+ * and profile retrieval. Links directly with {@link UserRepository} for data persistence.
+ */
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    // ------------------------
-    // Service Login/Signup Methods
-    // ------------------------
-
+    /**
+     * Registers a new user in the system after validating input and checking for duplicates.
+     * * @param request The {@link SignupRequest} containing {@code email}, {@code password}, and {@code name}.
+     * @return The newly persisted {@link User} entity.
+     * @throws AlreadyExistsException if the email is already in use.
+     */
     public User signUp(SignupRequest request) {
-        String email = request.email();
-        String password = request.password();
-        String name = request.name();
+        validateSignupInput(request.email(), request.password(), request.name());
+        checkEmailExists(request.email());
 
-        validateSignupInput(email, password, name);
-        checkEmailExists(email);
-
-        String hashedPassword = hashPassword(password);
-        User newUser = new User(email, hashedPassword, name);
+        User newUser = User.builder()
+                .email(request.email())
+                .password(hashPassword(request.password()))
+                .name(request.name())
+                .build();
 
         return userRepository.save(newUser);
     }
 
+    /**
+     * Authenticates a user based on email and password.
+     * * @param request The {@link LoginRequest} containing {@code email} and {@code password}.
+     * @return The authenticated {@link User} entity.
+     * @throws UnauthorizedException if credentials do not match.
+     */
     public User login(LoginRequest request) {
-        String email = request.email();
-        String password = request.password();
+        validateLoginInput(request.email(), request.password());
 
-        validateLoginInput(email, password);
-
-        User user = fetchUserByEmail(email);
-        validatePassword(password, user.getPassword());
+        User user = fetchUserByEmail(request.email());
+        validatePassword(request.password(), user.getPassword());
 
         return user;
     }
-
 
     // ------------------------
     // Validation Methods
     // ------------------------
 
     private void validateSignupInput(String email, String password, String name) {
-
         emailAndPasswordCheck(email, password);
-
         if (name == null || name.isBlank()) {
             throw new BadRequestException("Name is required");
         }
-
     }
 
     private void validateLoginInput(String email, String password) {
@@ -74,7 +74,6 @@ public class UserService {
     }
 
     private void emailAndPasswordCheck(String email, String password) {
-
         if (email == null || email.isBlank()) {
             throw new BadRequestException("Email is required");
         }
@@ -83,15 +82,13 @@ public class UserService {
         }
     }
 
-
     // ------------------------
     // Helper Methods
     // ------------------------
 
     /**
-     * Check database if email exists
-     *
-     * @param email email of the user
+     * Verifies if an email is already registered in the database.
+     * @param email The {@code email} to check.
      */
     private void checkEmailExists(String email) {
         if (userRepository.findByEmail(email).isPresent()) {
@@ -100,10 +97,9 @@ public class UserService {
     }
 
     /**
-     * helper to compare password passed to password stored in db
-     *
-     * @param rawPassword    password passed
-     * @param storedPassword stored password
+     * Compares a raw password against a Bcrypt encoded hash.
+     * @param rawPassword The plaintext password from the user.
+     * @param storedPassword The hashed password from the database.
      */
     private void validatePassword(String rawPassword, String storedPassword) {
         if (!passwordEncoder.matches(rawPassword, storedPassword)) {
@@ -112,20 +108,16 @@ public class UserService {
     }
 
     /**
-     * Method to hash the password
-     *
-     * @param rawPassword password
-     * @return successfully hashed password
+     * Encrypts a plaintext password.
+     * @param rawPassword The password to hash.
+     * @return The {@code BCrypt} encoded string.
      */
     private String hashPassword(String rawPassword) {
-        //hashing the password
         return passwordEncoder.encode(rawPassword);
     }
 
     /**
-     * Check db for email existing
-     *
-     * @param email users email
+     * Retrieves a user by email or throws an unauthorized exception.
      */
     private User fetchUserByEmail(String email) {
         return userRepository.findByEmail(email)
@@ -133,29 +125,32 @@ public class UserService {
     }
 
     /**
-     * Check db for user existing
-     *
-     * @param id users id
+     * Finds a user by their primary key.
      */
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
     }
 
-    // -----------------------------
-    // Find by email (used for OAuth)
-    // -----------------------------
+    /**
+     * Finds a user by email (Safe for OAuth flow).
+     */
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
-    // -----------------------------
-    // Create user (used for OAuth)
-    // -----------------------------
+    /**
+     * Creates a new user record, typically used for OAuth registrations.
+     * * @param email The user's email address.
+     * @param password The password (can be {@code null} for OAuth).
+     * @param name The user's display name.
+     * @return The persisted {@link User}.
+     */
     public User createUser(String email, String password, String name) {
-        User user = new User();
-        user.setEmail(email);
-        user.setPassword(password); // null for OAuth users
-        user.setName(name);
+        User user = User.builder()
+                .email(email)
+                .password(password)
+                .name(name)
+                .build();
         return userRepository.save(user);
     }
 }

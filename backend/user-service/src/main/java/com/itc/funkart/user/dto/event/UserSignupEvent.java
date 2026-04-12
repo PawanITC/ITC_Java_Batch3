@@ -1,23 +1,21 @@
 package com.itc.funkart.user.dto.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Builder;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class UserSignupEvent {
-    @JsonProperty("user_id")
-    private Long userId;
-
-    @JsonProperty("email")
-    private String email;
-
-    @JsonProperty("name")
-    private String name;
-
-    @JsonProperty("timestamp")
-    private Long timestamp;
+/**
+ * Event published to Kafka upon successful creation of a new user account.
+ * * @param userId    The newly generated unique identifier.
+ *
+ * @param email     The registered email address.
+ * @param name      The display name provided by the user.
+ * @param timestamp Epoch milliseconds of the registration.
+ */
+@Builder
+public record UserSignupEvent(
+        @JsonProperty("user_id") Long userId,
+        String email,
+        String name,
+        Long timestamp
+) {
 }
