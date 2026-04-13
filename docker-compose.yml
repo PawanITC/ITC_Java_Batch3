@@ -65,9 +65,7 @@ services:
 
   user-service:
     container_name: user-service
-    build:
-      context: ./backend/user-service
-      dockerfile: Dockerfile
+    # CHANGED: Use the image Jenkins just pushed instead of building locally
     image: abbasgureitc/user-service:latest 
     pull_policy: always 
     env_file:
@@ -81,16 +79,17 @@ services:
         condition: service_healthy
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - JAVA_OPTS=-Djava.net.preferIPv4Stack=true
+      # IMPORTANT: Point your service to the postgres container name
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/mydb
     networks:
       - db-network
     restart: on-failure:3
 
   payment-service:
     container_name: payment-service
-    build:
-      context: ./backend/payment-service
-      dockerfile: Dockerfile
+    # If you create a pipeline for payment-service, use the image here too
+    image: abbasgureitc/payment-service:latest
+    pull_policy: always
     env_file:
       - ./backend/payment-service/.env
     ports:
@@ -102,15 +101,15 @@ services:
         condition: service_healthy
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/mydb
     networks:
       - db-network
     restart: on-failure
 
   api-gateway:
     container_name: api-gateway
-    build:
-      context: ./backend/api-gateway
-      dockerfile: Dockerfile
+    image: abbasgureitc/api-gateway:latest
+    pull_policy: always
     env_file:
       - ./backend/api-gateway/.env
     ports:
@@ -120,6 +119,10 @@ services:
         condition: service_started
       payment-service:
         condition: service_started
+    environment:
+      # Use container names for routing
+      - USER_SERVICE_URL=http://user-service:8080
+      - PAYMENT_SERVICE_URL=http://payment-service:8080
     networks:
       - db-network
 
@@ -139,6 +142,7 @@ services:
    
   jenkins:
     container_name: funkart-jenkins
+    # Jenkins needs to stay as a build so it applies your custom Dockerfile
     build:
       context: .
       dockerfile: Dockerfile
@@ -150,25 +154,17 @@ services:
     environment:
       - GRADLE_USER_HOME=/root/.gradle
     volumes:
-      # 1. The Named Volume (Best for Terraform/Docker standards)
       - jenkins_home:/var/jenkins_home
-      
-      # 2. Docker Socket (Essential for Jenkins to build images)
       - /var/run/docker.sock:/var/run/docker.sock
-      
-      # 3. Gradle Cache (Saves time on builds)
       - gradle_cache:/root/.gradle
-      
+      # Mount the whole project so Jenkins can see the subdirectories
       - .:/var/jenkins_home/workspace/funkart-pipeline
     networks:
       - db-network
 
-# This section is CRITICAL for Terraform/Production readiness
 volumes:
   jenkins_home:
-    external: false  # Docker will manage this
   gradle_cache:
-    external: false
 
 networks:
   db-network:
