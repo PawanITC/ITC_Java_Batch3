@@ -16,7 +16,7 @@ spring:
     show-sql: true
 
   kafka:
-    bootstrap-servers: localhost:29092
+    bootstrap-servers: kafka.kafka.svc.cluster.local:9092
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -32,9 +32,10 @@ spring:
         spring.json.trusted.packages: "*"
         spring.json.value.default.type: com.itc.funkart.dto.OrderEvent
 
-  redis:
-    host: localhost
-    port: 6379
+  data:
+    redis:
+      host: redis
+      port: 6379
 
 server:
   port: 8081
