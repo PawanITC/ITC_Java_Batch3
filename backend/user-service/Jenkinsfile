@@ -23,13 +23,13 @@ pipeline {
         }
 
         stage('Build & Test') {
-            steps {
-                dir('backend/user-service') {
-                    sh 'chmod +x gradlew'
-                    sh './gradlew clean test jacocoTestReport'
+                    steps {
+                        dir('backend/user-service') {
+                            sh 'chmod +x gradlew'
+                            sh './gradlew clean test jacocoTestReport'
+                        }
+                    }
                 }
-            }
-        }
 
         stage('Quality Gate') {
             steps {
@@ -55,17 +55,21 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            steps {
-                dir('backend/user-service') {
-                    script {
-                        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                        currentBuild.description = "Built from branch ${env.BRANCH_NAME ?: 'jenkins-cicd'}"
+                    steps {
+                        dir('backend/user-service') {
+                            script {
+                                // DEBUG: This will show us exactly what files are here
+                                sh 'ls -R build/libs/'
 
-                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
+                                currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                                currentBuild.description = "Built from branch ${env.BRANCH_NAME ?: 'jenkins-cicd'}"
+
+                                // We build using "." as the context because we are already inside backend/user-service
+                                dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
+                            }
+                        }
                     }
                 }
-            }
-        }
 
         stage('Push to Docker Hub') {
             steps {
