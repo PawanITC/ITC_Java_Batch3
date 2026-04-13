@@ -23,13 +23,13 @@ pipeline {
         }
 
         stage('Build & Test') {
-            steps {
-                dir('backend/user-service') {
-                    sh 'chmod +x gradlew'
-                    sh './gradlew clean test jacocoTestReport'
+                    steps {
+                        dir('backend/user-service') {
+                            sh 'chmod +x gradlew'
+                            sh './gradlew clean test jacocoTestReport'
+                        }
+                    }
                 }
-            }
-        }
 
         stage('Quality Gate') {
             steps {
