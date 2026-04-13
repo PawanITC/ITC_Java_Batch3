@@ -9,7 +9,7 @@ pipeline {
         DOCKER_HUB_USER = 'abbasgureitc'
         IMAGE_NAME = 'user-service'
         REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
-        // UPDATED: Matches your actual Jenkins Credential ID
+        // UPDATED: Matches your actual Jenkins Credential ID 'snyk-token'
         SNYK_TOKEN = credentials('snyk-token')
         dockerImage = ''
     }
@@ -47,7 +47,7 @@ pipeline {
             steps {
                 dir('backend/user-service') {
                     echo 'Running Snyk Open Source Vulnerability Scan...'
-                    // We use the token to authenticate the CLI
+                    // Authenticate using the token from environment
                     sh "snyk auth ${SNYK_TOKEN}"
                     sh 'snyk test --severity-threshold=high || echo "Snyk found issues, but continuing..." '
                 }
@@ -60,6 +60,7 @@ pipeline {
                     script {
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
                         currentBuild.description = "Built from branch ${env.BRANCH_NAME ?: 'jenkins-cicd'}"
+
                         dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
@@ -85,12 +86,10 @@ pipeline {
         failure {
             echo 'Build failed. Check the JaCoCo or Unit Test logs.'
         }
-        cleanup {
-            // FORCING context here to fix the hudson.FilePath error once and for all
-            node {
-                echo 'Cleaning up Jenkins Workspace...'
-                deleteDir()
-            }
+        always {
+            // Standard cleanup. If this fails with "MissingContext", 
+            // the issue is likely with the Jenkins Workspace Cleanup Plugin version.
+            cleanWs()
         }
     }
 }
