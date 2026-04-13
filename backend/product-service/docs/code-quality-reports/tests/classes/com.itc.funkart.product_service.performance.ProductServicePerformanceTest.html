@@ -1,0 +1,2284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Performance Tests</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Performance Tests</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/com.itc.funkart.product_service.performance.html">com.itc.funkart.product_service.performance</a> &gt; ProductServicePerformanceTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">11</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">3.446s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Method name</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">Should batch fetch products within acceptable response time</td>
+<td class="success">shouldBatchFetchProductsWithinAcceptableTime()</td>
+<td class="success">0.045s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should create category within acceptable response time</td>
+<td class="success">shouldCreateCategoryWithinAcceptableTime()</td>
+<td class="success">0.013s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should create product within acceptable response time</td>
+<td class="success">shouldCreateProductWithinAcceptableTime()</td>
+<td class="success">0.030s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should get all products within acceptable response time</td>
+<td class="success">shouldGetAllProductsWithinAcceptableTime()</td>
+<td class="success">0.237s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should handle bulk product creation efficiently</td>
+<td class="success">shouldHandleBulkProductCreationEfficiently()</td>
+<td class="success">0.629s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should handle rapid sequential requests</td>
+<td class="success">shouldHandleRapidSequentialRequests()</td>
+<td class="success">0.070s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should measure throughput of product creation</td>
+<td class="success">shouldMeasureThroughputOfProductCreation()</td>
+<td class="success">1.546s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should retrieve all categories within acceptable response time</td>
+<td class="success">shouldRetrieveAllCategoriesWithinAcceptableTime()</td>
+<td class="success">0.067s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should retrieve product within acceptable response time</td>
+<td class="success">shouldRetrieveProductWithinAcceptableTime()</td>
+<td class="success">0.034s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should update product within acceptable response time</td>
+<td class="success">shouldUpdateProductWithinAcceptableTime()</td>
+<td class="success">0.045s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should verify memory efficiency with multiple operations</td>
+<td class="success">shouldVerifyMemoryEfficiencyWithMultipleOperations()</td>
+<td class="success">0.730s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>2026-04-13T12:45:48.396+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.itc.funkart.product_service.performance.ProductServicePerformanceTest]: ProductServicePerformanceTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-04-13T12:45:48.413+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.itc.funkart.product_service.ProductServiceApplication for test class com.itc.funkart.product_service.performance.ProductServicePerformanceTest
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:48.433+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 0
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.443+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 1
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.472+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 2
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.491+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 3
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.507+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 4
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.527+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 5
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.536+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 6
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.546+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 7
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.565+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 8
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.579+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 9
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.600+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 10
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.612+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 11
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.634+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 12
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.644+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 13
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.655+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 14
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.670+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 15
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.682+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 16
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.689+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 17
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.698+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 18
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.707+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 19
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.718+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 20
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.728+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 21
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.736+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 22
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.757+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 23
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.766+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 24
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.788+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 25
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.809+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 26
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.820+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 27
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.830+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 28
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.849+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 29
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.859+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 30
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.870+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 31
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.878+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 32
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.889+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 33
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.897+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 34
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.906+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 35
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.918+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 36
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.927+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 37
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.937+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 38
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.949+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 39
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:48.962+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 40
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.018+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 41
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.030+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 42
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.043+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 43
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.060+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 44
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.076+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 45
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.086+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 46
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.097+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 47
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.117+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 48
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.125+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Memory Product 49
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:49.178+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 0
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.188+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 1
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.199+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 2
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.213+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 3
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.228+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 4
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.246+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 5
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.260+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 6
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.273+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 7
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.294+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 8
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.306+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 9
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.334+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Fetching all products from database
+Hibernate: 
+    select
+        p1_0.id,
+        p1_0.active,
+        p1_0.brand,
+        p1_0.category_id,
+        p1_0.created_at,
+        p1_0.description,
+        p1_0.name,
+        p1_0.price,
+        p1_0.slug,
+        p1_0.stock_quantity,
+        p1_0.updated_at 
+    from
+        products p1_0 
+    order by
+        p1_0.created_at desc
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.description,
+        c1_0.name 
+    from
+        categories c1_0 
+    where
+        c1_0.id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.description,
+        c1_0.name 
+    from
+        categories c1_0 
+    where
+        c1_0.id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.description,
+        c1_0.name 
+    from
+        categories c1_0
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:49.477+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Update Product
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.494+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Updating product id: 440
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:49.521+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 0
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.531+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 1
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.541+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 2
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.544+01:00 DEBUG [product-service,,] 2252 --- [product-service] [ntainer#0-0-C-1] [                                                 ] o.s.k.l.KafkaMessageListenerContainer    : Received: 0 records
+2026-04-13T12:45:49.545+01:00 DEBUG [product-service,,] 2252 --- [product-service] [ntainer#0-0-C-1] [                                                 ] o.s.k.l.KafkaMessageListenerContainer    : Commit list: {}
+2026-04-13T12:45:49.551+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 3
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.561+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 4
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.578+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 5
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.586+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 6
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.594+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 7
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.603+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 8
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.612+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 9
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.623+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 10
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.634+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 11
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.643+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 12
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.646+01:00 DEBUG [product-service,,] 2252 --- [product-service] [ntainer#0-0-C-1] [                                                 ] o.s.k.l.KafkaMessageListenerContainer    : Received: 0 records
+2026-04-13T12:45:49.646+01:00 DEBUG [product-service,,] 2252 --- [product-service] [ntainer#0-0-C-1] [                                                 ] o.s.k.l.KafkaMessageListenerContainer    : Commit list: {}
+2026-04-13T12:45:49.654+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 13
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.667+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 14
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.678+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 15
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.706+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 16
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.720+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 17
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.737+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 18
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.747+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 19
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.774+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 20
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.787+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 21
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.796+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 22
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.818+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 23
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.831+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 24
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.841+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 25
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.851+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 26
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.864+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 27
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.871+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 28
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.890+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 29
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.913+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 30
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.922+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 31
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.941+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 32
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.950+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 33
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.959+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 34
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.971+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 35
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:49.993+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 36
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.003+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 37
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.013+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 38
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.027+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 39
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.036+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 40
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.047+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 41
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.056+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 42
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.065+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 43
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.075+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 44
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.084+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 45
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.095+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 46
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.107+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 47
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.122+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 48
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.145+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 49
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.183+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 50
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.202+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 51
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.216+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 52
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.231+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 53
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.243+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 54
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.258+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 55
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.266+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 56
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.287+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 57
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.312+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 58
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.336+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 59
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.355+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 60
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.382+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 61
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.392+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 62
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.411+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 63
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.427+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 64
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.449+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 65
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.473+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 66
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.491+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 67
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.509+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 68
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.532+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 69
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.548+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 70
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.556+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 71
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.564+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 72
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.574+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 73
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.597+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 74
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.604+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 75
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.628+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 76
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.650+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 77
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.657+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 78
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.674+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 79
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.686+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 80
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.707+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 81
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.714+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 82
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.725+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 83
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.737+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 84
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.750+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 85
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.800+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 86
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.814+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 87
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.833+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 88
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.849+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 89
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.868+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 90
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.894+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 91
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.914+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 92
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.933+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 93
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.947+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 94
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.985+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 95
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:50.997+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 96
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.012+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 97
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.027+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 98
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.037+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Throughput Product 99
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:51.076+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 0
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.085+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 1
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.093+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 2
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.104+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 3
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.116+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 4
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.124+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 5
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.135+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 6
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.160+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 7
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.174+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 8
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.185+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 9
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.199+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 10
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.235+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 11
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.246+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 12
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.260+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 13
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.268+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 14
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.308+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 15
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.320+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 16
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.328+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 17
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.338+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 18
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.347+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 19
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.358+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 20
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.369+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 21
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.381+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 22
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.390+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 23
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.398+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 24
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.407+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 25
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.417+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 26
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.425+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 27
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.432+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 28
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.440+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 29
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.458+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 30
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.466+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 31
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.476+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 32
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.493+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 33
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.500+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 34
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.511+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 35
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.529+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 36
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.539+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 37
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.547+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 38
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.554+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 39
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.568+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 40
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.575+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 41
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.589+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 42
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.598+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 43
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.607+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 44
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.630+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 45
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.642+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 46
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.650+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 47
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.662+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 48
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:51.676+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Bulk Product 49
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    select
+        p1_0.id,
+        p1_0.active,
+        p1_0.brand,
+        p1_0.category_id,
+        p1_0.created_at,
+        p1_0.description,
+        p1_0.name,
+        p1_0.price,
+        p1_0.slug,
+        p1_0.stock_quantity,
+        p1_0.updated_at 
+    from
+        products p1_0 
+    where
+        p1_0.id=?
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.description,
+        c1_0.name 
+    from
+        categories c1_0 
+    where
+        c1_0.id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    select
+        p1_0.id,
+        p1_0.active,
+        p1_0.brand,
+        p1_0.category_id,
+        p1_0.created_at,
+        p1_0.description,
+        p1_0.name,
+        p1_0.price,
+        p1_0.slug,
+        p1_0.stock_quantity,
+        p1_0.updated_at 
+    from
+        products p1_0 
+    where
+        p1_0.id in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:51.842+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:51.881+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Performance Test Product
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 9.0.0</a> at 13 Apr 2026, 12:46:03</p>
+</div>
+</div>
+</body>
+</html>

@@ -5,6 +5,10 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import OAuthCallback from "./pages/OAuthCallback";
 import { AuthProvider } from "./context/AuthProvider";
+import ProductManagement from "./pages/product/ProductManagement";
+
+import UserProductStore from "./pages/product/UserProductStore";
+import AdminProductManagement from "./pages/product/AdminProductManagement";
 // import ProductManagement from "./pages/product/ProductManagement";
 
 // import UserProductStore from "./pages/product/UserProductStore";
@@ -23,6 +27,10 @@ function App() {
                         {/* <Route path="products" element={<ProductManagement />} /> */}
 
                         {/* USER STOREFRONT: List, View, and Cart logic */}
+                        <Route path="products" element={<UserProductStore />} />
+                        
+                        {/* ADMIN DASHBOARD: Create, Update, Delete logic */}
+                        <Route path="admin-products" element={<AdminProductManagement />} />
                         {/* <Route path="products" element={<UserProductStore />} /> */}
                         
                         {/* ADMIN DASHBOARD: Create, Update, Delete logic */}

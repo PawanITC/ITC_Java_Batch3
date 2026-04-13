@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProductMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">product-service</a> &gt; <a href="index.source.html" class="el_package">com.itc.funkart.product_service.mapper</a> &gt; <span class="el_source">ProductMapper.java</span></div><h1>ProductMapper.java</h1><pre class="source lang-java linenums">package com.itc.funkart.product_service.mapper;
+
+import com.itc.funkart.product_service.dto.events.ProductEvent;
+import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
+import com.itc.funkart.product_service.dto.response.ProductResponse;
+import com.itc.funkart.product_service.entity.Product;
+import com.itc.funkart.product_service.entity.ProductImage;
+
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+
+<span class="nc" id="L12">public class ProductMapper {</span>
+
+    public static Product toEntity(ProductCreateRequest request) {
+<span class="pc bpc" id="L15" title="1 of 2 branches missed.">        if (request == null) {</span>
+<span class="nc" id="L16">            return null;</span>
+        }
+
+<span class="fc" id="L19">        Product product = Product.builder()</span>
+<span class="fc" id="L20">                .name(request.getName())</span>
+<span class="fc" id="L21">                .description(request.getDescription())</span>
+<span class="fc" id="L22">                .price(request.getPrice())</span>
+<span class="fc" id="L23">                .stockQuantity(request.getStockQuantity())</span>
+<span class="fc" id="L24">                .slug(generateSlug(request.getName()))</span>
+<span class="fc" id="L25">                .active(true)</span>
+<span class="fc" id="L26">                .brand(request.getBrand())</span>
+<span class="fc" id="L27">                .images(new ArrayList&lt;&gt;()) // Initialize list</span>
+<span class="fc" id="L28">                .build();</span>
+
+        // Handle Images: Ensure bi-directional link is set
+<span class="pc bpc" id="L31" title="1 of 2 branches missed.">        if (request.getImageUrls() != null) {</span>
+<span class="nc" id="L32">            request.getImageUrls().forEach(url -&gt; {</span>
+<span class="nc" id="L33">                ProductImage img = ProductImage.builder()</span>
+<span class="nc" id="L34">                        .imageUrl(url)</span>
+<span class="nc" id="L35">                        .product(product) // This is crucial for JPA</span>
+<span class="nc" id="L36">                        .isPrimary(false)</span>
+<span class="nc" id="L37">                        .build();</span>
+<span class="nc" id="L38">                product.getImages().add(img);</span>
+<span class="nc" id="L39">            });</span>
+        }
+
+<span class="fc" id="L42">        return product;</span>
+    }
+
+    /**
+     * Converts Entity to Response DTO for the API.
+     */
+    public static ProductResponse toResponse(Product product) {
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">        if (product == null) {</span>
+<span class="nc" id="L50">            return null;</span>
+        }
+
+<span class="fc" id="L53">        return ProductResponse.builder()</span>
+<span class="fc" id="L54">                .id(product.getId())</span>
+<span class="fc" id="L55">                .name(product.getName())</span>
+<span class="fc" id="L56">                .slug(product.getSlug())</span>
+<span class="fc" id="L57">                .description(product.getDescription())</span>
+<span class="fc" id="L58">                .price(product.getPrice())</span>
+<span class="fc" id="L59">                .active(product.getActive())</span>
+<span class="fc" id="L60">                .brand(product.getBrand())</span>
+                // Safely get category name if it exists
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)</span>
+                // Extract only the URLs for the response
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">                .imageUrls(product.getImages() != null ?</span>
+<span class="fc" id="L65">                        product.getImages().stream()</span>
+<span class="fc" id="L66">                                .map(ProductImage::getImageUrl)</span>
+<span class="pc" id="L67">                                .collect(Collectors.toList()) : new ArrayList&lt;&gt;())</span>
+<span class="fc" id="L68">                .build();</span>
+    }
+
+    /**
+     * Basic slug generator (e.g., &quot;Nike Air Max&quot; -&gt; &quot;nike-air-max&quot;)
+     */
+    private static String generateSlug(String name) {
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">        if (name == null) return &quot;&quot;;</span>
+<span class="fc" id="L76">        return name.toLowerCase()</span>
+<span class="fc" id="L77">                .replaceAll(&quot;[^a-z0-9\\s]&quot;, &quot;&quot;)</span>
+<span class="fc" id="L78">                .replaceAll(&quot;\\s+&quot;, &quot;-&quot;);</span>
+    }
+
+    public static ProductEvent toEvent(Product product) {
+<span class="nc" id="L82">        return new ProductEvent(</span>
+                &quot;PRODUCT_CREATED&quot;,
+<span class="nc" id="L84">                product.getId(),</span>
+<span class="nc" id="L85">                product.getName()</span>
+        );
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -3,6 +3,7 @@ package com.itc.funkart.product_service.service;
 import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
 import com.itc.funkart.product_service.dto.request.ProductUpdateRequest;
 import com.itc.funkart.product_service.dto.response.ProductResponse;
+import com.itc.funkart.product_service.dto.response.ProductsResponse;
 
 import java.util.List;
 
@@ -17,4 +18,6 @@ public interface ProductService {
     List<ProductResponse> getAllProducts();
 
     void deleteProduct(Long id);
+
+    ProductsResponse getProductsByIds(List<Long> ids);
 }

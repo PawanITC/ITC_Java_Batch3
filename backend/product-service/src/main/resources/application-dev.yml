@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/product_service_db
+    username: product_user
+    password: product_password
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  cache:
+    redis:
+      time-to-live: 3600000 # 10 minutes
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+management:
+  otlp:
+    tracing:
+      endpoint: http://localhost:4317/v1/traces
