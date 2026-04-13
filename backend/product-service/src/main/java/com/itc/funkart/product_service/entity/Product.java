@@ -26,9 +26,11 @@ public class Product {
     @Column(unique = true, nullable = false)
     private String slug;
 
-    @Column(columnDefinition = "TEXT")
+    //@Column(columnDefinition = "TEXT")
+    @Column(length = 1000)
     private String description;
 
+    @Column(precision = 10, scale = 2)
     private BigDecimal price;
 
     private Integer stockQuantity;

@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.3.5'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'jacoco'
 }
 
 group = 'com.itc.funkart'
@@ -41,8 +42,45 @@ dependencies {
 	//redis dependencies
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+	// H2 Database for testing/development
+	runtimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+jacocoTestReport {
+	reports {
+		xml.required = true
+		html.required = true
+	}
+}
+
+// Custom task to generate comprehensive code quality report
+task generateCodeQualityReport(type: Copy) {
+	dependsOn jacocoTestReport
+	from 'build/reports/jacoco/test/html'
+	into 'docs/code-quality-reports/jacoco'
+	include '**/*'
+}
+
+task generateTestReport(type: Copy) {
+	dependsOn test
+	from 'build/reports/tests/test'
+	into 'docs/code-quality-reports/tests'
+	include '**/*'
+}
+
+task generateAllReports {
+	group = 'reporting'
+	description = 'Generate all code quality reports (coverage, tests, etc.)'
+	dependsOn test, jacocoTestReport, generateCodeQualityReport, generateTestReport
+	doLast {
+		println "Code Quality Reports Generated:"
+		println "- Jacoco Coverage: docs/code-quality-reports/jacoco/index.html"
+		println "- Test Results: docs/code-quality-reports/tests/index.html"
+		println "- JaCoCo XML: build/reports/jacoco/test/jacocoTestReport.xml"
+	}
 }
