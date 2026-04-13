@@ -10,6 +10,8 @@ pipeline {
         IMAGE_NAME = 'user-service'
         REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
         SNYK_TOKEN = credentials('snyk-auth-token')
+        // Define dockerImage here so it's accessible across stages
+        dockerImage = ''
     }
 
     stages {
@@ -99,6 +101,11 @@ pipeline {
         }
         failure {
             echo 'Build failed. Check the JaCoCo or Unit Test logs.'
+        }
+        cleanup {
+            // 'cleanup' is a special post-condition that runs after all other post-conditions.
+            // Using 'cleanWs' here is the standard Jenkins way to wipe the workspace.
+            cleanWs()
         }
     }
 }
