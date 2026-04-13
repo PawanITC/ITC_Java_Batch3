@@ -1,6 +1,8 @@
 package com.example.notificationservice;
 
 import com.example.notificationservice.controller.NotificationController;
+import com.example.notificationservice.customException.FailedToSendEmailException;
+import com.example.notificationservice.customException.FailedToSendSmsException;
 import com.example.notificationservice.dto.OrderEventDTO;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repository.NotificationRepository;
@@ -214,6 +216,21 @@ class NotificationServiceApplicationTests {
     @Test //validate that it is able to successfully catch a generic exception caused by common issues such as authentication failure or
         // invalid recipient email etc. and then outputs with a message
     void SmtpEmailSenderCatchesException() {
+        OrderEventDTO eventDTO = new OrderEventDTO();
+        eventDTO.setOrderId("12453");
+        eventDTO.setEmail("Joe@gmail.com");
+        eventDTO.setPhone("123456789");
+        eventDTO.setStatus(OrderStatus.DELIVERED);
+
+        Mockito.doThrow(new FailedToSendEmailException("error, unable to send email!"))
+                .when(smtpEmailSender)
+                .sendEmail(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+
+        service.processOrderEvent(eventDTO);
+
+        //we verify that the errorrepositoy was updated to save error record
+        Mockito.verify(errorRepoQuery, Mockito.times(1)).updateEmailErrorRecord(Mockito.eq(eventDTO),Mockito.any(FailedToSendEmailException.class));//over here mockito.never() tests to see if that specific was
+        //was truly not called
     }
 
     @Test //the mock sms sender should print out message to console when event parameter fields are valid
@@ -268,6 +285,23 @@ class NotificationServiceApplicationTests {
     @Test //validate that it is able to successfully catch a generic exception caused by common issues such as authentication failure or
         // invalid recipient number etc. and then outputs with a message
     void TwilioSmsSenderCatchesException() {
+
+        OrderEventDTO eventDTO = new OrderEventDTO();
+        eventDTO.setOrderId("12453");
+        eventDTO.setEmail("Joe@gmail.com");
+        eventDTO.setPhone("123456789");
+        eventDTO.setStatus(OrderStatus.DELIVERED);
+
+        Mockito.doThrow(new FailedToSendSmsException("error, unable to send sms!"))
+                .when(twilioSmsSender)
+                .sendSms(Mockito.anyString(), Mockito.anyString());
+
+        service.processOrderEvent(eventDTO);
+
+        //we verify that the errorrepositoy was updated to save error record
+        Mockito.verify(errorRepoQuery, Mockito.times(1)).updateSmsErrorRecord(Mockito.eq(eventDTO),Mockito.any(FailedToSendSmsException.class));//over here mockito.never() tests to see if that specific was
+        //was truly not called
+
     }
 
     //------------------------FURTHER PERFORMANCE/OTHER TESTS--------------------------------------------------------------------------------------------------
