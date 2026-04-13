@@ -1,0 +1,50 @@
+	sasl.oauthbearer.expected.audience = null
+	sasl.oauthbearer.expected.issuer = null
+	sasl.oauthbearer.jwks.endpoint.refresh.ms = 3600000
+	sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms = 10000
+	sasl.oauthbearer.jwks.endpoint.retry.backoff.ms = 100
+	sasl.oauthbearer.jwks.endpoint.url = null
+	sasl.oauthbearer.scope.claim.name = scope
+	sasl.oauthbearer.sub.claim.name = sub
+	sasl.oauthbearer.token.endpoint.url = null
+	security.protocol = PLAINTEXT
+	security.providers = null
+	send.buffer.bytes = 131072
+	session.timeout.ms = 45000
+	socket.connection.setup.timeout.max.ms = 30000
+	socket.connection.setup.timeout.ms = 10000
+	ssl.cipher.suites = null
+	ssl.enabled.protocols = [TLSv1.2, TLSv1.3]
+	ssl.endpoint.identification.algorithm = https
+	ssl.engine.factory.class = null
+	ssl.key.password = null
+	ssl.keymanager.algorithm = SunX509
+	ssl.keystore.certificate.chain = null
+	ssl.keystore.key = null
+	ssl.keystore.location = null
+	ssl.keystore.password = null
+	ssl.keystore.type = JKS
+	ssl.protocol = TLSv1.3
+	ssl.provider = null
+	ssl.secure.random.implementation = null
+	ssl.trustmanager.algorithm = PKIX
+	ssl.truststore.certificates = null
+	ssl.truststore.location = null
+	ssl.truststore.password = null
+	ssl.truststore.type = JKS
+	value.deserializer = class org.springframework.kafka.support.serializer.JsonDeserializer
+
+2026-04-10T08:00:29.851Z  INFO 1 --- [catalogue-service] [           main] o.a.kafka.common.utils.AppInfoParser     : Kafka version: 3.6.2
+2026-04-10T08:00:29.853Z  INFO 1 --- [catalogue-service] [           main] o.a.kafka.common.utils.AppInfoParser     : Kafka commitId: c4deed513057c94e
+2026-04-10T08:00:29.854Z  INFO 1 --- [catalogue-service] [           main] o.a.kafka.common.utils.AppInfoParser     : Kafka startTimeMs: 1775808029848
+2026-04-10T08:00:29.881Z  INFO 1 --- [catalogue-service] [           main] fkaConsumerFactory$ExtendedKafkaConsumer : [Consumer clientId=consumer-catalogue-group-1, groupId=catalogue-group] Subscribed to topic(s): products
+2026-04-10T08:00:29.933Z  INFO 1 --- [catalogue-service] [           main] c.i.c.CatalogueServiceApplication        : Started CatalogueServiceApplication in 14.465 seconds (process running for 16.578)
+2026-04-10T08:00:30.624Z  INFO 1 --- [catalogue-service] [ntainer#0-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-catalogue-group-1, groupId=catalogue-group] Node -1 disconnected.
+2026-04-10T08:00:30.639Z  WARN 1 --- [catalogue-service] [ntainer#0-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-catalogue-group-1, groupId=catalogue-group] Connection to node -1 (kafka/172.18.0.4:9092) could not be established. Broker may not be available.
+2026-04-10T08:00:30.640Z  WARN 1 --- [catalogue-service] [ntainer#0-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-catalogue-group-1, groupId=catalogue-group] Bootstrap broker kafka:9092 (id: -1 rack: null) disconnected
+2026-04-10T08:00:30.906Z  INFO 1 --- [catalogue-service] [ntainer#0-0-C-1] org.apache.kafka.clients.Metadata        : [Consumer clientId=consumer-catalogue-group-1, groupId=catalogue-group] Cluster ID: 5L6g3nShT-eMCtK--X86sw
+2026-04-10T08:00:53.748Z  INFO 1 --- [catalogue-service] [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-10T08:00:53.749Z  INFO 1 --- [catalogue-service] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-10T08:00:53.754Z  INFO 1 --- [catalogue-service] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 5 ms
+2026-04-10T08:00:54.544Z  INFO 1 --- [catalogue-service] [ product-exec-2] c.i.c.client.ProductApiClient            : API CALL TRIGGERED
+2026-04-10T08:00:59.918Z  INFO 1 --- [catalogue-service] [ product-exec-3] c.i.c.client.ProductApiClient            : API CALL TRIGGERED

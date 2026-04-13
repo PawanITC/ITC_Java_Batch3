@@ -1,6 +1,36 @@
-version: '3.9'
-
 services:
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_INIT_LIMIT: 5
+    networks:
+      - db-network
+
+  kafka:
+    container_name: kafka
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,OUTSIDE://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,OUTSIDE://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - db-network
+
   postgres:
     container_name: postgres-db
     image: postgres:15
@@ -9,15 +39,17 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: mydb
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - db-network
-
-  pgAdmin:
-    container_name: pgadmin-ui
+      
+  pgadmin:
+    container_name: pgadmin
     image: dpage/pgadmin4
     restart: always
     environment:
@@ -25,25 +57,54 @@ services:
       PGADMIN_DEFAULT_PASSWORD: admin123
     ports:
       - "5050:80"
-    depends_on:
-      - postgres
     networks:
       - db-network
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   user-service:
     container_name: user-service
     build:
       context: ./backend/user-service
       dockerfile: Dockerfile
+    image: abbasgureitc/user-service:latest 
+    pull_policy: always 
     env_file:
       - ./backend/user-service/.env
     ports:
       - "8081:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JAVA_OPTS=-Djava.net.preferIPv4Stack=true
     networks:
       - db-network
     restart: on-failure:3
+
+  payment-service:
+    container_name: payment-service
+    build:
+      context: ./backend/payment-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/payment-service/.env
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - db-network
+    restart: on-failure
 
   api-gateway:
     container_name: api-gateway
@@ -55,13 +116,63 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - user-service
+      user-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
     networks:
       - db-network
-    restart: on-failure:3
 
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    networks:
+      - db-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+   
+  jenkins:
+    container_name: funkart-jenkins
+    build:
+      context: .
+      dockerfile: Dockerfile
+    privileged: true
+    user: root
+    ports:
+      - "8090:8080"
+      - "50000:50000"
+    environment:
+      - GRADLE_USER_HOME=/root/.gradle
+    volumes:
+      # 1. The Named Volume (Best for Terraform/Docker standards)
+      - jenkins_home:/var/jenkins_home
+      
+      # 2. Docker Socket (Essential for Jenkins to build images)
+      - /var/run/docker.sock:/var/run/docker.sock
+      
+      # 3. Gradle Cache (Saves time on builds)
+      - gradle_cache:/root/.gradle
+      
+      # REMOVED: - .:/var/jenkins_home/workspace/funkart-pipeline 
+      # (Bad practice: Jenkins should clone from Git, not use your local dev files)
+      
+      # REMOVED: - ./jenkins_data:/var/jenkins_home 
+      # (CONFLICT: You can't have this AND jenkins_home mapped to the same spot)
+    networks:
+      - db-network
+
+# This section is CRITICAL for Terraform/Production readiness
 volumes:
-  postgres_data:
+  jenkins_home:
+    external: false  # Docker will manage this
+  gradle_cache:
+    external: false
 
 networks:
   db-network:

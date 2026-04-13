@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.itc.funkart'
+version = '0.0.1-SNAPSHOT'
+description = 'payment-service'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // === 1. BOILERPLATE & UTILS ===
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // === 2. CORE SPRING BOOT ===
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // === 3. DATABASE & PERSISTENCE ===
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // === 4. MESSAGING & INTEGRATIONS ===
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'com.stripe:stripe-java:24.0.0'
+
+    // === 5. SECURITY & JWT ===
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // === 6. TESTING (Unit & Integration) ===
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    // Required specifically to make .with(jwt()) compile in tests
+    testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'io.rest-assured:rest-assured'
+
+    // In-Memory DB & Static Mocking for 100% coverage
+    testImplementation 'com.h2database:h2'
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
+}
+
+// === TASK CONFIGURATION ===
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.named('jar') {
+    enabled = false // Ensures we only build the executable bootJar
+}
+
+tasks.named('bootJar') {
+    archiveFileName = "payment-service-${version}.jar" // Uses variable for versioning
+}

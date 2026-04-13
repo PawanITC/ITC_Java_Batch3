@@ -9,6 +9,10 @@ import ProductManagement from "./pages/product/ProductManagement";
 
 import UserProductStore from "./pages/product/UserProductStore";
 import AdminProductManagement from "./pages/product/AdminProductManagement";
+// import ProductManagement from "./pages/product/ProductManagement";
+
+// import UserProductStore from "./pages/product/UserProductStore";
+// import AdminProductManagement from "./pages/product/AdminProductManagement";
 
 function App() {
     return (
@@ -27,6 +31,10 @@ function App() {
                         
                         {/* ADMIN DASHBOARD: Create, Update, Delete logic */}
                         <Route path="admin-products" element={<AdminProductManagement />} />
+                        {/* <Route path="products" element={<UserProductStore />} /> */}
+                        
+                        {/* ADMIN DASHBOARD: Create, Update, Delete logic */}
+                        {/* <Route path="admin-products" element={<AdminProductManagement />} /> */}
                     </Route>
                 </Routes>
             </BrowserRouter>

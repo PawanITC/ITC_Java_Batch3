@@ -36,6 +36,69 @@ import java.util.List;
     name = "Products",
     description = "Product Management API - Create, read, update, and delete products"
 )
+
+import java.util.List;
+import org.springframework.web.bind.annotation.*;
+//@RestController
+//@RequestMapping("/api/products")
+//@RequiredArgsConstructor
+//@CrossOrigin(origins = "http://localhost:5173")
+//public class ProductController {
+//
+//    private final ProductService productService;
+//
+//    @PostMapping
+//    public ResponseEntity<ProductResponse> createProduct(
+//            @Valid @RequestBody ProductCreateRequest request) {
+//
+//        return ResponseEntity
+//                .status(HttpStatus.CREATED)
+//                .body(productService.createProduct(request));
+//    }
+//
+//    @GetMapping(value = "/{id}")
+//    public ResponseEntity<ProductResponse> getProduct(
+//            @PathVariable Long id) {
+//
+//        return ResponseEntity
+//                .status(HttpStatus.OK)
+//                .body(productService.getProduct(id));
+//    }
+//
+//    @GetMapping
+//    public ResponseEntity<List<ProductResponse>> getAllProducts() {
+//
+//        return ResponseEntity
+//                .status(HttpStatus.OK)
+//                .body(productService.getAllProducts());
+//    }
+//
+//    @PutMapping("/{id}")
+//    public ResponseEntity<ProductResponse> updateProduct(
+//            @PathVariable Long id,
+//            @Valid @RequestBody ProductUpdateRequest request) {
+//
+//        return ResponseEntity
+//                .status(HttpStatus.OK)
+//                .body(productService.updateProduct(id, request));
+//    }
+//
+//    @DeleteMapping("/{id}")
+//    public ResponseEntity<Void> deleteProduct(
+//            @PathVariable Long id) {
+//
+//        productService.deleteProduct(id);
+//
+//        return ResponseEntity
+//                .status(HttpStatus.NO_CONTENT)
+//                .build();
+//    }
+//}
+
+@RestController
+@RequestMapping("/api/products")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class ProductController {
 
     private final ProductService productService;
@@ -65,6 +128,7 @@ public class ProductController {
             description = "Internal server error"
         )
     })
+    @GetMapping
     public ResponseEntity<List<ProductResponse>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
@@ -154,5 +218,9 @@ public class ProductController {
         )
         @RequestBody List<Long> ids) {
         return ResponseEntity.ok(productService.getProductsByIds(ids));
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductResponse> getProduct(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getProduct(id));
     }
 }

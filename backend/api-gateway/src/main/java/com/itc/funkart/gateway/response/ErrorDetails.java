@@ -1,6 +1,8 @@
 package com.itc.funkart.gateway.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -13,22 +15,12 @@ import lombok.Setter;
  * - requestId: optional, for tracing/logging
  *
  */
-@Setter
 @Getter
+@Setter
+@NoArgsConstructor // For Jackson
+@AllArgsConstructor // For you
 public class ErrorDetails {
-    // Getters and setters
     private String code;
     private String message;
-
-
-    // No-args constructor (required for Jackson/Gson)
-    public ErrorDetails() {}
-
-    // Convenience constructor for common case
-    public ErrorDetails(String code, String message) {
-        this.code = code;
-        this.message = message;
-    }
-
 }
 

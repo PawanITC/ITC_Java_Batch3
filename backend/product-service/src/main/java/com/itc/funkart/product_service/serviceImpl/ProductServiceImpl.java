@@ -7,6 +7,8 @@ import com.itc.funkart.product_service.dto.response.ProductsResponse;
 import com.itc.funkart.product_service.entity.Category;
 import com.itc.funkart.product_service.entity.Product;
 import com.itc.funkart.product_service.exceptions.BadRequestException;
+import com.itc.funkart.product_service.entity.Category;
+import com.itc.funkart.product_service.entity.Product;
 import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
 import com.itc.funkart.product_service.mapper.ProductMapper;
 import com.itc.funkart.product_service.repository.CategoryRepository;
