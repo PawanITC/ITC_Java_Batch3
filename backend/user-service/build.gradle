@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.5'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.itc.funkart'
@@ -52,12 +53,21 @@ dependencies {
     testImplementation 'com.h2database:h2' // In-memory DB for integration tests
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0' // Mocking external API responses
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
 
-    // Note: mockito-inline removed as Mockito 5 (included in Boot 3.3) handles inline mocking natively
+// Configures JaCoCo to generate the XML data Jenkins needs
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true
+    }
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport // Automatically runs coverage report after tests finish
 }
 
 // Disable standard JAR task to prioritize BootJar
@@ -67,5 +77,5 @@ tasks.named('jar') {
 
 // Configures the final executable artifact
 tasks.named('bootJar') {
-    archiveFileName = "user-service-0.0.1-SNAPSHOT.jar" // Updated to match project description
+    archiveFileName = "user-service-0.0.1-SNAPSHOT.jar"
 }

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CartMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">product-service</a> &gt; <a href="index.source.html" class="el_package">com.itc.funkart.product_service.mapper</a> &gt; <span class="el_source">CartMapper.java</span></div><h1>CartMapper.java</h1><pre class="source lang-java linenums">package com.itc.funkart.product_service.mapper;
+
+import com.itc.funkart.product_service.dto.request.CartItemResponse;
+import com.itc.funkart.product_service.dto.request.CartResponse;
+import com.itc.funkart.product_service.entity.Cart;
+import com.itc.funkart.product_service.entity.CartItem;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
+
+<span class="nc" id="L12">public class CartMapper {</span>
+
+    public static CartResponse toResponse(Cart cart) {
+<span class="pc bpc" id="L15" title="1 of 2 branches missed.">        if (cart == null) return null;</span>
+
+<span class="fc" id="L17">        List&lt;CartItemResponse&gt; itemDtos = cart.getItems().stream()</span>
+<span class="fc" id="L18">                .map(CartMapper::toItemResponse)</span>
+<span class="fc" id="L19">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L21">        BigDecimal total = itemDtos.stream()</span>
+<span class="fc" id="L22">                .map(CartItemResponse::getSubTotal)</span>
+<span class="fc" id="L23">                .reduce(BigDecimal.ZERO, BigDecimal::add);</span>
+
+<span class="fc" id="L25">        return CartResponse.builder()</span>
+<span class="fc" id="L26">                .cartId(cart.getId())</span>
+<span class="fc" id="L27">                .userId(cart.getUserId())</span>
+<span class="fc" id="L28">                .items(itemDtos)</span>
+<span class="fc" id="L29">                .totalAmount(total)</span>
+<span class="fc" id="L30">                .build();</span>
+    }
+
+    private static CartItemResponse toItemResponse(CartItem item) {
+<span class="pc bpc" id="L34" title="1 of 2 branches missed.">        if (item.getProduct() == null) {</span>
+<span class="nc" id="L35">            throw new IllegalStateException(&quot;CartItem must have a valid Product reference&quot;);</span>
+        }
+
+<span class="fc" id="L38">        BigDecimal price = item.getProduct().getPrice();</span>
+<span class="fc" id="L39">        Integer qty = item.getQuantity();</span>
+
+<span class="fc" id="L41">        return CartItemResponse.builder()</span>
+<span class="fc" id="L42">                .productId(item.getProduct().getId())</span>
+<span class="fc" id="L43">                .productName(item.getProduct().getName())</span>
+<span class="fc" id="L44">                .price(price)</span>
+<span class="fc" id="L45">                .quantity(qty)</span>
+<span class="fc" id="L46">                .subTotal(price.multiply(BigDecimal.valueOf(qty)))</span>
+<span class="fc" id="L47">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -139,7 +139,6 @@ services:
    
   jenkins:
     container_name: funkart-jenkins
-    # Instead of just an image, we build our custom Dockerfile to keep tools persistent
     build:
       context: .
       dockerfile: Dockerfile
@@ -151,16 +150,25 @@ services:
     environment:
       - GRADLE_USER_HOME=/root/.gradle
     volumes:
+      # 1. The Named Volume (Best for Terraform/Docker standards)
       - jenkins_home:/var/jenkins_home
+      
+      # 2. Docker Socket (Essential for Jenkins to build images)
       - /var/run/docker.sock:/var/run/docker.sock
+      
+      # 3. Gradle Cache (Saves time on builds)
       - gradle_cache:/root/.gradle
+      
       - .:/var/jenkins_home/workspace/funkart-pipeline
     networks:
       - db-network
 
+# This section is CRITICAL for Terraform/Production readiness
 volumes:
   jenkins_home:
+    external: false  # Docker will manage this
   gradle_cache:
+    external: false
 
 networks:
   db-network:
