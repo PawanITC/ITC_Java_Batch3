@@ -9,6 +9,7 @@ pipeline {
         DOCKER_HUB_USER = 'abbasgureitc'
         IMAGE_NAME = 'user-service'
         REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
+        SNYK_TOKEN = credentials('snyk-auth-token')
     }
 
     stages {
@@ -44,9 +45,10 @@ pipeline {
 
         stage('Security Scan (Snyk)') {
             steps {
-                echo 'Running Snyk Scan...'
-                // This assumes you have Snyk installed or use a docker image for it
-                // For now, we will just echo to keep the build moving
+                dir('backend/user-service') {
+                    echo 'Running Snyk Open Source Vulnerability Scan...'
+                    sh 'snyk test --severity-threshold=high'
+                }
             }
         }
 
@@ -54,7 +56,11 @@ pipeline {
             steps {
                 dir('backend/user-service') {
                     script {
-                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}")
+                        // SETTING THE BUILD NAMES HERE
+                        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                        currentBuild.description = "Built from branch ${env.BRANCH_NAME ?: 'jenkins-cicd'}"
+
+                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
             }
@@ -69,6 +75,19 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up Jenkins Workspace...'
+            cleanWs()
+        }
+        success {
+            echo 'Successfully deployed User Service to Docker Hub!'
+        }
+        failure {
+            echo 'Build failed. Check the JaCoCo or Unit Test logs.'
         }
     }
 }
