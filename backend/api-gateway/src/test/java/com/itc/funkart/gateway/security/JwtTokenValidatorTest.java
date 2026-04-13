@@ -1,6 +1,6 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.config.JwtConfig;
+import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.exception.OAuthException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -32,8 +32,21 @@ public class JwtTokenValidatorTest {
      */
     @BeforeEach
     void setUp() {
-        Long expirationMs = 3600000L;
-        JwtConfig config = new JwtConfig(B64_SECRET, expirationMs);
+        // Build the nested records required for the root AppConfig
+        AppConfig.Api api = new AppConfig.Api("/api/v1");
+        AppConfig.Jwt jwt = new AppConfig.Jwt(B64_SECRET, 3600000L, 3600, "token", false);
+        AppConfig.Github github = new AppConfig.Github("id", "secret", "uri");
+        AppConfig.Services services = new AppConfig.Services("http://user-service");
+
+        // Initialize the root AppConfig
+        AppConfig config = new AppConfig(
+                "http://localhost:5173",
+                api,
+                jwt,
+                github,
+                services
+        );
+
         validator = new JwtTokenValidator(config);
     }
 

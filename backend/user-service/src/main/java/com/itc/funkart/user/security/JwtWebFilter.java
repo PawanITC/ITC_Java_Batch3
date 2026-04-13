@@ -50,22 +50,27 @@ public class JwtWebFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtService.parseJwtToken(token);
 
-                // Map claims directly to our Security Principal (JwtUserDto)
-                JwtUserDto user = new JwtUserDto(
-                        Long.parseLong(claims.getSubject()),
-                        claims.get("name", String.class),
-                        claims.get("email", String.class)
-                );
+                String subject = claims.getSubject();
+                String name = claims.get("name", String.class);
+                String email = claims.get("email", String.class);
 
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
+                // Defensive check: If the token is "valid" but empty, don't authenticate
+                if (subject != null && !subject.isBlank()) {
+                    JwtUserDto user = new JwtUserDto(
+                            Long.parseLong(subject),
+                            name != null ? name : "Unknown User",
+                            email != null ? email : ""
+                    );
 
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
+
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
 
             } catch (Exception ex) {
+                // This catches parsing errors, expiration, AND our Long.parseLong errors
                 log.warn("JWT validation failed for request {}: {}", request.getRequestURI(), ex.getMessage());
-                // We do not throw an exception here; we let the filter chain continue.
-                // Spring Security's EntryPoint will handle unauthorized access if required.
             }
         }
 
