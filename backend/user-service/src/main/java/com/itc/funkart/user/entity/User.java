@@ -1,36 +1,32 @@
 package com.itc.funkart.user.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
-@Getter
-@SuppressWarnings("JpaDataSourceORMInspection")
+/**
+ * Core User entity representing a registered user in the Funkart system.
+ */
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@SuppressWarnings("JpaDataSourceORMInspection")
 public class User {
-    // Getters and setters
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Setter
+    /** Unique email address used for identification and login. */
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Setter
-    private String password; // hashed password
+    /** The Bcrypt hashed password. Will be {@code null} for pure OAuth users. */
+    private String password;
 
-    @Setter
+    /** The display name of the user. */
     private String name;
-
-    public User() {
-    }
-
-    public User(String email, String password, String name) {
-        this.email = email;
-        this.password = password;
-        this.name = name;
-    }
-
 }
