@@ -2,7 +2,10 @@ spring:
   application:
     name: catalogue-service
 
-
+  data:
+    redis:
+      host: redis
+      port: 6379
 
 server:
   port: 8081
@@ -11,14 +14,12 @@ server:
       max: 400
     accept-count: 1500
 
-
 resilience4j:
   ratelimiter:
     instances:
       productService:
         limitForPeriod: 1200
         limitRefreshPeriod: 1s
-        #timeoutDuration: 0s
 
   timelimiter:
     instances:

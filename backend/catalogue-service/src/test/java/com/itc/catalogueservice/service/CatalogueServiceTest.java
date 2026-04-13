@@ -5,6 +5,7 @@ import com.itc.catalogueservice.client.ProductApiClient;
 import com.itc.catalogueservice.dto.ProductDTO;
 import com.itc.catalogueservice.exception.catalogue.NoProductsException;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -15,8 +16,15 @@ import static org.mockito.Mockito.*;
 
 class CatalogueServiceTest {
 
-    private final ProductApiClient productApiClient = mock(ProductApiClient.class);
-    private final CatalogueService catalogueService = new CatalogueService(productApiClient);
+    private final ProductApiClient productApiClient;
+    private final StringRedisTemplate redisTemplate;
+    private final CatalogueService catalogueService;
+
+    public CatalogueServiceTest() {
+        this.productApiClient = mock(ProductApiClient.class);
+        this.redisTemplate = mock(StringRedisTemplate.class);
+        this.catalogueService = new CatalogueService(productApiClient, redisTemplate);
+    }
 
     //Should test for not null and not empty when products are returned
     @Test

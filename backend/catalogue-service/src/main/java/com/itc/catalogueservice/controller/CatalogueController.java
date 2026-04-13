@@ -9,10 +9,7 @@ import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 
 import java.math.BigDecimal;
@@ -26,49 +23,63 @@ public class CatalogueController {
 
     private final CatalogueService catalogueService;
 
-            public CatalogueController(CatalogueService catalogueService1){
-                this.catalogueService = catalogueService1;
-            };
-
+    public CatalogueController(CatalogueService catalogueService) {
+        this.catalogueService = catalogueService;
+    }
 
     @GetMapping("/products")
-    CompletableFuture<ResponseEntity<ApiResponse<List<ProductDTO>>>> getProducts(
+    public CompletableFuture<ResponseEntity<ApiResponse<List<ProductDTO>>>> getProducts(
 
-            @RequestParam(defaultValue = "1")
-            @Min(value = 1, message = "Page must be at least 1")
-            Integer page,
+            @RequestParam(defaultValue = "1") @Min(value = 1, message = "Page must be at least 1") Integer page,
 
-            @RequestParam(defaultValue = "10")
-            @Min(value = 1, message = "Size must be at least 1")
-            @Max(value = 100, message = "Size must not exceed 100")
-            Integer size,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size must not exceed 100") Integer size,
 
-            @RequestParam(required = false)
-            String category,
+            @RequestParam(required = false) String category,
 
-            @RequestParam(required = false)
-            @DecimalMin(value = "0.0", message = "Price cannot be negative")
-            BigDecimal minPrice,
+            @RequestParam(required = false) @DecimalMin(value = "0.0", message = "Price cannot be negative") BigDecimal minPrice,
 
-            @RequestParam(required = false)
-            @DecimalMin(value = "0.0", message = "Price cannot be negative")
-            BigDecimal maxPrice,
+            @RequestParam(required = false) @DecimalMin(value = "0.0", message = "Price cannot be negative") BigDecimal maxPrice,
 
-            @RequestParam(required = false)
-            @Min(value = 0, message = "Rating must be at least 0")
-            @Max(value = 5, message = "Rating must not exceed 5")
-            Double rating
-    ){
+            @RequestParam(required = false) @Min(value = 0, message = "Rating must be at least 0") @Max(value = 5, message = "Rating must not exceed 5") Double rating) {
 
         return catalogueService.getProducts(page, size, category, minPrice, maxPrice, rating)
                 .thenApply(products -> {
 
-                    ApiResponse<List<ProductDTO>> response =
-                            new ApiResponse<>(HttpStatus.OK.value(), "Products retrieved", products);
+                    ApiResponse<List<ProductDTO>> response = new ApiResponse<>(HttpStatus.OK.value(),
+                            "Products retrieved", products);
 
                     return ResponseEntity.ok(response);
                 });
     }
 
+    // Retrieves the top-selling products
+    @GetMapping("/top-selling")
+    public CompletableFuture<ResponseEntity<ApiResponse<List<ProductDTO>>>> getTopSellingProducts(
+
+            @RequestParam(defaultValue = "5") @Min(value = 1, message = "Limit must be at least 1") @Max(value = 100, message = "Limit must not exceed 100") Integer limit,
+
+            @RequestParam(required = false) String category
+
+    ) {
+        return catalogueService.getTopSellingProducts(limit, category)
+                .thenApply(products -> {
+
+                    ApiResponse<List<ProductDTO>> response = new ApiResponse<>(HttpStatus.OK.value(),
+                            "Top selling products retrieved", products);
+
+                    return ResponseEntity.ok(response);
+                });
+    }
+
+
+    @PostMapping("/test/order")
+    public ResponseEntity<String> testOrder(
+            @RequestParam String productId,
+            @RequestParam int quantitySold,
+            @RequestParam(required = false) String category) {
+
+        catalogueService.handleOrderEvent(productId, quantitySold, category);
+        return ResponseEntity.ok("Redis updated");
+    }
 
 }

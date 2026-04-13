@@ -8,9 +8,30 @@ services:
     ports:
       - "8081:8081"
     restart: unless-stopped
+    depends_on:
+      - redis
     networks:
       - shared-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --save 60 1000
+    volumes:
+      - redis-data:/data
+    networks:
+      - shared-network
+
 
 networks:
   shared-network:
     external: true
+
+volumes:
+  redis-data:
