@@ -28,7 +28,7 @@ spring:
 # Use flat keys if your @Value continues to struggle,
 # but this nested version is standard for @ConfigurationProperties
 api:
-  version: api/v1
+  version: v1
 
 jwt:
   secret: dGhpcy1pcy1hLXZlcnktbG9uZy1hbmQtc2VjdXJlLXRlc3Qtc2VjcmV0LWtleS1mb3Itand0

@@ -64,7 +64,9 @@ class SecurityConfigTest {
      * Helper to construct the versioned API URL.
      */
     private String getUrl(String path) {
-        return "/" + apiConfig.getVersion() + "/users" + path;
+        // Make sure this matches the prefix your Gateway uses!
+        String version = apiConfig.getVersion();
+        return "/api/" + version + "/users" + path;
     }
 
     /**

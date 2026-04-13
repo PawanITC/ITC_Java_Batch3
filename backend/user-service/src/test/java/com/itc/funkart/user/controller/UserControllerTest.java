@@ -20,6 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
@@ -47,28 +49,40 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * work in harmony across all authentication endpoints.</p>
  */
 @WebMvcTest(UserController.class)
-@Import({GlobalExceptionHandler.class, WebConfig.class, ApiConfig.class})
+@EnableConfigurationProperties(ApiConfig.class)
+@Import({GlobalExceptionHandler.class, WebConfig.class})
+@ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
 class UserControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
-    @Autowired private ApiConfig apiConfig;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private ApiConfig apiConfig;
 
-    @MockBean private GithubOAuthService githubOAuthService;
-    @MockBean private UserService userService;
-    @MockBean private UserMapper userMapper;
-    @MockBean private JwtService jwtService;
-    @MockBean private KafkaEventPublisher kafkaEventPublisher;
+    @MockBean
+    private GithubOAuthService githubOAuthService;
+    @MockBean
+    private UserService userService;
+    @MockBean
+    private UserMapper userMapper;
+    @MockBean
+    private JwtService jwtService;
+    @MockBean
+    private KafkaEventPublisher kafkaEventPublisher;
 
     /**
      * Helper to stay in sync with WebConfig versioning.
      * Maps the API prefix and version dynamically from configuration.
-     * * @param path The endpoint path relative to the users controller.
+     * * @param path The endpoint path relative to the users' controller.
+     *
      * @return The fully qualified URL string.
      */
     private String getUrl(String path) {
-        return "/" + apiConfig.getVersion() + "/users" + path;
+        // WebConfig does: "/api/" + version
+        return "/api/" + apiConfig.getVersion() + "/users" + path;
     }
 
     @Nested
@@ -87,8 +101,7 @@ class UserControllerTest {
 
             when(userService.signUp(any())).thenReturn(user);
             when(jwtService.generateJwtToken(any())).thenReturn("jwt");
-            when(userMapper.toResponse(any(), anyString())).thenReturn(resp);
-
+            when(userMapper.toResponse(any(), nullable(String.class))).thenReturn(resp);
             mockMvc.perform(post(getUrl("/signup"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))

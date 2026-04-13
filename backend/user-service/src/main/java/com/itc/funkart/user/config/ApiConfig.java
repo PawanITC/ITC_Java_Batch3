@@ -1,7 +1,6 @@
 package com.itc.funkart.user.config;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -10,14 +9,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * * @param version The current API version (e.g., {@code v1}).
  */
 @Getter
-@RequiredArgsConstructor
 @ConfigurationProperties(prefix = "api")
 public class ApiConfig {
-    // Final field ensures immutability
     private final String version;
 
-    // Default value if the property is missing in yml
-    public ApiConfig() {
-        this.version = "v1";
+    public ApiConfig(String version) {
+        this.version = version;
     }
 }
