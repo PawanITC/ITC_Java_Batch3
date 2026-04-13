@@ -1,5 +1,6 @@
 package com.itc.funkart.product_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -25,6 +26,11 @@ public class Product {
     @Column(unique = true, nullable = false)
     private String slug;
 
+    //@Column(columnDefinition = "TEXT")
+    @Column(length = 1000)
+    private String description;
+
+    @Column(precision = 10, scale = 2)
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -43,6 +49,7 @@ public class Product {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @JsonIgnore
     private Category category;
 
     // ADDED: Relationship to CartItem

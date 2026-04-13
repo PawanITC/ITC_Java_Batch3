@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProductController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">product-service</a> &gt; <a href="index.source.html" class="el_package">com.itc.funkart.product_service.controller</a> &gt; <span class="el_source">ProductController.java</span></div><h1>ProductController.java</h1><pre class="source lang-java linenums">package com.itc.funkart.product_service.controller;
+
+import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
+import com.itc.funkart.product_service.dto.request.ProductUpdateRequest;
+import com.itc.funkart.product_service.dto.response.ProductResponse;
+import com.itc.funkart.product_service.dto.response.ProductsResponse;
+import com.itc.funkart.product_service.service.ProductService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import org.springframework.web.bind.annotation.*;
+//@RestController
+//@RequestMapping(&quot;/api/products&quot;)
+//@RequiredArgsConstructor
+//@CrossOrigin(origins = &quot;http://localhost:5173&quot;)
+//public class ProductController {
+//
+//    private final ProductService productService;
+//
+//    @PostMapping
+//    public ResponseEntity&lt;ProductResponse&gt; createProduct(
+//            @Valid @RequestBody ProductCreateRequest request) {
+//
+//        return ResponseEntity
+//                .status(HttpStatus.CREATED)
+//                .body(productService.createProduct(request));
+//    }
+//
+//    @GetMapping(value = &quot;/{id}&quot;)
+//    public ResponseEntity&lt;ProductResponse&gt; getProduct(
+//            @PathVariable Long id) {
+//
+//        return ResponseEntity
+//                .status(HttpStatus.OK)
+//                .body(productService.getProduct(id));
+//    }
+//
+//    @GetMapping
+//    public ResponseEntity&lt;List&lt;ProductResponse&gt;&gt; getAllProducts() {
+//
+//        return ResponseEntity
+//                .status(HttpStatus.OK)
+//                .body(productService.getAllProducts());
+//    }
+//
+//    @PutMapping(&quot;/{id}&quot;)
+//    public ResponseEntity&lt;ProductResponse&gt; updateProduct(
+//            @PathVariable Long id,
+//            @Valid @RequestBody ProductUpdateRequest request) {
+//
+//        return ResponseEntity
+//                .status(HttpStatus.OK)
+//                .body(productService.updateProduct(id, request));
+//    }
+//
+//    @DeleteMapping(&quot;/{id}&quot;)
+//    public ResponseEntity&lt;Void&gt; deleteProduct(
+//            @PathVariable Long id) {
+//
+//        productService.deleteProduct(id);
+//
+//        return ResponseEntity
+//                .status(HttpStatus.NO_CONTENT)
+//                .build();
+//    }
+//}
+
+@RestController
+@RequestMapping(&quot;/api/products&quot;)
+<span class="fc" id="L74">@RequiredArgsConstructor</span>
+@CrossOrigin(origins = &quot;http://localhost:5173&quot;)
+public class ProductController {
+
+    private final ProductService productService;
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;ProductResponse&gt;&gt; getAllProducts() {
+<span class="fc" id="L82">        return ResponseEntity.ok(productService.getAllProducts());</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;ProductResponse&gt; getProduct(@PathVariable Long id) {
+<span class="fc" id="L87">        return ResponseEntity.ok(productService.getProduct(id));</span>
+    }
+    @PostMapping(&quot;/by-ids&quot;)
+    public ResponseEntity&lt;ProductsResponse&gt; getProductsByIds(@RequestBody List&lt;Long&gt; ids) {
+<span class="fc" id="L91">        return ResponseEntity.ok(productService.getProductsByIds(ids));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

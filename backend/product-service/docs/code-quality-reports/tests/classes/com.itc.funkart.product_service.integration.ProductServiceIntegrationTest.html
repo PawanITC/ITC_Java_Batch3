@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Product Service Integration Tests</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Product Service Integration Tests</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/com.itc.funkart.product_service.integration.html">com.itc.funkart.product_service.integration</a> &gt; ProductServiceIntegrationTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">12</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">1.743s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Method name</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">Should batch update multiple products</td>
+<td class="success">shouldBatchUpdateMultipleProducts()</td>
+<td class="success">0.124s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should create product and verify all fields are persisted</td>
+<td class="success">shouldCreateProductAndVerifyAllFields()</td>
+<td class="success">0.131s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should create product with category and persist to database</td>
+<td class="success">shouldCreateProductWithCategoryAndPersist()</td>
+<td class="success">0.084s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should delete product and verify deletion from database</td>
+<td class="success">shouldDeleteProductAndVerifyDeletion()</td>
+<td class="success">0.133s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should fetch products by ids and handle missing ids</td>
+<td class="success">shouldFetchProductsByIdsAndHandleMissing()</td>
+<td class="success">0.055s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should fetch products by ids and return correct items</td>
+<td class="success">shouldFetchProductsByIdsAndReturnCorrectItems()</td>
+<td class="success">0.138s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should get all products ordered by creation date</td>
+<td class="success">shouldGetAllProductsOrderedByCreationDate()</td>
+<td class="success">0.433s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should handle product search by slug</td>
+<td class="success">shouldHandleProductSearchBySlug()</td>
+<td class="success">0.129s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should handle product with multiple updates</td>
+<td class="success">shouldHandleProductWithMultipleUpdates()</td>
+<td class="success">0.152s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should update product and verify changes in database</td>
+<td class="success">shouldUpdateProductAndVerifyInDatabase()</td>
+<td class="success">0.066s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should verify product category relationship</td>
+<td class="success">shouldVerifyProductCategoryRelationship()</td>
+<td class="success">0.087s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should verify product slug is unique</td>
+<td class="success">shouldVerifyProductSlugIsUnique()</td>
+<td class="success">0.211s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>2026-04-13T12:45:31.862+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.itc.funkart.product_service.integration.ProductServiceIntegrationTest]: ProductServiceIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-04-13T12:45:31.868+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.itc.funkart.product_service.ProductServiceApplication for test class com.itc.funkart.product_service.integration.ProductServiceIntegrationTest
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:31.890+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Search Test Product_1427077971736600
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    select
+        p1_0.id,
+        p1_0.active,
+        p1_0.brand,
+        p1_0.category_id,
+        p1_0.created_at,
+        p1_0.description,
+        p1_0.name,
+        p1_0.price,
+        p1_0.slug,
+        p1_0.stock_quantity,
+        p1_0.updated_at 
+    from
+        products p1_0 
+    where
+        p1_0.slug=?
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:32.026+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Multi-Update Product_1427078108935500
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:32.106+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Updating product id: 52
+2026-04-13T12:45:32.123+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Updating product id: 52
+2026-04-13T12:45:32.134+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Updating product id: 52
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:32.201+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Laptop_1427078276890400
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:32.286+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: UniqueSlugTest
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:32.337+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: UniqueSlugTest
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:32.375+01:00  WARN [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 23505, SQLState: 23505
+2026-04-13T12:45:32.376+01:00 ERROR [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.h.engine.jdbc.spi.SqlExceptionHelper   : Unique index or primary key violation: &quot;PUBLIC.CONSTRAINT_INDEX_F ON PUBLIC.PRODUCTS(SLUG NULLS FIRST) VALUES ( /* 54 */ 'uniqueslugtest' )&quot;; SQL statement:
+insert into products (active,brand,category_id,created_at,description,name,price,slug,stock_quantity,updated_at,id) values (?,?,?,?,?,?,?,?,?,?,default) [23505-224]
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:32.486+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: iPhone
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:32.662+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Batch Product 1_1427078744202000
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:32.678+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Batch Product 2_1427078760759900
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:32.712+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Updating product id: 57
+2026-04-13T12:45:32.730+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Updating product id: 58
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:32.788+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Original Product_1427078870838700
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:32.810+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Updating product id: 59
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:32.863+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: First Product_1427078945685200
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:33.044+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Second Product_1427079123998000
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:33.089+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Fetching all products from database
+Hibernate: 
+    select
+        p1_0.id,
+        p1_0.active,
+        p1_0.brand,
+        p1_0.category_id,
+        p1_0.created_at,
+        p1_0.description,
+        p1_0.name,
+        p1_0.price,
+        p1_0.slug,
+        p1_0.stock_quantity,
+        p1_0.updated_at 
+    from
+        products p1_0 
+    order by
+        p1_0.created_at desc
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.description,
+        c1_0.name 
+    from
+        categories c1_0 
+    where
+        c1_0.id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.description,
+        c1_0.name 
+    from
+        categories c1_0 
+    where
+        c1_0.id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    select
+        i1_0.product_id,
+        i1_0.id,
+        i1_0.image_url,
+        i1_0.is_primary 
+    from
+        product_images i1_0 
+    where
+        i1_0.product_id=?
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:33.290+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Related Product_1427079372269000
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:33.391+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 1_1427079472514800
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:33.418+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 2_1427079501709600
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+2026-04-13T12:45:33.444+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 3_1427079526407800
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    select
+        p1_0.id,
+        p1_0.active,
+        p1_0.brand,
+        p1_0.category_id,
+        p1_0.created_at,
+        p1_0.description,
+        p1_0.name,
+        p1_0.price,
+        p1_0.slug,
+        p1_0.stock_quantity,
+        p1_0.updated_at 
+    from
+        products p1_0 
+    where
+        p1_0.id in (?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:33.530+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product 1_1427079609162900
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    select
+        p1_0.id,
+        p1_0.active,
+        p1_0.brand,
+        p1_0.category_id,
+        p1_0.created_at,
+        p1_0.description,
+        p1_0.name,
+        p1_0.price,
+        p1_0.slug,
+        p1_0.stock_quantity,
+        p1_0.updated_at 
+    from
+        products p1_0 
+    where
+        p1_0.id in (?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        categories
+        (description, name, id) 
+    values
+        (?, ?, default)
+2026-04-13T12:45:33.602+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.serviceImpl.ProductServiceImpl   : Creating product with name: Product to Delete_1427079684400700
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    select
+        count(*) 
+    from
+        products p1_0 
+    where
+        p1_0.id=?
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 9.0.0</a> at 13 Apr 2026, 12:46:03</p>
+</div>
+</div>
+</body>
+</html>

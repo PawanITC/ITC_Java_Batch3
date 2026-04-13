@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmployeeTestRunner.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">product-service</a> &gt; <a href="index.source.html" class="el_package">com.itc.funkart.product_service.assignment</a> &gt; <span class="el_source">EmployeeTestRunner.java</span></div><h1>EmployeeTestRunner.java</h1><pre class="source lang-java linenums">package com.itc.funkart.product_service.assignment;
+
+import java.util.List;
+import java.util.Map;
+
+<span class="nc" id="L6">public class EmployeeTestRunner {</span>
+    public static void main(String[] args) {
+<span class="nc" id="L8">        List&lt;Employee&gt; employees = List.of(</span>
+                new Employee(1, &quot;John&quot;, 5000, &quot;IT&quot;),
+                new Employee(2, &quot;Mary&quot;, 7000, &quot;IT&quot;),
+                new Employee(3, &quot;Sam&quot;, 4000, &quot;HR&quot;),
+                new Employee(4, &quot;David&quot;, 6000, &quot;HR&quot;),
+                new Employee(5, &quot;Emma&quot;, 8000, &quot;Finance&quot;),
+                new Employee(6, &quot;Olivia&quot;, 5500, &quot;Finance&quot;),
+                new Employee(7, &quot;Liam&quot;, 7200, &quot;IT&quot;),
+                new Employee(8, &quot;Sophia&quot;, 4500, &quot;HR&quot;),
+                new Employee(9, &quot;Noah&quot;, 6700, &quot;Marketing&quot;),
+                new Employee(10, &quot;Ava&quot;, 7500, &quot;Marketing&quot;)
+        );
+
+<span class="nc" id="L21">        EmployeeService employeeService=new EmployeeService();</span>
+<span class="nc" id="L22">        Map&lt;String, Employee&gt; highestSalaryByDept=employeeService.getHighestSalary(employees);</span>
+
+<span class="nc" id="L24">        highestSalaryByDept.forEach((dept, emp) -&gt;</span>
+<span class="nc" id="L25">                System.out.println(dept + &quot; -&gt; &quot; + emp.getName() + &quot; : &quot; + emp.getSalary()));</span>
+<span class="nc" id="L26">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
