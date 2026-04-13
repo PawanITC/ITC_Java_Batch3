@@ -103,28 +103,7 @@ class NotificationServiceApplicationTests {
 
     //------------------------MAIN FUNCTIONAL TESTS-------------------------------------------------------------------------
 
-    @Test //overall endpoint test, when request is received by our endpoint it should return a response back
-    void validateEndpointReceiveOrderEvent() {
 
-    }
-
-    @Test //if our request is valid then a 'successful' response should be returned
-    void validateEndpointSendSuccessfulResponse() {
-        OrderEventDTO eventDTO = new OrderEventDTO();
-        eventDTO.setOrderId("12453");
-        eventDTO.setEmail("joe@gmail.com");
-        eventDTO.setPhone("123456789");
-        eventDTO.setStatus(OrderStatus.DELIVERED);
-
-
-
-        //TODO complete this test case
-    }
-
-    @Test //if our request is invalid then an 'unsuccessful' response should be returned
-    void validateEndpointSendUnsuccessfulResponse() {
-
-    }
 
     @Test //ensure we receive event dto with correctly validated fields
     void validateOrderEventDTOFields() {//ensure all fields are validated
