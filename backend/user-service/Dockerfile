@@ -1,28 +1,5 @@
-# ==================================================
-# User Service Microservice
-# ==================================================
-# Author: Abbas
-# Description: Handles all user-related operations including registration,
-#              authentication, profile management, and user data persistence.
-# ==================================================
-
 # ---------------------------
-# Stage 1: Build
-# ---------------------------
-FROM gradle:9.4.0-jdk17 AS builder
-
-WORKDIR /app
-
-# Copy project files
-COPY build.gradle .
-COPY settings.gradle .
-COPY src ./src
-
-# Build the Spring Boot fat jar (skip tests to speed up)
-RUN gradle clean build -x test
-
-# ---------------------------
-# Stage 2: Runtime
+# Runtime Stage (Lean & Fast)
 # ---------------------------
 FROM eclipse-temurin:17-jdk-jammy
 
@@ -31,13 +8,11 @@ WORKDIR /app
 # Metadata Labels
 LABEL maintainer="Abbas"
 LABEL service.name="user-service"
-LABEL service.description="User Service - Manages user registration, authentication, and profiles"
-LABEL service.version="1.0.0"
 
-# Copy jar from build stage
-COPY --from=builder /app/build/libs/*-SNAPSHOT.jar app.jar
+# We copy the JAR that Jenkins JUST built in the previous step
+# Jenkins workspace structure: backend/user-service/build/libs/
+COPY build/libs/*.jar app.jar
 
 EXPOSE 8081
 
-# Run the jar
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
