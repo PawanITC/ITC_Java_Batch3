@@ -10,6 +10,8 @@ pipeline {
         IMAGE_NAME = 'user-service'
         REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
         SNYK_TOKEN = credentials('snyk-auth-token')
+        // Define dockerImage here so it's accessible across stages
+        dockerImage = ''
     }
 
     stages {
@@ -31,7 +33,6 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                // Using the specific path to avoid context confusion
                 jacoco(
                     execPattern: 'backend/user-service/build/jacoco/*.exec',
                     classPattern: 'backend/user-service/build/classes/java/main',
@@ -46,9 +47,8 @@ pipeline {
             steps {
                 dir('backend/user-service') {
                     echo 'Running Snyk Open Source Vulnerability Scan...'
-                    // Added || true so the build doesn't die here while you're testing,
-                    // but remove it when you want to enforce strict security!
-                    sh 'snyk test --severity-threshold=high || echo "Snyk found issues, but continuing..." '
+                    // We keep the build moving even if vulnerabilities are found for now
+                    sh 'snyk test --severity-threshold=high || echo "Snyk found issues, check logs."'
                 }
             }
         }
@@ -60,7 +60,7 @@ pipeline {
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
                         currentBuild.description = "Built from branch ${env.BRANCH_NAME ?: 'jenkins-cicd'}"
 
-                        // Capturing the image object correctly within the directory context
+                        // Reference the environment variable
                         dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
@@ -70,8 +70,6 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    // Push happens outside the dir() block because the dockerImage object
-                    // already knows its identity, but uses the registry credentials.
                     docker.withRegistry('', REGISTRY_CREDENTIALS_ID) {
                         dockerImage.push()
                         dockerImage.push('latest')
@@ -82,23 +80,16 @@ pipeline {
     }
 
     post {
-        always {
-            // This is the fix for the MissingContextVariableException.
-            // Wrapping it in a script block or using deleteDir() is safer.
-            script {
-                try {
-                    echo 'Cleaning up Jenkins Workspace...'
-                    deleteDir()
-                } catch (Exception e) {
-                    echo "Cleanup failed but build is finished: ${e.message}"
-                }
-            }
-        }
         success {
             echo 'Successfully deployed User Service to Docker Hub!'
         }
         failure {
             echo 'Build failed. Check the JaCoCo or Unit Test logs.'
+        }
+        cleanup {
+            // 'cleanup' is a special post-condition that runs after all other post-conditions.
+            // Using 'cleanWs' here is the standard Jenkins way to wipe the workspace.
+            cleanWs()
         }
     }
 }
