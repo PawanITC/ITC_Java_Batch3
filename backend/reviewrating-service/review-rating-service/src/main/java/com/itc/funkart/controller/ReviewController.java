@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -28,7 +29,11 @@ public class ReviewController {
 
     // In real app, userId comes from JWT; here we fake it
     private Long getCurrentUserId() {
-        return 1L;
+        return Long.valueOf(
+                SecurityContextHolder.getContext()
+                        .getAuthentication()
+                        .getName()
+        );
     }
 
     @PostMapping("/{productId}")

@@ -20,6 +20,34 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation("io.opentelemetry:opentelemetry-api:1.39.0")
+	implementation("io.opentelemetry:opentelemetry-sdk:1.39.0")
+	implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.39.0")
+	implementation 'org.postgresql:postgresql:42.7.1'
+	implementation 'com.mysql:mysql-connector-j:8.3.0'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+	implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'io.lettuce:lettuce-core'
+	implementation 'org.springframework.kafka:spring-kafka'
+
+
+
+
+    // Kafka
+	implementation 'org.springframework.kafka:spring-kafka'
+
+	// Jackson
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+	// Lombok (optional)
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+
+
 
 	runtimeOnly 'org.postgresql:postgresql'
 
@@ -27,7 +55,7 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'org.mockito:mockito-core:5.11.0'
 	testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
-
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 test {

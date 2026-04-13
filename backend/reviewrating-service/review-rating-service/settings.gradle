@@ -1,1 +1,3 @@
 rootProject.name = 'funkart'
+include 'review-rating-service'
+include 'rating-aggregator-service'

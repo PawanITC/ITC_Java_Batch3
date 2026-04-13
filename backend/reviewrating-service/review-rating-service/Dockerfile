@@ -2,8 +2,9 @@ FROM eclipse-temurin:17-jdk-alpine
 
 WORKDIR /app
 
-COPY build/libs/review-rating-service-0.0.1-SNAPSHOT.jar app.jar
+COPY build/libs/funkart-0.0.1-SNAPSHOT.jar app.jar
 
-EXPOSE 8081
+EXPOSE 9097
+
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
