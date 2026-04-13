@@ -3,6 +3,7 @@ package com.itc.funkart.gateway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Fundamental Smoke Test for the API Gateway.
@@ -12,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * are valid and that there are no circular dependencies.
  */
 @SpringBootTest
+@ActiveProfiles("test")
 class ApiGatewayApplicationTests {
 
     /**

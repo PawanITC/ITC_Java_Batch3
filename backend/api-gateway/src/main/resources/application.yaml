@@ -8,41 +8,40 @@ spring:
   cloud:
     gateway:
       routes:
+        # Route for actual User Service data (e.g., getting profiles, settings)
         - id: user-service
-          # Use the container name and the INTERNAL port
-          uri: http://user-service:8080 
+          uri: ${USER_SERVICE_URL:http://user-service:8080}
           predicates:
             - Path=/api/v1/users/**
-            
+
+
         - id: payment-service
-          # Use the container name and the INTERNAL port
-          uri: http://payment-service:8080 
+          uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
           predicates:
             - Path=/api/v1/payments/**
+          filters:
+            - StripPrefix=1
 
 server:
   port: 8080
 
-api:
-  version: /api/v1
-
-user:
-  service:
-    url: ${USER_SERVICE_URL}
-
-jwt:
-  secret: ${JWT_SECRET}
-  expiration-ms: ${JWT_EXPIRATION_MS}
-  cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
-
-frontend:
-  url: ${FRONTEND_URL}
-
+# --- Consolidated App Configuration ---
 app:
-  secure-cookie: ${APP_SECURE_COOKIE}
-  cookie-name: ${APP_COOKIE_NAME}
+  frontend-url: ${FRONTEND_URL}
+  api:
+    version: /api/v1 # This is used by SecurityConfig and WebClient calls
 
-github:
-  client-id: ${GITHUB_CLIENT_ID}
-  client-secret: ${GITHUB_CLIENT_SECRET}
-  redirect-uri: ${GITHUB_REDIRECT_URI}
+  services:
+    user-service-url: ${USER_SERVICE_URL:http://user-service:8080}
+
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS}
+    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
+    cookie-name: ${APP_COOKIE_NAME}
+    secure-cookie: ${APP_SECURE_COOKIE}
+
+  github:
+    client-id: ${GITHUB_CLIENT_ID}
+    client-secret: ${GITHUB_CLIENT_SECRET}
+    redirect-uri: ${GITHUB_REDIRECT_URI}

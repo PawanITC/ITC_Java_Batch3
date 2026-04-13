@@ -6,7 +6,7 @@ spring:
       add-mappings: false
 
 api:
-  version: api/v1
+  version: v1
 
 jwt:
   secret: ${JWT_SECRET}

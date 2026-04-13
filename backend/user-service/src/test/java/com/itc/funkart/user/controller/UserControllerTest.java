@@ -12,6 +12,7 @@ import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.AlreadyExistsException;
 import com.itc.funkart.user.exceptions.GlobalExceptionHandler;
 import com.itc.funkart.user.mapper.UserMapper;
+import com.itc.funkart.user.service.GithubOAuthService;
 import com.itc.funkart.user.service.JwtService;
 import com.itc.funkart.user.service.KafkaEventPublisher;
 import com.itc.funkart.user.service.UserService;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -26,6 +28,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
@@ -46,17 +49,41 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * work in harmony across all authentication endpoints.</p>
  */
 @WebMvcTest(UserController.class)
-@Import({GlobalExceptionHandler.class, WebConfig.class, ApiConfig.class})
+@EnableConfigurationProperties(ApiConfig.class)
+@Import({GlobalExceptionHandler.class, WebConfig.class})
+@ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
 class UserControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private ApiConfig apiConfig;
 
-    @MockBean private UserService userService;
-    @MockBean private UserMapper userMapper;
-    @MockBean private JwtService jwtService;
-    @MockBean private KafkaEventPublisher kafkaEventPublisher;
+    @MockBean
+    private GithubOAuthService githubOAuthService;
+    @MockBean
+    private UserService userService;
+    @MockBean
+    private UserMapper userMapper;
+    @MockBean
+    private JwtService jwtService;
+    @MockBean
+    private KafkaEventPublisher kafkaEventPublisher;
+
+    /**
+     * Helper to stay in sync with WebConfig versioning.
+     * Maps the API prefix and version dynamically from configuration.
+     * * @param path The endpoint path relative to the users' controller.
+     *
+     * @return The fully qualified URL string.
+     */
+    private String getUrl(String path) {
+        // WebConfig does: "/api/" + version
+        return "/api/" + apiConfig.getVersion() + "/users" + path;
+    }
 
     @Nested
     @DisplayName("Registration & Login Suites")
@@ -74,9 +101,8 @@ class UserControllerTest {
 
             when(userService.signUp(any())).thenReturn(user);
             when(jwtService.generateJwtToken(any())).thenReturn("jwt");
-            when(userMapper.toResponse(any(), anyString())).thenReturn(resp);
-
-            mockMvc.perform(post("/api/v1/users/signup")
+            when(userMapper.toResponse(any(), nullable(String.class))).thenReturn(resp);
+            mockMvc.perform(post(getUrl("/signup"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
@@ -99,7 +125,7 @@ class UserControllerTest {
                     .thenReturn(new SuccessfulLoginResponse(1L, "test@test.com", "Tester", mockJwt));
 
             // 2. Perform Request
-            mockMvc.perform(post("/api/v1/users/login")
+            mockMvc.perform(post(getUrl("/login"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -120,10 +146,10 @@ class UserControllerTest {
 
             when(userService.signUp(any())).thenThrow(new AlreadyExistsException("Email taken"));
 
-            mockMvc.perform(post("/api/v1/users/signup")
+            mockMvc.perform(post(getUrl("/signup"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isConflict()) // Now this will be reached
+                    .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.error.message").value("Email taken"));
         }
     }
@@ -140,7 +166,7 @@ class UserControllerTest {
         void github_NoCode_Returns400() throws Exception {
             Map<String, String> body = new HashMap<>(); // Body without "code" key
 
-            mockMvc.perform(post("/api/v1/users/oauth/github")
+            mockMvc.perform(post(getUrl("/oauth/github"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(body)))
                     .andExpect(status().isBadRequest());
@@ -169,9 +195,9 @@ class UserControllerTest {
             when(userMapper.toResponse(eq(dbUser), any())).thenReturn(expectedResponse);
 
             // 4. Perform & Assert
-            mockMvc.perform(get("/api/v1/users/me"))
+            mockMvc.perform(get(getUrl("/me")))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.data.email").value("test@test.com")) // $.data now exists!
+                    .andExpect(jsonPath("$.data.email").value("test@test.com"))
                     .andExpect(jsonPath("$.message").value("User fetched successfully"));
 
             SecurityContextHolder.clearContext();

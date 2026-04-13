@@ -46,10 +46,13 @@ public class WebConfig implements WebMvcConfigurer {
                     protected void registerHandlerMethod(@NonNull Object handler, @NonNull Method method, @NonNull RequestMappingInfo mapping) {
                         Class<?> beanType = method.getDeclaringClass();
 
-                        // Only apply prefix to RestControllers
                         if (beanType.isAnnotationPresent(RestController.class)) {
+                            // Ensure the version string starts with a slash
+                            String version = apiConfig.getVersion();
+                            String prefix = "/api/" + version;
+
                             RequestMappingInfo prefixedMapping = RequestMappingInfo
-                                    .paths("/" + apiConfig.getVersion())
+                                    .paths(prefix)
                                     .build()
                                     .combine(mapping);
                             super.registerHandlerMethod(handler, method, prefixedMapping);

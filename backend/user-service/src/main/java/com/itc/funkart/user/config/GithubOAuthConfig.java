@@ -7,9 +7,12 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Configuration properties for GitHub OAuth2 integration.
  * Values are mapped from the {@code github.oauth} prefix in {@code application.yml}.
- * * @param clientId     The GitHub application client ID.
- * @param clientSecret The GitHub application secret key.
- * @param redirectUri  The authorized callback URL.
+ * <p>
+ * {@code  clientId}     The GitHub application client ID.
+ * <p>
+ * {@code clientSecret} The GitHub application secret key.
+ * <p>
+ * {@code redirectUri}  The authorized callback URL.
  */
 @Data
 @Configuration
@@ -18,4 +21,6 @@ public class GithubOAuthConfig {
     private String clientId;
     private String clientSecret;
     private String redirectUri;
+    private String tokenUrl = "https://github.com/login/oauth/access_token";
+    private String userApiUrl = "https://api.github.com/user";
 }
