@@ -9,7 +9,7 @@ pipeline {
         DOCKER_HUB_USER = 'abbasgureitc'
         IMAGE_NAME = 'user-service'
         REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
-        // UPDATED: Matches your actual Jenkins Credential ID 'snyk-token'
+        // Corrected to match your Jenkins Credential ID: snyk-token
         SNYK_TOKEN = credentials('snyk-token')
         dockerImage = ''
     }
@@ -22,14 +22,19 @@ pipeline {
             }
         }
 
-        stage('Build & Test') {
-                    steps {
-                        dir('backend/user-service') {
-                            sh 'chmod +x gradlew'
-                            sh './gradlew clean test jacocoTestReport'
-                        }
-                    }
+        stage('Build & Test (The Transaction)') {
+            steps {
+                dir('backend/user-service') {
+                    sh 'chmod +x gradlew'
+                    /* PROFESSIONAL STANDARD:
+                       'build' runs: compile -> test -> jar.
+                       If tests fail, the JAR is never created,
+                       preventing broken code from reaching Docker.
+                    */
+                    sh './gradlew clean build jacocoTestReport'
                 }
+            }
+        }
 
         stage('Quality Gate') {
             steps {
@@ -47,29 +52,28 @@ pipeline {
             steps {
                 dir('backend/user-service') {
                     echo 'Running Snyk Open Source Vulnerability Scan...'
-                    // Authenticate using the token from environment
                     sh "snyk auth ${SNYK_TOKEN}"
-                    sh 'snyk test --severity-threshold=high || echo "Snyk found issues, but continuing..." '
+                    sh 'snyk test --severity-threshold=high || echo "Snyk found high issues, review required."'
                 }
             }
         }
 
         stage('Build Docker Image') {
-                    steps {
-                        dir('backend/user-service') {
-                            script {
-                                // DEBUG: This will show us exactly what files are here
-                                sh 'ls -R build/libs/'
+            steps {
+                dir('backend/user-service') {
+                    script {
+                        // Verifies the JAR exists in the console logs
+                        sh 'ls -R build/libs/'
 
-                                currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                                currentBuild.description = "Built from branch ${env.BRANCH_NAME ?: 'jenkins-cicd'}"
+                        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                        currentBuild.description = "Branch: ${env.BRANCH_NAME ?: 'main'}"
 
-                                // We build using "." as the context because we are already inside backend/user-service
-                                dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
-                            }
-                        }
+                        // Build context is '.' because we are inside backend/user-service
+                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
+            }
+        }
 
         stage('Push to Docker Hub') {
             steps {
@@ -85,15 +89,20 @@ pipeline {
 
     post {
         success {
-            echo 'Successfully deployed User Service to Docker Hub!'
+            echo 'SUCCESS: User Service is live on Docker Hub.'
         }
         failure {
-            echo 'Build failed. Check the JaCoCo or Unit Test logs.'
+            echo 'FAILURE: Check unit tests or Snyk logs.'
         }
         always {
-            // Standard cleanup. If this fails with "MissingContext", 
-            // the issue is likely with the Jenkins Workspace Cleanup Plugin version.
-            cleanWs()
+            // Using a script block to safely handle cleanup context
+            script {
+                try {
+                    cleanWs()
+                } catch (Exception e) {
+                    echo "Cleanup failed or workspace already gone: ${e.message}"
+                }
+            }
         }
     }
 }
