@@ -1,12 +1,20 @@
 package com.itc.funkart.gateway.security;
 
+import com.itc.funkart.gateway.config.AppConfig;
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import java.time.Duration;
 
+/**
+ * Utility component for managing JWT-related cookies in a reactive environment.
+ * <p>
+ * This class abstracts the complexities of Cookie construction, ensuring consistent
+ * application of security flags like {@code HttpOnly}, {@code Secure}, and {@code SameSite}.
+ * It relies on {@link AppConfig} for centralized environment-specific settings.
+ * </p>
+ */
 @Component
 public class CookieUtil {
 
@@ -18,16 +26,26 @@ public class CookieUtil {
     private final boolean secure;
     private final int defaultMaxAgeSeconds;
 
-    public CookieUtil(@Value("${app.secure-cookie}") boolean secure,
-                      @Value("${app.cookie-name}") String cookieName,
-                      @Value("${jwt.cookie-max-age-seconds}") int defaultMaxAgeSeconds) {
-        this.secure = secure;        // true in prod HTTPS
-        this.cookieName = cookieName;
-        this.defaultMaxAgeSeconds = defaultMaxAgeSeconds;
+    /**
+     * Constructs the utility using the centralized application configuration.
+     * * @param appConfig The source of truth for security and cookie settings.
+     */
+    public CookieUtil(AppConfig appConfig) {
+        this.cookieName = appConfig.jwt().cookieName();
+        this.secure = appConfig.jwt().secureCookie();
+        this.defaultMaxAgeSeconds = appConfig.jwt().cookieMaxAgeSeconds();
     }
 
     /**
-     * Add or refresh JWT token cookie (reactive)
+     * Adds a new JWT token cookie to the response or refreshes an existing one.
+     * <p>
+     * If the environment is marked as secure (HTTPS), it applies {@code SameSite=None}
+     * to allow cross-site cookie usage, which is common in decoupled Gateway-Frontend architectures.
+     * </p>
+     *
+     * @param exchange      The current server exchange.
+     * @param token         The JWT string to be stored.
+     * @param maxAgeSeconds Optional override for cookie expiration; defaults to config value if null.
      */
     public void addTokenCookie(ServerWebExchange exchange, String token, Integer maxAgeSeconds) {
         int age = (maxAgeSeconds != null) ? maxAgeSeconds : defaultMaxAgeSeconds;
@@ -45,7 +63,10 @@ public class CookieUtil {
     }
 
     /**
-     * Clear JWT token cookie (reactive)
+     * Effectively logs out the user by adding a zero-lifetime cookie to the response.
+     * This instructs the browser to immediately delete the stored JWT.
+     *
+     * @param exchange The current server exchange.
      */
     public void clearTokenCookie(ServerWebExchange exchange) {
         ResponseCookie cookie = ResponseCookie

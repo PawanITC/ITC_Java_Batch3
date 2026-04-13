@@ -1,7 +1,10 @@
 package com.itc.funkart.user.dto;
 
+import lombok.Builder;
+
 /**
- * Response sent back to API Gateway after OAuth processing.
- * Contains the JWT token that the gateway will set as a cookie.
+ * Specialized response containing a JWT token generated after successful OAuth processing.
+ * * @param token The bearer token to be returned to the client/gateway.
  */
+@Builder
 public record OAuthResponse(String token) {}

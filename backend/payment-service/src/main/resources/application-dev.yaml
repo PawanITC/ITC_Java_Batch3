@@ -33,3 +33,8 @@ jwt:
 stripe:
   api-key: ${STRIPE_API_KEY}
   webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+
+logging:
+  level:
+    root: INFO
+    com.itc.funkart: DEBUG
