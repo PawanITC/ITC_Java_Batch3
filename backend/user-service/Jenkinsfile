@@ -20,7 +20,7 @@ pipeline {
         }
 
         stage('Build & Test') {
-            steps {
+            steps {:wq
                 dir('backend/user-service') {
                     sh 'chmod +x gradlew'
                     sh './gradlew clean build -x test'
