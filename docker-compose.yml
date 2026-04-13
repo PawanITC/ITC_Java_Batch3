@@ -159,11 +159,7 @@ services:
       # 3. Gradle Cache (Saves time on builds)
       - gradle_cache:/root/.gradle
       
-      # REMOVED: - .:/var/jenkins_home/workspace/funkart-pipeline 
-      # (Bad practice: Jenkins should clone from Git, not use your local dev files)
-      
-      # REMOVED: - ./jenkins_data:/var/jenkins_home 
-      # (CONFLICT: You can't have this AND jenkins_home mapped to the same spot)
+      - .:/var/jenkins_home/workspace/funkart-pipeline
     networks:
       - db-network
 
