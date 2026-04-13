@@ -13,9 +13,7 @@ spring:
           uri: ${USER_SERVICE_URL:http://user-service:8080}
           predicates:
             - Path=/api/v1/users/**
-          filters:
-            # This strips '/api/v1' so the microservice receives just '/users/...'
-            - StripPrefix=1
+
 
         - id: payment-service
           uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}

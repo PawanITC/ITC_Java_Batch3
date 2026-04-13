@@ -7,7 +7,10 @@ import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.CookieUtil;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -50,7 +53,7 @@ public class UserController {
      * @return A {@link Mono} emitting a 200 OK ResponseEntity on success, or an error signal.
      */
     @PostMapping("/login")
-    public Mono<ResponseEntity<Void>> login(
+    public Mono<ResponseEntity<ApiResponse<SuccessfulLoginResponse>>> login(
             @RequestBody LoginRequest request,
             ServerWebExchange exchange) {
 
@@ -58,12 +61,13 @@ public class UserController {
                 .uri("/api/v1/users/login")
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {})
+                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {
+                })
                 .doOnNext(response -> {
                     String jwt = response.getData().token();
                     cookieUtil.addTokenCookie(exchange, jwt, null);
                 })
-                .map(response -> ResponseEntity.ok().build());
+                .map(ResponseEntity::ok);
     }
 
     /**
@@ -78,7 +82,8 @@ public class UserController {
      * @return A {@link Mono} emitting a 200 OK ResponseEntity on success, or an error signal.
      */
     @PostMapping("/signup")
-    public Mono<ResponseEntity<Void>> signup(
+    public Mono
+            <ResponseEntity<ApiResponse<SuccessfulLoginResponse>>> signup(
             @RequestBody SignupRequest request,
             ServerWebExchange exchange) {
 
@@ -86,11 +91,12 @@ public class UserController {
                 .uri("/api/v1/users/signup")
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {})
+                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {
+                })
                 .doOnNext(response -> {
                     String jwt = response.getData().token();
                     cookieUtil.addTokenCookie(exchange, jwt, null);
                 })
-                .map(response -> ResponseEntity.ok().build());
+                .map(ResponseEntity::ok);
     }
 }

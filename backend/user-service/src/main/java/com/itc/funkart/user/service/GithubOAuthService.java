@@ -75,7 +75,7 @@ public class GithubOAuthService {
 
         try {
             AccessTokenResponse response = webClient.post()
-                    .uri("/login/oauth/access_token")
+                    .uri(config.getTokenUrl())
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(body)
@@ -100,7 +100,7 @@ public class GithubOAuthService {
     private GithubUser fetchGithubUser(String accessToken) {
         try {
             GithubUser user = webClient.get()
-                    .uri("/user")
+                    .uri(config.getUserApiUrl())
                     .headers(headers -> headers.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(GithubUser.class)
