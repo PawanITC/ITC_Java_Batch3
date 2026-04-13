@@ -30,6 +30,22 @@ spring:
 server:
   port: 9090
 
+# Springdoc-OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    urls-primary-name: "Product Service API"
+    display-request-duration: true
+    default-models-expand-depth: 2
+    default-model-expand-depth: 2
+    show-extensions: true
+  show-login-endpoint: true
+
 management:
   tracing:
     sampling:

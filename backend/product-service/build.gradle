@@ -43,6 +43,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
 
+	// Springdoc-OpenAPI for Swagger UI documentation
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+
 	// H2 Database for testing/development
 	runtimeOnly 'com.h2database:h2'
 }
