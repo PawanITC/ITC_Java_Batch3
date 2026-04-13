@@ -9,7 +9,6 @@ pipeline {
         DOCKER_HUB_USER = 'abbasgureitc'
         IMAGE_NAME = 'user-service'
         REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
-        // Corrected to match your Jenkins Credential ID: snyk-token
         SNYK_TOKEN = credentials('snyk-token')
         dockerImage = ''
     }
@@ -22,15 +21,10 @@ pipeline {
             }
         }
 
-        stage('Build & Test (The Transaction)') {
+        stage('Build & Test') {
             steps {
                 dir('backend/user-service') {
                     sh 'chmod +x gradlew'
-                    /* PROFESSIONAL STANDARD:
-                       'build' runs: compile -> test -> jar.
-                       If tests fail, the JAR is never created,
-                       preventing broken code from reaching Docker.
-                    */
                     sh './gradlew clean build jacocoTestReport'
                 }
             }
@@ -38,11 +32,14 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
+                // This is the part that makes it readable on the Jenkins UI
                 jacoco(
-                    execPattern: 'backend/user-service/build/jacoco/*.exec',
-                    classPattern: 'backend/user-service/build/classes/java/main',
-                    sourcePattern: 'backend/user-service/src/main/java',
-                    inclusionPattern: '**/src/main/java/**/*.class',
+                    execPattern: '**/build/jacoco/*.exec',
+                    classPattern: '**/build/classes/java/main',
+                    sourcePattern: '**/src/main/java',
+                    inclusionPattern: '**/*.class',
+                    // Optional: exclude generated code to keep percentages accurate
+                    exclusionPattern: '**/*Test*.class,**/DTO/*.class',
                     minimumInstructionCoverage: '70'
                 )
             }
@@ -51,9 +48,8 @@ pipeline {
         stage('Security Scan (Snyk)') {
             steps {
                 dir('backend/user-service') {
-                    echo 'Running Snyk Open Source Vulnerability Scan...'
                     sh "snyk auth ${SNYK_TOKEN}"
-                    sh 'snyk test --severity-threshold=high || echo "Snyk found high issues, review required."'
+                    sh 'snyk test --severity-threshold=high || echo "Snyk found issues, review required."'
                 }
             }
         }
@@ -62,13 +58,8 @@ pipeline {
             steps {
                 dir('backend/user-service') {
                     script {
-                        // Verifies the JAR exists in the console logs
                         sh 'ls -R build/libs/'
-
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                        currentBuild.description = "Branch: ${env.BRANCH_NAME ?: 'main'}"
-
-                        // Build context is '.' because we are inside backend/user-service
                         dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
@@ -88,20 +79,11 @@ pipeline {
     }
 
     post {
-        success {
-            echo 'SUCCESS: User Service is live on Docker Hub.'
-        }
-        failure {
-            echo 'FAILURE: Check unit tests or Snyk logs.'
-        }
+        success { echo 'SUCCESS: User Service is live on Docker Hub.' }
+        failure { echo 'FAILURE: Check unit tests or Snyk logs.' }
         always {
-            // Using a script block to safely handle cleanup context
             script {
-                try {
-                    cleanWs()
-                } catch (Exception e) {
-                    echo "Cleanup failed or workspace already gone: ${e.message}"
-                }
+                try { cleanWs() } catch (Exception e) { echo "Cleanup skipped" }
             }
         }
     }
