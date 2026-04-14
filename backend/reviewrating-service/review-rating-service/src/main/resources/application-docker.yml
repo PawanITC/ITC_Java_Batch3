@@ -1,0 +1,24 @@
+server:
+  address: 0.0.0.0
+
+spring:
+  application:
+    name: review-rating-service
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    properties:
+      spring.json.add.type.headers: false
+
+  data:
+    redis:
+      host: reviewrating-service-redis-1
+      port: 6379
+
+rating-aggregator:
+  base-url: http://rating-aggregator-service:9094/aggregator
+
+
