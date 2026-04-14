@@ -1,15 +1,13 @@
 package com.example.notificationservice.service;
 
-import com.example.notificationservice.customException.FailedToSendSmsException;
+import com.example.notificationservice.exception.FailedToSendSmsException;
 import com.twilio.Twilio;
 import com.twilio.exception.TwilioException;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
 import io.micrometer.observation.annotation.Observed;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 @Component
 

@@ -1,4 +1,4 @@
-package com.example.notificationservice.globalExceptionHandler;
+package com.example.notificationservice.exception;
 
 import com.example.notificationservice.response.ApiResponse;
 import org.springframework.http.HttpStatus;

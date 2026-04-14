@@ -1,7 +1,7 @@
 package com.example.notificationservice.service;
 
-import com.example.notificationservice.customException.FailedToSendEmailException;
-import com.example.notificationservice.customException.FailedToSendSmsException;
+import com.example.notificationservice.exception.FailedToSendEmailException;
+import com.example.notificationservice.exception.FailedToSendSmsException;
 import com.example.notificationservice.dto.OrderEventDTO;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.model.SentStatus;

@@ -1,6 +1,6 @@
 package com.example.notificationservice.service;
 
-import com.example.notificationservice.customException.FailedToSendEmailException;
+import com.example.notificationservice.exception.FailedToSendEmailException;
 import io.micrometer.observation.annotation.Observed;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;

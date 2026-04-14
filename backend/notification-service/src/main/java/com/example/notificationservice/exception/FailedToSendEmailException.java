@@ -1,4 +1,4 @@
-package com.example.notificationservice.customException;
+package com.example.notificationservice.exception;
 
 public class FailedToSendEmailException extends RuntimeException {
     public FailedToSendEmailException(String message) {
