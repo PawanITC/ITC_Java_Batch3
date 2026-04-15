@@ -30,6 +30,8 @@ public class CatalogueController {
     @GetMapping("/products")
     public CompletableFuture<ResponseEntity<ApiResponse<List<ProductDTO>>>> getProducts(
 
+            @RequestParam(required = false) String q,
+
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "Page must be at least 1") Integer page,
 
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size must not exceed 100") Integer size,
@@ -42,7 +44,7 @@ public class CatalogueController {
 
             @RequestParam(required = false) @Min(value = 0, message = "Rating must be at least 0") @Max(value = 5, message = "Rating must not exceed 5") Double rating) {
 
-        return catalogueService.getProducts(page, size, category, minPrice, maxPrice, rating)
+        return catalogueService.getProducts(q, page, size, category, minPrice, maxPrice, rating)
                 .thenApply(products -> {
 
                     ApiResponse<List<ProductDTO>> response = new ApiResponse<>(HttpStatus.OK.value(),
