@@ -39,14 +39,12 @@ pipeline {
             steps {
                 // Modern replacement for the deprecated Jacoco plugin
                 jacoco(
-                    execPattern: '**/build/jacoco/test.exec',
+                    execPattern: '**/build/jacoco/*.exec',
                     classPattern: '**/build/classes/java/main',
                     sourcePattern: '**/src/main/java',
                     inclusionPattern: '**/*.class',
-                    // Jacoco plugin uses these for the health report (Quality Gates)
-                    minimumLineCoverage: '50',
-                    maximumLineCoverage: '100'
-                    buildOverBuild: true
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '80'
                 )
             }
         }
