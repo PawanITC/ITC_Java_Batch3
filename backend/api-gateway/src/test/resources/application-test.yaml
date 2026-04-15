@@ -1,21 +1,26 @@
 spring:
   application:
     name: api-gateway-test
+
+  # Crucial for allowing @MockitoBean to replace production beans
+  main:
+    allow-bean-definition-overriding: true
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+
   cloud:
     gateway:
       routes:
         - id: user-service-data-test
-          # Pointing to WireMock's dynamic port
           uri: http://localhost:${wiremock.server.port}
           predicates:
-            - Path=/api/v1/users/profile/** # Only route data-specific paths
+            - Path=/api/v1/users/profile/**
           filters:
-            - StripPrefix=0 # Keep the full path so it matches your WireMock stubs
+            - StripPrefix=0
 
 server:
   port: 0
@@ -26,10 +31,11 @@ app:
     version: "/api/v1"
 
   services:
-    # This is what your WebClient in UserController uses!
+    # Ensure this key exactly matches the @Value in your Java code
     user-service-url: "http://localhost:${wiremock.server.port}"
 
   jwt:
+    # Using a 256-bit safe secret for tests
     secret: "mXxbssTvw7+m8gAlzYhTCP4IyxMeOK2tDqSDPQAv6Qk="
     expiration-ms: 3600000
     cookie-max-age-seconds: 3600

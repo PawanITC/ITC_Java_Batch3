@@ -14,7 +14,7 @@ import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.reset;
+
 
 /**
  * Integration tests for {@link GithubOAuthController}.
@@ -42,23 +43,23 @@ class GithubOAuthControllerTest {
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockBean
+    @MockitoBean
     private GithubOAuthService githubOAuthService;
 
-    @MockBean
+    @MockitoBean
     private CookieUtil cookieUtil;
 
     /**
      * Deep stubs are required to handle nested calls in Configuration classes (WebConfig, CorsConfig)
      * during the Spring Context bootstrap phase.
      */
-    @MockBean(answer = Answers.RETURNS_DEEP_STUBS)
+    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
     private AppConfig appConfig;
 
-    @MockBean
+    @MockitoBean
     private JwtTokenValidator jwtTokenValidator;
 
-    @MockBean
+    @MockitoBean
     private JwtWebFilter jwtWebFilter;
 
     /**

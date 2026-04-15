@@ -25,27 +25,27 @@ pipeline {
             steps {
                 dir('backend/api-gateway') {
                     script {
-                        // This must match the name 'jdk17' in Jenkins Global Tool Configuration
                         def jdkPath = tool name: 'jdk17', type: 'jdk'
-
                         withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
                             sh 'chmod +x gradlew'
-
-                            // Passing -Dorg.gradle.java.home ensures Gradle uses the Jenkins-provided JDK
-                            sh "./gradlew clean build jacocoTestReport -Dorg.gradle.java.home=${jdkPath}"
+                            // FIX: Added --no-daemon to prevent worker node leaks and -D for JDK path
+                            sh "./gradlew clean build jacocoTestReport --no-daemon -Dorg.gradle.java.home=${jdkPath}"
                         }
                     }
                 }
             }
         }
 
-        stage('Quality Gate (JaCoCo)') {
+        stage('Quality Gate') {
             steps {
-                jacoco(
-                    execPattern: '**/build/jacoco/*.exec',
-                    classPattern: '**/build/classes/java/main',
-                    sourcePattern: '**/src/main/java',
-                    minimumInstructionCoverage: '70'
+                // Modern replacement for the deprecated Jacoco plugin
+                recordCoverage(
+                    tools: [[parser: 'JACOCO', pattern: '**/build/reports/jacoco/test/*.xml']],
+                    id: 'api-gateway-coverage',
+                    name: 'API Gateway Coverage',
+                    sourceCodeRetention: 'LAST_BUILD',
+                    // Gateway handles critical routing/auth logic; enforcing 70% threshold
+                    qualityGates: [[threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', unstable: true]]
                 )
             }
         }
@@ -53,8 +53,12 @@ pipeline {
         stage('Security Scan (Snyk)') {
             steps {
                 dir('backend/api-gateway') {
-                    sh "snyk auth ${SNYK_TOKEN}"
-                    sh 'snyk test --severity-threshold=high || echo "Snyk found vulnerabilities, review recommended."'
+                    script {
+                        // Added chmod +x gradlew here too as Snyk often needs to run Gradle locally to resolve dependencies
+                        sh 'chmod +x gradlew'
+                        sh "snyk auth ${SNYK_TOKEN}"
+                        sh 'snyk test --severity-threshold=high || echo "Snyk found vulnerabilities in API Gateway, review logs."'
+                    }
                 }
             }
         }
@@ -63,10 +67,8 @@ pipeline {
             steps {
                 dir('backend/api-gateway') {
                     script {
-                        // Confirm the JAR exists before building
                         sh 'ls -R build/libs/'
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                        // Docker build now just copies the JAR
                         dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
@@ -87,11 +89,9 @@ pipeline {
 
     post {
         success { echo "SUCCESS: ${IMAGE_NAME} is deployed to Docker Hub." }
-        failure { echo "FAILURE: Build failed. Check Jenkins logs for JaCoCo or Snyk errors." }
+        failure { echo "FAILURE: Build failed. Check routing tests, security filter logs, or Snyk reports." }
         always {
-            script {
-                try { cleanWs() } catch (Exception e) { echo "Cleanup skipped" }
-            }
+            cleanWs()
         }
     }
 }

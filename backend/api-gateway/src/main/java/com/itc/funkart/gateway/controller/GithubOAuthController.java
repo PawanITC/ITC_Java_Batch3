@@ -39,15 +39,15 @@ public class GithubOAuthController {
     /** Redirects the user to GitHub to begin the OAuth flow. */
     @GetMapping("/login")
     public Mono<ResponseEntity<Void>> login() {
-        String githubAuthUrl = UriComponentsBuilder
-                .fromHttpUrl("https://github.com/login/oauth/authorize")
+        String githubAuthUrl = UriComponentsBuilder.fromUriString("https://github.com/login/oauth/authorize")
                 .queryParam("client_id", appConfig.github().clientId())
                 .queryParam("redirect_uri", appConfig.github().redirectUri())
                 .queryParam("scope", "user:email")
                 .toUriString();
 
         return Mono.just(ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
-                .location(URI.create(githubAuthUrl)).build());
+                .location(URI.create(githubAuthUrl))
+                .build());
     }
 
     /** * Receives the 'code' from GitHub and converts it to a cookie-based session.
@@ -58,7 +58,8 @@ public class GithubOAuthController {
         return githubOAuthService.processCode(code)
                 .doOnNext(jwt -> cookieUtil.addTokenCookie(exchange, jwt, null))
                 .then(Mono.just(ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
-                        .location(URI.create(appConfig.frontendUrl())).build()));
+                        .location(URI.create(appConfig.frontendUrl()))
+                        .build()));
     }
 
     /** Standardized Logout. Clears the cookie and returns a unified response. */

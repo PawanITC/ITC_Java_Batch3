@@ -23,16 +23,13 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                // Ensure this matches your repo structure for User Service
                 dir('backend/user-service') {
                     script {
                         def jdkPath = tool name: 'jdk17', type: 'jdk'
                         withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
-                            // FIX: Grant execution permission to the wrapper
                             sh 'chmod +x gradlew'
-
-                            // Run the build to generate the JAR in build/libs/
-                            sh "./gradlew clean build jacocoTestReport -Dorg.gradle.java.home=${jdkPath}"
+                            // Added --no-daemon to prevent Jenkins workspace locking
+                            sh "./gradlew clean build jacocoTestReport --no-daemon -Dorg.gradle.java.home=${jdkPath}"
                         }
                     }
                 }
@@ -41,15 +38,14 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                // This is the part that makes it readable on the Jenkins UI
-                jacoco(
-                    execPattern: '**/build/jacoco/*.exec',
-                    classPattern: '**/build/classes/java/main',
-                    sourcePattern: '**/src/main/java',
-                    inclusionPattern: '**/*.class',
-                    // Optional: exclude generated code to keep percentages accurate
-                    exclusionPattern: '**/*Test*.class,**/DTO/*.class',
-                    minimumInstructionCoverage: '70'
+                // Modern replacement for the deprecated Jacoco plugin
+                recordCoverage(
+                    tools: [[parser: 'JACOCO', pattern: '**/build/reports/jacoco/test/*.xml']],
+                    id: 'user-service-coverage',
+                    name: 'User Service Coverage',
+                    sourceCodeRetention: 'LAST_BUILD',
+                    // This sets your 70% threshold as a health gate
+                    qualityGates: [[threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', unstable: true]]
                 )
             }
         }
@@ -58,12 +54,10 @@ pipeline {
             steps {
                 dir('backend/user-service') {
                     script {
-                        // FIX: Snyk needs this permission to analyze Gradle dependencies
                         sh 'chmod +x gradlew'
                         sh "snyk auth ${SNYK_TOKEN}"
-
-                        // Use the threshold but don't kill the build yet if issues are found
-                        sh 'snyk test --severity-threshold=high || echo "Snyk found vulnerabilities in User Service"'
+                        // Now that we've aligned Jackson, Snyk should be much happier!
+                        sh 'snyk test --severity-threshold=high || echo "Snyk found high-severity vulnerabilities"'
                     }
                 }
             }
@@ -73,8 +67,8 @@ pipeline {
             steps {
                 dir('backend/user-service') {
                     script {
-                        sh 'ls -R build/libs/'
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                        // Ensure your Dockerfile is actually inside backend/user-service/
                         dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
@@ -94,12 +88,10 @@ pipeline {
     }
 
     post {
-        success { echo 'SUCCESS: User Service is live on Docker Hub.' }
-        failure { echo 'FAILURE: Check unit tests or Snyk logs.' }
+        success { echo "SUCCESS: ${IMAGE_NAME} is live on Docker Hub." }
+        failure { echo "FAILURE: Build failed. Check Jacoco reports or Snyk logs." }
         always {
-            script {
-                try { cleanWs() } catch (Exception e) { echo "Cleanup skipped" }
-            }
+            cleanWs()
         }
     }
 }

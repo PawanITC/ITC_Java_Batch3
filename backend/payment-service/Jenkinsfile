@@ -23,27 +23,29 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                // CHANGE THIS from 'api-gateway' to 'payment-service'
                 dir('backend/payment-service') {
                     script {
                         def jdkPath = tool name: 'jdk17', type: 'jdk'
                         withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
                             sh 'chmod +x gradlew'
-                            sh "./gradlew clean build jacocoTestReport -Dorg.gradle.java.home=${jdkPath}"
+                            // Using --no-daemon for CI stability and cleanliness
+                            sh "./gradlew clean build jacocoTestReport --no-daemon -Dorg.gradle.java.home=${jdkPath}"
                         }
                     }
                 }
             }
         }
 
-        stage('Quality Gate (JaCoCo)') {
+        stage('Quality Gate') {
             steps {
-                jacoco(
-                    execPattern: '**/build/jacoco/*.exec',
-                    classPattern: '**/build/classes/java/main',
-                    sourcePattern: '**/src/main/java',
-                    // Payment logic is critical; keep coverage high (e.g., 80%)
-                    minimumInstructionCoverage: '80'
+                // Modernized coverage tracking replacing the deprecated Jacoco plugin
+                recordCoverage(
+                    tools: [[parser: 'JACOCO', pattern: '**/build/reports/jacoco/test/*.xml']],
+                    id: 'payment-service-coverage',
+                    name: 'Payment Service Coverage',
+                    sourceCodeRetention: 'LAST_BUILD',
+                    // Enforcing the 80% threshold for critical payment logic
+                    qualityGates: [[threshold: 80.0, metric: 'LINE', baseline: 'PROJECT', unstable: true]]
                 )
             }
         }
@@ -52,14 +54,10 @@ pipeline {
             steps {
                 dir('backend/payment-service') {
                     script {
-                        // 1. Give Snyk permission to run the Gradle wrapper
                         sh 'chmod +x gradlew'
-
-                        // 2. Authenticate
                         sh "snyk auth ${SNYK_TOKEN}"
-
-                        // 3. Run the test (The || true ensures the build doesn't crash if it finds a vulnerability)
-                        sh 'snyk test --severity-threshold=high || echo "Snyk found high-severity issues, check logs."'
+                        // Severity threshold remains high; logs will echo if issues found
+                        sh 'snyk test --severity-threshold=high || echo "Snyk found high-severity issues in Payment Service"'
                     }
                 }
             }
@@ -71,7 +69,6 @@ pipeline {
                     script {
                         sh 'ls -R build/libs/'
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                        // Docker grabs the 'Thin' Dockerfile in this directory
                         dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
@@ -92,11 +89,9 @@ pipeline {
 
     post {
         success { echo "SUCCESS: ${IMAGE_NAME} is live on Docker Hub." }
-        failure { echo "FAILURE: Check logs for Stripe API mock failures or security vulnerabilities." }
+        failure { echo "FAILURE: Build failed. Check Stripe mock logs or Jackson dependency alignment." }
         always {
-            script {
-                try { cleanWs() } catch (Exception e) { echo "Cleanup skipped" }
-            }
+            cleanWs()
         }
     }
 }
