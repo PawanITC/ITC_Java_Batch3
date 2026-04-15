@@ -9,46 +9,50 @@ spring:
   cloud:
     gateway:
       routes:
-        # Route for general User Service data (e.g., profiles, addresses)
-        # We let the Gateway Controller handle /login and /signup specifically.
         - id: user-service-data
           uri: ${USER_SERVICE_URL:http://user-service:8080}
           predicates:
             - Path=/api/v1/users/profile/**, /api/v1/users/settings/**
-          # No StripPrefix needed if User-Service uses @RequestMapping("/api/v1/users")
 
         - id: payment-service
           uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
           predicates:
             - Path=/api/v1/payments/**
           filters:
-            - StripPrefix=2 # Strips /api and /v1 so service gets /payments/**
+            - StripPrefix=2
 
 server:
   port: 8080
 
 app:
+  # --- MISSING SECTION ADDED BELOW ---
+  services:
+    user-service: ${USER_SERVICE_URL:http://user-service:8080}
+    payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   api:
     version: /api/v1
 
   jwt:
-    secret: ${JWT_SECRET}
+    # Added default 'secret' to prevent crash if env var is missing
+    secret: ${JWT_SECRET:3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
     cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
     cookie-name: ${APP_COOKIE_NAME:token}
     secure-cookie: ${APP_SECURE_COOKIE:false}
 
   github:
-    client-id: ${GITHUB_CLIENT_ID}
-    client-secret: ${GITHUB_CLIENT_SECRET}
-    redirect-uri: ${GITHUB_REDIRECT_URI}
+    # Added empty defaults so Spring can at least start
+    client-id: ${GITHUB_CLIENT_ID:placeholder-id}
+    client-secret: ${GITHUB_CLIENT_SECRET:placeholder-secret}
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8080/login/oauth2/code/github}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics  # minimal for prod
+        include: health,info,metrics
   endpoint:
     health:
       show-details: always
