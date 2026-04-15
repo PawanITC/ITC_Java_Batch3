@@ -34,7 +34,7 @@ class CatalogueServiceTest {
                 .thenReturn(CompletableFuture.completedFuture(List.of(new ProductDTO())));
 
         List<ProductDTO> products =
-                catalogueService.getProducts(1,10,null,null,null,null).join();
+                catalogueService.getProducts(null, 1,10,null,null,null,null).join();
 
         assertNotNull(products);
         assertFalse(products.isEmpty());
@@ -49,7 +49,7 @@ class CatalogueServiceTest {
 
         CompletionException ex = assertThrows(
                 CompletionException.class,
-                () -> catalogueService.getProducts(1,10,null,null,null,null).join()
+                () -> catalogueService.getProducts(null,1,10,null,null,null,null).join()
         );
 
         assertTrue(ex.getCause() instanceof NoProductsException);

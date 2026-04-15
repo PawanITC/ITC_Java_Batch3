@@ -35,7 +35,7 @@ class CatalogueControllerTest {
     @Test
     void getProducts_shouldReturnProducts() throws Exception {
 
-        when(catalogueService.getProducts(1,10,null,null,null,null))
+        when(catalogueService.getProducts(null,1,10,null,null,null,null))
                 .thenReturn(CompletableFuture.completedFuture(List.of(new ProductDTO())));
 
         MvcResult result = mockMvc.perform(get("/catalogue/products"))
@@ -52,7 +52,7 @@ class CatalogueControllerTest {
     @Test
     void getProducts_shouldReturnNotFound() throws Exception {
 
-        when(catalogueService.getProducts(1,10,null,null,null,null))
+        when(catalogueService.getProducts(null,1,10,null,null,null,null))
                 .thenReturn(CompletableFuture.failedFuture(new NoProductsException()));
 
         MvcResult result = mockMvc.perform(get("/catalogue/products"))
@@ -69,7 +69,7 @@ class CatalogueControllerTest {
     @Test
     void getProducts_shouldAcceptPaginationParams() throws Exception {
 
-        when(catalogueService.getProducts(2,5,null,null,null,null))
+        when(catalogueService.getProducts(null,2,5,null,null,null,null))
                 .thenReturn(CompletableFuture.completedFuture(List.of(new ProductDTO())));
 
         MvcResult result = mockMvc.perform(get("/catalogue/products")
@@ -96,7 +96,7 @@ class CatalogueControllerTest {
     @Test
     void getProducts_shouldReturnGatewayTimeout() throws Exception {
 
-        when(catalogueService.getProducts(1,10,null,null,null,null))
+        when(catalogueService.getProducts(null,1,10,null,null,null,null))
                 .thenReturn(CompletableFuture.failedFuture(
                         new TimeoutException()
                 ));
@@ -122,7 +122,7 @@ class CatalogueControllerTest {
                 )
         );
 
-        when(catalogueService.getProducts(1,10,null,null,null,null))
+        when(catalogueService.getProducts(null,1,10,null,null,null,null))
                 .thenReturn(future);
 
         MvcResult result = mockMvc.perform(get("/catalogue/products"))
@@ -153,7 +153,7 @@ class CatalogueControllerTest {
                 io.github.resilience4j.ratelimiter.RateLimiter.ofDefaults("test")
         ));
 
-        when(catalogueService.getProducts(1,10,null,null,null,null))
+        when(catalogueService.getProducts(null,1,10,null,null,null,null))
                 .thenReturn(future);
 
         MvcResult result = mockMvc.perform(get("/catalogue/products"))
@@ -169,7 +169,7 @@ class CatalogueControllerTest {
     @Test
     void getProducts_shouldReturnTooManyRequests_whenBulkheadFull() throws Exception {
 
-        when(catalogueService.getProducts(1,10,null,null,null,null))
+        when(catalogueService.getProducts(null,1,10,null,null,null,null))
                 .thenReturn(CompletableFuture.failedFuture(new RejectedExecutionException()));
 
         MvcResult result = mockMvc.perform(get("/catalogue/products"))
