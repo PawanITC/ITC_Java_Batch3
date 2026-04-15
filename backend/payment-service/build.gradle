@@ -66,5 +66,5 @@ tasks.named('jar') {
 }
 
 tasks.named('bootJar') {
-    archiveFileName = "payment-service-${version}.jar" // Uses variable for versioning
+    archiveFileName = "payment-service-${version}.jar"
 }
