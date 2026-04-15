@@ -2,11 +2,15 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.5'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
+
 
 group = 'com.itc.funkart'
 version = '0.0.1-SNAPSHOT'
 description = 'api-gateway'
+
+
 
 java {
     toolchain {
@@ -23,6 +27,7 @@ dependencyManagement {
         mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2023.0.3'
     }
 }
+
 
 dependencies {
     // Reactive webflux (Gateway must be WebFlux)
@@ -56,6 +61,15 @@ dependencies {
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-stub-runner'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true
+    }
 }
 
 tasks.named('test') {
