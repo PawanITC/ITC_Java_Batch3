@@ -16,7 +16,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
@@ -28,6 +27,7 @@ import static org.mockito.Mockito.*;
  * synchronous vs. asynchronous error handling behaves according to architectural standards.
  */
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("unchecked")
 class KafkaEventPublisherTest {
 
     @Mock
@@ -39,6 +39,19 @@ class KafkaEventPublisherTest {
     private static final Long TEST_USER_ID = 1L;
     private static final String TEST_EMAIL = "tester@funkart.com";
 
+    // This is the single source of truth for the valid event
+    private UserSignupEvent sharedValidEvent;
+
+    @BeforeEach
+    void globalSetUp() {
+        reset(kafkaTemplate);
+
+        sharedValidEvent = UserSignupEvent.builder()
+                .userId(TEST_USER_ID)
+                .email(TEST_EMAIL)
+                .build();
+    }
+
     /**
      * Test suite for User Signup events.
      * Signup events are critical and must be handled synchronously (Strict).
@@ -46,17 +59,6 @@ class KafkaEventPublisherTest {
     @Nested
     @DisplayName("User Signup Events (Strict/Sync)")
     class SignupEvents {
-
-        private UserSignupEvent validEvent;
-
-        @BeforeEach
-        void setUp() {
-            // This "Base Ingredient" is ready for every test
-            validEvent = UserSignupEvent.builder()
-                    .userId(TEST_USER_ID)
-                    .email(TEST_EMAIL)
-                    .build();
-        }
 
         /**
          * SUCCESS: Verifies that the publisher waits for the broker acknowledgment
@@ -67,15 +69,15 @@ class KafkaEventPublisherTest {
         void publishUserSignupEvent_Success() {
             // Arrange
             CompletableFuture<SendResult<String, Object>> future =
-                    CompletableFuture.completedFuture(null);
+                    CompletableFuture.completedFuture(mock(SendResult.class));
+
             when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
-            // Act - Using the shared validEvent
-            kafkaEventPublisher.publishUserSignupEvent(validEvent);
+            // Act
+            kafkaEventPublisher.publishUserSignupEvent(sharedValidEvent);
 
-            // Assert
-            verify(kafkaTemplate, times(1))
-                    .send(eq("user-signup"), eq(TEST_USER_ID.toString()), eq(validEvent));
+            // Assert: event.userId().toString() results in "1"
+            verify(kafkaTemplate).send(eq("user-signup"), eq("1"), eq(sharedValidEvent));
         }
 
 
@@ -90,20 +92,21 @@ class KafkaEventPublisherTest {
             CompletableFuture<SendResult<String, Object>> future = new CompletableFuture<>();
             future.completeExceptionally(new RuntimeException("Broker Offline"));
 
+            // Use broad matchers to ensure we don't return null and cause NPE
             when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
             // Act & Assert
             assertThrows(MessagingException.class, () ->
-                    kafkaEventPublisher.publishUserSignupEvent(validEvent)
+                    kafkaEventPublisher.publishUserSignupEvent(sharedValidEvent)
             );
         }
 
         @Test
         @DisplayName("Should throw InvalidEventException when userId is missing")
         void publishUserSignupEvent_ValidationFailure() {
-            // Arrange - Create a SPECIFICALLY bad event for this test
+            // Arrange
             UserSignupEvent invalidEvent = UserSignupEvent.builder()
-                    .userId(null) // This triggers the Guard Clause
+                    .userId(null)
                     .email(TEST_EMAIL)
                     .build();
 
@@ -111,6 +114,9 @@ class KafkaEventPublisherTest {
             assertThrows(InvalidEventException.class, () ->
                     kafkaEventPublisher.publishUserSignupEvent(invalidEvent)
             );
+
+            // Verify send was NEVER called because of fail-fast validation
+            verifyNoInteractions(kafkaTemplate);
         }
     }
 
@@ -129,20 +135,22 @@ class KafkaEventPublisherTest {
         @DisplayName("Should publish login event via fire-and-forget mechanism")
         void publishUserLoginEvent_Success() {
             // Arrange
-            UserLoginEvent event = UserLoginEvent.builder()
+            UserLoginEvent loginEvent = UserLoginEvent.builder()
                     .userId(TEST_USER_ID)
                     .loginMethod("EMAIL")
                     .build();
 
-            CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(null);
+            CompletableFuture<SendResult<String, Object>> future =
+                    CompletableFuture.completedFuture(mock(SendResult.class));
+
             when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
             // Act
-            kafkaEventPublisher.publishUserLoginEvent(event);
+            kafkaEventPublisher.publishUserLoginEvent(loginEvent);
 
             // Assert
             verify(kafkaTemplate, times(1))
-                    .send(eq("user-login"), eq(TEST_USER_ID.toString()), eq(event));
+                    .send(eq("user-login"), eq("1"), eq(loginEvent));
         }
     }
 }

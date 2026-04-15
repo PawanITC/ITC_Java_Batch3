@@ -21,6 +21,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -34,6 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.reset;
 
 /**
  * Security Integration Test Suite for Funkart User Service.
@@ -49,6 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class SecurityConfigTest {
 
     @Autowired
@@ -70,6 +73,16 @@ class SecurityConfigTest {
     private KafkaTemplate<String, Object> kafkaTemplate;
     @MockBean
     private ProducerFactory<String, Object> producerFactory;
+
+    @BeforeEach
+    void setUp() {
+        // 2. Clear all mocks manually to be 100% safe
+        reset(userService, userMapper, jwtService, githubOAuthService, kafkaTemplate);
+
+        // Your existing Kafka fix
+        when(kafkaTemplate.send(anyString(), anyString(), any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+    }
 
     /**
      * Helper to construct the versioned API URL.

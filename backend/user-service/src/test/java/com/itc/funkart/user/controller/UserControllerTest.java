@@ -14,6 +14,7 @@ import com.itc.funkart.user.service.GithubOAuthService;
 import com.itc.funkart.user.service.JwtService;
 import com.itc.funkart.user.service.KafkaEventPublisher;
 import com.itc.funkart.user.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -69,6 +70,16 @@ class UserControllerTest {
     private JwtService jwtService;
     @MockBean
     private KafkaEventPublisher kafkaEventPublisher;
+
+    @BeforeEach
+    void setUp() {
+        // This clears the "memory" of your mocks so verify(times(1))
+        // doesn't count calls from previous tests.
+        reset(userService, jwtService, userMapper, kafkaEventPublisher, githubOAuthService);
+
+        // Also clear the security context to prevent getMe_Success pollution
+        SecurityContextHolder.clearContext();
+    }
 
     /**
      * Helper to stay in sync with WebConfig versioning.
