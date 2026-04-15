@@ -1,7 +1,7 @@
 FROM jenkins/jenkins:lts
 USER root
 
-# Install dependencies including Docker CLI
+# Install essential tools and setup Docker CLI repo
 RUN apt-get update && \
     apt-get install -y \
     git \
@@ -10,14 +10,19 @@ RUN apt-get update && \
     maven \
     curl \
     unzip \
-    apt-transport-https \
     ca-certificates \
-    gnupg2 \
-    software-properties-common && \
-    # Add Docker’s official GPG key
-    curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
-    # Set up the Docker stable repository
-    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable" && \
+    gnupg && \
+    # Create directory for Docker GPG key
+    install -m 0755 -d /etc/apt/keyrings && \
+    # Download GPG key
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    chmod a+r /etc/apt/keyrings/docker.gpg && \
+    # Add the repository to Apt sources
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    # Install Docker CLI
     apt-get update && \
     apt-get install -y docker-ce-cli && \
     apt-get clean && \
@@ -35,8 +40,7 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 # Fix permissions for Gradle cache
 RUN mkdir -p /root/.gradle && chmod 777 /root/.gradle
 
-# CRITICAL: Ensure the jenkins user is in the docker group 
-# (Group ID 999 is standard for Docker Desktop, but we'll add it by name)
+# Ensure the jenkins user is in the docker group 
 RUN groupadd -g 999 docker || true && \
     usermod -aG docker jenkins
 
