@@ -29,6 +29,13 @@ import java.util.List;
     name = "Categories",
     description = "Category Management API - Retrieve and manage product categories"
 )
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/categories")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -58,6 +65,7 @@ public class CategoryController {
             description = "Internal server error"
         )
     })
+    @GetMapping
     public ResponseEntity<List<CategoryResponse>> getAllCategories() {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
@@ -102,6 +110,8 @@ public class CategoryController {
             example = "1"
         )
         @PathVariable Long id) {
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoryResponse> getCategory(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.getCategoryById(id));
     }
 }

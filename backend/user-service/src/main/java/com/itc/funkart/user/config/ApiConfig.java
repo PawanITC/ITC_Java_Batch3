@@ -1,16 +1,19 @@
 package com.itc.funkart.user.config;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
-@Setter
+/**
+ * Configuration properties for versioning the REST API.
+ * Mapped from the {@code api} prefix in the application properties.
+ * * @param version The current API version (e.g., {@code v1}).
+ */
 @Getter
-@Configuration
 @ConfigurationProperties(prefix = "api")
 public class ApiConfig {
+    private final String version;
 
-    private String version;
-
+    public ApiConfig(String version) {
+        this.version = version;
+    }
 }

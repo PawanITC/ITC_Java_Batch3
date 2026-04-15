@@ -31,6 +31,9 @@ public class Product {
     private String description;
 
     @Column(precision = 10, scale = 2)
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     private BigDecimal price;
 
     private Integer stockQuantity;
