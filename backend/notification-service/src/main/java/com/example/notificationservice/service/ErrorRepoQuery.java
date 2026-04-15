@@ -37,8 +37,8 @@ public class ErrorRepoQuery {
         if(exists){
             //exists in the database, if so we'll just update the record .
             Optional<NotificationErrorMessages> errorRecord = notificationErrorRepository.findByOrderIdAndOrderStatus(event.getOrderId(), event.getStatus());
-            errorRecord.get().setSmsErrorMessage(e.getMessage());
-            notificationErrorRepository.save(errorRecord.get());//update the missing parameter
+            errorRecord.get().setSmsErrorMessage(e.getMessage());//update the missing parameter
+            notificationErrorRepository.save(errorRecord.get());//then save the update
         }else {
             //otherwise well create a new error record
             notificationErrorRepository.save(new NotificationErrorMessages(event.getOrderId(), null,e.getMessage(), event.getStatus()));
