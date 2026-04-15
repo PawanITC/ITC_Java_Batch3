@@ -27,19 +27,10 @@ public class WebConfig implements WebFluxConfigurer {
 
         configurer.addPathPrefix(prefix,
                 HandlerTypePredicate.forAnnotation(RestController.class)
-                        .and(handlerType -> {
-                            // 1. Must have @RequestMapping
-                            RequestMapping mapping = handlerType.getAnnotation(RequestMapping.class);
-                            boolean hasMapping = (mapping != null && mapping.value().length > 0);
-
-                            // 2. Must NOT have @NoApiPrefix
-                            boolean isNotExcluded = !handlerType.isAnnotationPresent(NoApiPrefix.class);
-
-                            // 3. (Optional) Manual exclusion for OAuth if not using the annotation
-                            boolean isNotOAuth = hasMapping && !mapping.value()[0].startsWith("/oauth");
-
-                            return hasMapping && isNotExcluded && isNotOAuth;
-                        })
+                        .and(handlerType ->
+                                handlerType.isAnnotationPresent(RequestMapping.class)
+                                        && !handlerType.isAnnotationPresent(NoApiPrefix.class)
+                        )
         );
     }
 }
