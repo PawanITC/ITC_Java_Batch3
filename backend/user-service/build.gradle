@@ -67,7 +67,7 @@ jacocoTestReport {
 
 tasks.named('test') {
     useJUnitPlatform()
-    finalizedBy jacocoTestReport // Automatically runs coverage report after tests finish
+    finalizedBy jacocoTestReport
 }
 
 // Disable standard JAR task to prioritize BootJar

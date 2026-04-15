@@ -70,6 +70,7 @@ jacocoTestReport {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
 }
 
 tasks.named('jar') {

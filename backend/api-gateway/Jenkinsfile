@@ -23,7 +23,7 @@ pipeline {
 
         stage('Build & Test') {
                     steps {
-                        dir('backend/user-service') {
+                        dir('backend/api-gateway') {
                             script {
                                 // Dynamically find where Jenkins installed 'jdk17'
                                 def jdkPath = tool name: 'jdk17', type: 'jdk'
