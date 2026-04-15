@@ -9,11 +9,13 @@ import lombok.Builder;
  *
  * @param name  The user's display name.
  * @param email The user's authenticated email address.
+ * @param role  The user's security role (e.g., ROLE_USER, ROLE_ADMIN).
  */
 @Builder
 public record JwtUserDto(
         Long id,
         String name,
-        String email
+        String email,
+        String role
 ) {
 }

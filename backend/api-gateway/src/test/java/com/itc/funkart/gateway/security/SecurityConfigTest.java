@@ -1,26 +1,65 @@
 package com.itc.funkart.gateway.security;
 
+import com.itc.funkart.gateway.config.AppConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilterChain;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.reset;
 
 /**
  * Verification of the Gateway Security Perimeter.
- * * Ensures public endpoints (webhooks, auth) are accessible without tokens
+ * Ensures public endpoints (webhooks, auth) are accessible without tokens
  * and protected endpoints (user data, etc.) are strictly guarded.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(SecurityConfig.class)
+@AutoConfigureWebTestClient
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class SecurityConfigTest {
 
     @Autowired
     private WebTestClient webTestClient;
 
+    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
+    private AppConfig appConfig;
+
+    @MockitoBean
+    private CookieUtil cookieUtil;
+
+    @MockitoBean
+    private JwtTokenValidator jwtTokenValidator;
+
+    @MockitoBean
+    private JwtWebFilter jwtWebFilter;
+
+    @BeforeEach
+    void setUp() {
+        // Fix 2: Clean the slate for the global filter
+        reset(appConfig, cookieUtil, jwtTokenValidator, jwtWebFilter);
+
+        when(appConfig.api().version()).thenReturn("/api/v1");
+
+        // Re-establish the pass-through logic
+        when(jwtWebFilter.filter(any(), any()))
+                .thenAnswer(invocation -> {
+                    ServerWebExchange exchange = invocation.getArgument(0);
+                    WebFilterChain chain = invocation.getArgument(1);
+                    return chain.filter(exchange);
+                });
+    }
 
     /**
      * Verifies that the Stripe Webhook endpoint is accessible without a JWT.
@@ -33,16 +72,15 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("Public Webhook: Should bypass security filters")
     void whenAccessPublicEndpoint_thenSucceeds() {
-        // We verify that the 'Bouncer' (SecurityConfig) allows the request.
-        // We accept 404 or 500 because the downstream payment-service
-        // isn't running, but a 401/403 would mean the security filter failed.
         webTestClient.post()
                 .uri("/api/v1/payments/webhook")
                 .exchange()
                 .expectStatus().value(status -> {
-                    boolean isPermitted = status != 401 && status != 403;
-                    if (!isPermitted) {
-                        throw new AssertionError("Security filter blocked a public route! Status: " + status);
+                    // SUCCESS condition: The bouncer let us in.
+                    // We expect 404 because no real payment-service is running in this test,
+                    // but 401/403 means the bouncer stopped us at the door.
+                    if (status == 401 || status == 403) {
+                        throw new AssertionError("Public route was blocked! Status: " + status);
                     }
                 });
     }

@@ -6,21 +6,22 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * A Generic Error Detail setup for unsuccessful API responses for all endpoints.
- * Contains:
- * - code: machine-readable code
- * - message: human-readable message
- * - field: optional, e.g., "email"
- * - details: optional, extra info
- * - requestId: optional, for tracing/logging
- *
+ * <h2>Standardized Error Structure</h2>
+ * Matches the User-Service signature to ensure the Frontend can use
+ * a single logic for error parsing.
  */
 @Getter
 @Setter
-@NoArgsConstructor // For Jackson
-@AllArgsConstructor // For you
+@NoArgsConstructor
+@AllArgsConstructor
 public class ErrorDetails {
-    private String code;
-    private String message;
-}
+    private String code;    // e.g., "BAD_REQUEST", "CONFLICT"
+    private String message; // Human-readable explanation
+    private String field;   // Optional: Which field caused the error (e.g., "email")
 
+    // Convenience constructor for general errors
+    public ErrorDetails(String code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+}

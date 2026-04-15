@@ -32,26 +32,25 @@ class GlobalExceptionHandlerTest {
     class ValidationAndSecurityTests {
 
         /**
-         * Covers the stream-based field error concatenation logic.
+         * Updated to reflect the switch from string concatenation to specific field extraction.
          */
         @Test
-        @DisplayName("Validation: MethodArgumentNotValidException -> 400 with joined messages")
+        @DisplayName("Validation: MethodArgumentNotValidException -> 400 with specific field")
         void handleValidation() {
             MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
             BindingResult bindingResult = mock(BindingResult.class);
-            FieldError error1 = new FieldError("user", "email", "invalid format");
-            FieldError error2 = new FieldError("user", "password", "too short");
+            // We pick the first error found
+            FieldError error = new FieldError("user", "email", "invalid format");
 
             when(ex.getBindingResult()).thenReturn(bindingResult);
-            when(bindingResult.getFieldErrors()).thenReturn(List.of(error1, error2));
+            when(bindingResult.getFieldError()).thenReturn(error);
 
             ResponseEntity<ApiResponse<Void>> response = handler.handleValidation(ex);
 
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
             assertNotNull(response.getBody());
-            String msg = response.getBody().getError().getMessage();
-            assertTrue(msg.contains("email: invalid format"));
-            assertTrue(msg.contains("password: too short"));
+            assertEquals("email", response.getBody().getError().getField());
+            assertEquals("invalid format", response.getBody().getError().getMessage());
         }
 
         @Test
@@ -62,6 +61,7 @@ class GlobalExceptionHandlerTest {
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
             assertNotNull(response.getBody());
             assertEquals("Invalid param", response.getBody().getError().getMessage());
+            assertNull(response.getBody().getError().getField());
         }
 
         @Test
@@ -70,6 +70,8 @@ class GlobalExceptionHandlerTest {
             ResponseEntity<ApiResponse<Void>> response =
                     handler.handleJwtAuthentication(new JwtAuthenticationException("Token expired"));
             assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertNull(response.getBody().getError().getField());
         }
     }
 
@@ -94,11 +96,15 @@ class GlobalExceptionHandlerTest {
         }
 
         @Test
-        @DisplayName("Conflict: AlreadyExistsException -> 409")
+        @DisplayName("Conflict: AlreadyExistsException -> 409 (Email Field check)")
         void handleConflict() {
             ResponseEntity<ApiResponse<Void>> response =
                     handler.handleConflict(new AlreadyExistsException("Duplicate entry"));
+
             assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+            assertNotNull(response.getBody());
+            // Verifying our hardcoded "email" field logic for conflicts
+            assertEquals("email", response.getBody().getError().getField());
         }
 
         @Test
@@ -130,6 +136,7 @@ class GlobalExceptionHandlerTest {
             assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
             assertNotNull(response.getBody());
             assertEquals("Internal server error", response.getBody().getError().getMessage());
+            assertNull(response.getBody().getError().getField());
         }
 
         @Test
@@ -145,15 +152,9 @@ class GlobalExceptionHandlerTest {
         @Test
         @DisplayName("Unauthorized: UnauthorizedException -> 401 (Log Warn Branch)")
         void handleUnauthorized() {
-            // GIVEN
             UnauthorizedException ex = new UnauthorizedException("Session expired");
-
-            // WHEN
-            // This executes buildErrorResponse(HttpStatus.UNAUTHORIZED, "...", false, ex)
-            // The 'false' flag hits the log.warn branch in buildErrorResponse
             ResponseEntity<ApiResponse<Void>> response = handler.handleUnauthorized(ex);
 
-            // THEN
             assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
             assertNotNull(response.getBody());
             assertEquals("UNAUTHORIZED", response.getBody().getError().getCode());
@@ -164,15 +165,9 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("OAuth: OAuthException -> 400 with StackTrace Logging")
     void handleOAuth() {
-        // GIVEN
         OAuthException ex = new OAuthException("GitHub Handshake Failed");
-
-        // WHEN
-        // This call executes buildErrorResponse(HttpStatus.BAD_REQUEST, "...", true, ex)
-        // The 'true' flag hits the log.error branch in buildErrorResponse
         ResponseEntity<ApiResponse<Void>> response = handler.handleOAuth(ex);
 
-        // THEN
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("BAD_REQUEST", response.getBody().getError().getCode());

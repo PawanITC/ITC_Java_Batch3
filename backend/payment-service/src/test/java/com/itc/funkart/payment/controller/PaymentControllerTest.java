@@ -33,7 +33,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -131,18 +130,21 @@ class PaymentControllerTest {
                     .thenReturn(apiResp);
 
             mockMvc.perform(post("/api/v1/payments/create-intent")
-                            .with(req -> {
+                            .with(request -> {
                                 UsernamePasswordAuthenticationToken auth =
-                                        new UsernamePasswordAuthenticationToken(mockUser, null, Collections.emptyList());
-                                SecurityContextHolder.getContext().setAuthentication(auth);
-                                return req;
+                                        new UsernamePasswordAuthenticationToken(
+                                                mockUser, null, Collections.emptyList()
+                                        );
+                                request.setUserPrincipal(auth); // optional
+                                SecurityContextHolder.getContext().setAuthentication(auth); // ✅ THIS is key
+                                return request;
                             })
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(intentReq)))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.paymentIntentId").value("pi_123"))
-                    .andExpect(jsonPath("$.message").value("Success"));
+                    .andExpect(jsonPath("$.data.status").value("requires_payment_method"))
+                    .andExpect(jsonPath("$.timestamp").exists());
         }
     }
 

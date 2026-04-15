@@ -12,7 +12,6 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -28,7 +27,6 @@ import java.util.Collections;
  * </ol>
  */
 @Slf4j
-@Component
 public class JwtWebFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
@@ -53,13 +51,15 @@ public class JwtWebFilter extends OncePerRequestFilter {
                 String subject = claims.getSubject();
                 String name = claims.get("name", String.class);
                 String email = claims.get("email", String.class);
+                String role = claims.get("role", String.class);
 
                 // Defensive check: If the token is "valid" but empty, don't authenticate
                 if (subject != null && !subject.isBlank()) {
                     JwtUserDto user = new JwtUserDto(
                             Long.parseLong(subject),
                             name != null ? name : "Unknown User",
-                            email != null ? email : ""
+                            email != null ? email : "",
+                            role != null ? role : "ROLE_USER"
                     );
 
                     UsernamePasswordAuthenticationToken auth =

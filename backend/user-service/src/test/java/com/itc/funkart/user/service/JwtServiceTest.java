@@ -29,7 +29,7 @@ class JwtServiceTest {
         config.setExpirationMs(3600000); // 1 hour
 
         jwtService = new JwtService(config);
-        userDto = new JwtUserDto(1L, "Tester", "test@test.com");
+        userDto = new JwtUserDto(1L, "Tester", "test@test.com", "ROLE_USER");
     }
 
     @Test

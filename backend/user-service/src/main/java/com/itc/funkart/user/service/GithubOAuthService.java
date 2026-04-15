@@ -83,11 +83,11 @@ public class GithubOAuthService {
                     .bodyToMono(AccessTokenResponse.class)
                     .block();
 
-            if (response == null || response.access_token() == null) {
+            if (response == null || response.accessToken() == null) {
                 throw new OAuthException("Failed to retrieve GitHub access token");
             }
 
-            return response.access_token();
+            return response.accessToken();
         } catch (Exception ex) {
             // This catch block hits the 'Actual: Unauthorized' scenario in your tests
             throw new OAuthException("Failed to retrieve GitHub access token: " + ex.getMessage());

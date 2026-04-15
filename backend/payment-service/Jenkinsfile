@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         DOCKER_HUB_USER = 'abbasgureitc'
-        IMAGE_NAME = 'user-service'
+        IMAGE_NAME = 'payment-service'
         REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
         SNYK_TOKEN = credentials('snyk-token')
         dockerImage = ''
@@ -23,12 +23,12 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                dir('backend/user-service') {
+                dir('backend/payment-service') {
                     script {
                         def jdkPath = tool name: 'jdk17', type: 'jdk'
                         withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
                             sh 'chmod +x gradlew'
-                            // Added --no-daemon to prevent Jenkins workspace locking
+                            // Using --no-daemon for CI stability and cleanliness
                             sh "./gradlew clean build jacocoTestReport --no-daemon -Dorg.gradle.java.home=${jdkPath}"
                         }
                     }
@@ -38,7 +38,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                // Modern replacement for the deprecated Jacoco plugin
+                // Modernized coverage tracking replacing the deprecated Jacoco plugin
                 jacoco(
                     execPattern: '**/build/jacoco/*.exec',
                     classPattern: '**/build/classes/java/main',
@@ -54,12 +54,12 @@ pipeline {
 
         stage('Security Scan (Snyk)') {
             steps {
-                dir('backend/user-service') {
+                dir('backend/payment-service') {
                     script {
                         sh 'chmod +x gradlew'
                         sh "snyk auth ${SNYK_TOKEN}"
-                        // Now that we've aligned Jackson, Snyk should be much happier!
-                        sh 'snyk test --severity-threshold=high || echo "Snyk found high-severity vulnerabilities"'
+                        // Severity threshold remains high; logs will echo if issues found
+                        sh 'snyk test --severity-threshold=high || echo "Snyk found high-severity issues in Payment Service"'
                     }
                 }
             }
@@ -67,10 +67,10 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                dir('backend/user-service') {
+                dir('backend/payment-service') {
                     script {
+                        sh 'ls -R build/libs/'
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                        // Ensure your Dockerfile is actually inside backend/user-service/
                         dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
@@ -91,7 +91,7 @@ pipeline {
 
     post {
         success { echo "SUCCESS: ${IMAGE_NAME} is live on Docker Hub." }
-        failure { echo "FAILURE: Build failed. Check Jacoco reports or Snyk logs." }
+        failure { echo "FAILURE: Build failed. Check Stripe mock logs or Jackson dependency alignment." }
         always {
             cleanWs()
         }

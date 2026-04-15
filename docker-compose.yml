@@ -47,7 +47,7 @@ services:
       start_period: 10s
     networks:
       - db-network
-      
+
   pgadmin:
     container_name: pgadmin
     image: dpage/pgadmin4
@@ -65,9 +65,8 @@ services:
 
   user-service:
     container_name: user-service
-    # CHANGED: Use the image Jenkins just pushed instead of building locally
-    image: abbasgureitc/user-service:latest 
-    pull_policy: always 
+    image: abbasgureitc/user-service:latest
+    pull_policy: always # Force pull the latest version Jenkins just pushed
     env_file:
       - ./backend/user-service/.env
     ports:
@@ -79,15 +78,15 @@ services:
         condition: service_healthy
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      # IMPORTANT: Point your service to the postgres container name
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/mydb
     networks:
       - db-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
     restart: on-failure:3
 
   payment-service:
     container_name: payment-service
-    # If you create a pipeline for payment-service, use the image here too
     image: abbasgureitc/payment-service:latest
     pull_policy: always
     env_file:
@@ -104,6 +103,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/mydb
     networks:
       - db-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
     restart: on-failure
 
   api-gateway:
@@ -120,9 +121,13 @@ services:
       payment-service:
         condition: service_started
     environment:
-      # Use container names for routing
       - USER_SERVICE_URL=http://user-service:8080
       - PAYMENT_SERVICE_URL=http://payment-service:8080
+      # --- CRITICAL FIX: Mapping for AppConfig.java ---
+      - APP_SERVICES_USER-SERVICE=http://user-service:8080
+      - APP_SERVICES_PAYMENT-SERVICE=http://payment-service:8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
     networks:
       - db-network
 
@@ -139,10 +144,9 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-   
+
   jenkins:
     container_name: funkart-jenkins
-    # Jenkins needs to stay as a build so it applies your custom Dockerfile
     build:
       context: .
       dockerfile: Dockerfile
@@ -157,7 +161,6 @@ services:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - gradle_cache:/root/.gradle
-      # Mount the whole project so Jenkins can see the subdirectories
       - .:/var/jenkins_home/workspace/funkart-pipeline
     networks:
       - db-network

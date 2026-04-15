@@ -1,7 +1,8 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.3.5'
+    id 'org.springframework.boot' version '3.4.2'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.itc.funkart'
@@ -9,9 +10,12 @@ version = '0.0.1-SNAPSHOT'
 description = 'api-gateway'
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
 }
 
 repositories {
@@ -20,45 +24,90 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2023.0.3'
+        // Aligned with Spring Boot 3.4.x / 3.5.x ecosystem
+        mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2024.0.0'
+    }
+    dependencies {
+        // Jackson Suite - Standardized to 2.18.2 (Stable & Snyk-Safe)
+        dependency 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+        dependency 'com.fasterxml.jackson.core:jackson-core:2.18.2'
+        dependency 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.18.2'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2'
+        dependency 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.18.2'
+
+        // Netty & Reactor (Critical for Reactive Gateway)
+        dependency 'io.netty:netty-codec-http:4.1.117.Final'
+        dependency 'io.netty:netty-codec-http2:4.1.117.Final'
+        dependency 'io.projectreactor.netty:reactor-netty-http:1.2.2'
+
+        // Test Vulnerabilities
+        dependency 'net.minidev:json-smart:2.5.2'
+    }
+}
+
+// Force Jackson alignment across all transitive dependencies
+configurations.configureEach {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group.startsWith('com.fasterxml.jackson')) {
+            details.useVersion '2.18.2'
+        }
     }
 }
 
 dependencies {
-    // Reactive webflux (NOT web)
+    // --- Core Reactive Gateway ---
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
-    implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
+    implementation 'org.springframework.cloud:spring-cloud-starter-gateway:'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    // Security for JWT
+    // --- Security & JWT ---
     implementation 'org.springframework.boot:spring-boot-starter-security'
-
-    // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // Config binding
+    // --- Configuration & Utils ---
     implementation 'org.springframework.boot:spring-boot-configuration-processor'
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
-    // Lombok (optional)
-    compileOnly 'org.projectlombok:lombok:1.18.30'
-    annotationProcessor 'org.projectlombok:lombok:1.18.30'
-
-    // Databases
+    // --- Persistence ---
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    runtimeOnly 'org.postgresql:postgresql'
-    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.postgresql:postgresql:42.7.7'
 
-    // Testing
+    // --- Testing (Fixed & Aligned) ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'io.projectreactor:reactor-test'
-    testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-stub-runner'
+
+    // The "Magic" dependency that provides @AutoConfigureWireMock and matches Spring Boot 3
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation 'org.springframework.cloud:spring-cloud-contract-wiremock:4.2.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    // Optional: Exclude DTOs or Config from coverage
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    "com/itc/funkart/gateway/dto/**",
+                    "com/itc/funkart/gateway/config/**"
+            ])
+        }))
+    }
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
 }
 
 tasks.named('jar') {
@@ -66,5 +115,5 @@ tasks.named('jar') {
 }
 
 tasks.named('bootJar') {
-    archiveFileName = "payment-service-0.0.1-SNAPSHOT.jar"
+    archiveFileName = "api-gateway.jar"
 }

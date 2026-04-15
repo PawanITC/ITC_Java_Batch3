@@ -1,7 +1,8 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.2'
+    id 'org.springframework.boot' version '3.5.12' // FIX: Upgrading to 3.5.12 fixes Auth Bypass and Tomcat issues
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.itc.funkart'
@@ -9,20 +10,57 @@ version = '0.0.1-SNAPSHOT'
 description = 'payment-service'
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
 }
 
 repositories {
     mavenCentral()
 }
 
+// This block handles the version rules silently and globally
+dependencyManagement {
+    dependencies {
+        // 1. Jackson Suite - Standardized to 2.18.2 (Stable & Snyk-Safe)
+        dependency 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+        dependency 'com.fasterxml.jackson.core:jackson-core:2.18.2'
+        dependency 'com.fasterxml.jackson.core:jackson-annotations:2.18.2' // Added missing link
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.18.2'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2'
+        dependency 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.18.2'
+
+        // 2. Tomcat (Fixes Cryptographic & Auth Bypass bugs)
+        dependency 'org.apache.tomcat.embed:tomcat-embed-core:10.1.53'
+        dependency 'org.apache.tomcat.embed:tomcat-embed-websocket:10.1.53'
+        dependency 'org.apache.tomcat.embed:tomcat-embed-el:10.1.53'
+
+        // 3. Utils & Testing
+        dependency 'org.apache.commons:commons-lang3:3.18.0'
+        dependency 'io.rest-assured:rest-assured:5.5.7'
+
+        // 4. Kafka Support
+        dependency 'org.lz4:lz4-java:1.8.0'
+    }
+}
+
+// THE "HAMMER": Add this block to force the version resolution
+configurations.configureEach {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group.startsWith('com.fasterxml.jackson')) {
+            details.useVersion '2.18.2'
+        }
+    }
+}
+
 dependencies {
     // === 1. BOILERPLATE & UTILS ===
-    compileOnly 'org.projectlombok:lombok:1.18.30'
-    annotationProcessor 'org.projectlombok:lombok:1.18.30'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     // === 2. CORE SPRING BOOT ===
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -31,40 +69,44 @@ dependencies {
 
     // === 3. DATABASE & PERSISTENCE ===
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.postgresql:postgresql:42.7.7'
 
     // === 4. MESSAGING & INTEGRATIONS ===
-    implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'com.stripe:stripe-java:24.0.0'
+    implementation 'org.springframework.kafka:spring-kafka:3.3.2'
+    implementation 'com.stripe:stripe-java:28.1.0'
 
     // === 5. SECURITY & JWT ===
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // === 6. TESTING (Unit & Integration) ===
+    // === 6. TESTING ===
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
-    // Required specifically to make .with(jwt()) compile in tests
     testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testImplementation 'io.rest-assured:rest-assured'
-
-    // In-Memory DB & Static Mocking for 100% coverage
+    testImplementation 'io.rest-assured:rest-assured' // Version managed above
     testImplementation 'com.h2database:h2'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
 }
 
-// === TASK CONFIGURATION ===
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
 }
 
 tasks.named('jar') {
-    enabled = false // Ensures we only build the executable bootJar
+    enabled = false
 }
 
 tasks.named('bootJar') {
-    archiveFileName = "payment-service-${version}.jar" // Uses variable for versioning
+    archiveFileName = "payment-service.jar"
 }

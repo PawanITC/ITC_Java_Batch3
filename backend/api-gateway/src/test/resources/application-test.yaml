@@ -1,38 +1,41 @@
 spring:
   application:
     name: api-gateway-test
+
+  # Crucial for allowing @MockitoBean to replace production beans
+  main:
+    allow-bean-definition-overriding: true
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+
   cloud:
     gateway:
       routes:
-        - id: user-service
-          # In tests, we route to WireMock.
-          # If using @AutoConfigureWireMock(port = 0), this is usually handled dynamically,
-          # but setting a base helps prevent routing errors.
-          uri: http://localhost:${wiremock.server.port:8081}
+        - id: user-service-data-test
+          uri: http://localhost:${wiremock.server.port}
           predicates:
-            - Path=/api/v1/users/**
+            - Path=/api/v1/users/profile/**
           filters:
-            - StripPrefix=1
+            - StripPrefix=0
 
 server:
-  port: 0 # Random port for tests
+  port: 0
 
-# --- Matches the @ConfigurationProperties(prefix = "app") ---
 app:
   frontend-url: "http://localhost:5173"
-
   api:
     version: "/api/v1"
 
   services:
-    # This must match the port WireMock is running on so your WebClient hits the stub
-    user-service-url: "http://localhost:${wiremock.server.port:8081}"
+    # Ensure this key exactly matches the @Value in your Java code
+    user-service-url: "http://localhost:${wiremock.server.port}"
 
   jwt:
+    # Using a 256-bit safe secret for tests
     secret: "mXxbssTvw7+m8gAlzYhTCP4IyxMeOK2tDqSDPQAv6Qk="
     expiration-ms: 3600000
     cookie-max-age-seconds: 3600
@@ -42,4 +45,4 @@ app:
   github:
     client-id: "test-id"
     client-secret: "test-secret"
-    redirect-uri: "http://localhost:8080/callback"
+    redirect-uri: "http://localhost:8080/oauth/github/callback"

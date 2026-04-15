@@ -4,10 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itc.funkart.user.config.ApiConfig;
 import com.itc.funkart.user.config.WebConfig;
 import com.itc.funkart.user.dto.event.UserLoginEvent;
-import com.itc.funkart.user.dto.user.JwtUserDto;
-import com.itc.funkart.user.dto.user.LoginRequest;
-import com.itc.funkart.user.dto.user.SignupRequest;
-import com.itc.funkart.user.dto.user.SuccessfulLoginResponse;
+import com.itc.funkart.user.dto.user.*;
+import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.AlreadyExistsException;
 import com.itc.funkart.user.exceptions.GlobalExceptionHandler;
@@ -16,6 +14,7 @@ import com.itc.funkart.user.service.GithubOAuthService;
 import com.itc.funkart.user.service.JwtService;
 import com.itc.funkart.user.service.KafkaEventPublisher;
 import com.itc.funkart.user.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,7 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,14 +31,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -62,16 +60,26 @@ class UserControllerTest {
     @Autowired
     private ApiConfig apiConfig;
 
-    @MockBean
+    @MockitoBean
     private GithubOAuthService githubOAuthService;
-    @MockBean
+    @MockitoBean
     private UserService userService;
-    @MockBean
+    @MockitoBean
     private UserMapper userMapper;
-    @MockBean
+    @MockitoBean
     private JwtService jwtService;
-    @MockBean
+    @MockitoBean
     private KafkaEventPublisher kafkaEventPublisher;
+
+    @BeforeEach
+    void setUp() {
+        // This clears the "memory" of your mocks so verify(times(1))
+        // doesn't count calls from previous tests.
+        reset(userService, jwtService, userMapper, kafkaEventPublisher, githubOAuthService);
+
+        // Also clear the security context to prevent getMe_Success pollution
+        SecurityContextHolder.clearContext();
+    }
 
     /**
      * Helper to stay in sync with WebConfig versioning.
@@ -95,43 +103,50 @@ class UserControllerTest {
         @Test
         @DisplayName("POST /signup - Success path with status 201")
         void signup_Success() throws Exception {
-            SignupRequest request = new SignupRequest("test@test.com", "password123", "Test User");
-            User user = User.builder().id(1L).email("test@test.com").name("Test User").build();
-            SuccessfulLoginResponse resp = new SuccessfulLoginResponse(1L, "test@test.com", "Test User", "jwt");
+            SignupRequest request = new SignupRequest("Test User","test@test.com", "password123");
+            User user = User.builder().id(1L).email("test@test.com").name("Test User").role(Role.ROLE_USER).build();
+
+            // Updated DTO: Assuming SuccessfulLoginResponse(UserDto user, String token) - retain dto vals order
+            UserDto userDto = new UserDto(1L, "Test User", "test@test.com", "ROLE_USER");
+            SuccessfulLoginResponse resp = new SuccessfulLoginResponse(userDto, "jwt");
 
             when(userService.signUp(any())).thenReturn(user);
             when(jwtService.generateJwtToken(any())).thenReturn("jwt");
-            when(userMapper.toResponse(any(), nullable(String.class))).thenReturn(resp);
+            when(userMapper.toResponse(any(), anyString())).thenReturn(resp);
+
             mockMvc.perform(post(getUrl("/signup"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.message").value("Signup successful"));
+                    .andExpect(jsonPath("$.message").value("Signup successful"))
+                    // Note the path: $.data.user.email
+                    .andExpect(jsonPath("$.data.user.email").value("test@test.com"))
+                    .andExpect(jsonPath("$.data.token").value("jwt"));
 
             verify(kafkaEventPublisher).publishUserSignupEvent(any());
         }
 
         @Test
-        @DisplayName("POST /login - Successful login publishes event and returns JWT")
+        @DisplayName("POST /login - Successful login returns nested User and Token")
         void login_Success() throws Exception {
             LoginRequest request = new LoginRequest("test@test.com", "password123");
-            User mockUser = User.builder().id(1L).email("test@test.com").name("Tester").build();
+            User mockUser = User.builder().id(1L).email("test@test.com").name("Tester").role(Role.ROLE_USER).build();
             String mockJwt = "mock.jwt.token";
 
-            // 1. Mock Service Logic
+            UserDto userDto = new UserDto(1L, "Tester", "test@test.com", "ROLE_USER");
+            SuccessfulLoginResponse resp = new SuccessfulLoginResponse(userDto, mockJwt);
+
             when(userService.login(any(LoginRequest.class))).thenReturn(mockUser);
             when(jwtService.generateJwtToken(any(JwtUserDto.class))).thenReturn(mockJwt);
-            when(userMapper.toResponse(eq(mockUser), eq(mockJwt)))
-                    .thenReturn(new SuccessfulLoginResponse(1L, "test@test.com", "Tester", mockJwt));
+            when(userMapper.toResponse(eq(mockUser), eq(mockJwt))).thenReturn(resp);
 
-            // 2. Perform Request
             mockMvc.perform(post(getUrl("/login"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.user.name").value("Tester"))
                     .andExpect(jsonPath("$.data.token").value(mockJwt));
 
-            // 3. VERIFY KAFKA CALL (Crucial for 100% line coverage)
             verify(kafkaEventPublisher, times(1)).publishUserLoginEvent(any(UserLoginEvent.class));
         }
 
@@ -141,16 +156,17 @@ class UserControllerTest {
         @Test
         @DisplayName("POST /signup - Returns 409 Conflict on duplicate email")
         void signup_Duplicate_Returns409() throws Exception {
-            // Password must be 8+ chars to pass validation!
-            SignupRequest request = new SignupRequest("dup@test.com", "password123", "Name");
-
-            when(userService.signUp(any())).thenThrow(new AlreadyExistsException("Email taken"));
+            SignupRequest request = new SignupRequest("Name","dup@test.com", "password123");
+            when(userService.signUp(any())).thenThrow(new AlreadyExistsException("Email already registered"));
 
             mockMvc.perform(post(getUrl("/signup"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
+                    .andDo(print())
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.error.message").value("Email taken"));
+                    // GlobalExceptionHandler maps AlreadyExistsException to CONFLICT
+                    .andExpect(jsonPath("$.error.code").value("CONFLICT"))
+                    .andExpect(jsonPath("$.error.field").value("email"));
         }
     }
 
@@ -162,14 +178,16 @@ class UserControllerTest {
          * Tests the early-return logic when the frontend fails to provide a code.
          */
         @Test
-        @DisplayName("POST /oauth/github - Returns 400 when code is null/missing")
+        @DisplayName("POST /oauth/github - Returns 400 when code is empty")
         void github_NoCode_Returns400() throws Exception {
-            Map<String, String> body = new HashMap<>(); // Body without "code" key
+            // Updated to use the new OAuthRequest record structure
+            OAuthRequest request = new OAuthRequest("");
 
             mockMvc.perform(post(getUrl("/oauth/github"))
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(body)))
-                    .andExpect(status().isBadRequest());
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.field").value("code"));
         }
 
         /**
@@ -178,23 +196,18 @@ class UserControllerTest {
         @Test
         @DisplayName("GET /me - Successfully retrieves current user from context")
         void getMe_Success() throws Exception {
-            // 1. Setup Data
-            JwtUserDto principal = new JwtUserDto(1L, "Tester", "test@test.com");
+            // Updated JwtUserDto constructor (ID, Name, Email, Role)
+            JwtUserDto principal = new JwtUserDto(1L, "Tester", "test@test.com", "ROLE_USER");
             User dbUser = User.builder().id(1L).email("test@test.com").name("Tester").build();
-            SuccessfulLoginResponse expectedResponse = new SuccessfulLoginResponse(1L, "test@test.com", "Tester", null);
+            UserDto userDto = new UserDto(1L, "Tester", "test@test.com", "ROLE_USER");
 
-            // 2. Mock Security Context
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // 3. Mock service and mapper
             when(userService.findById(1L)).thenReturn(Optional.of(dbUser));
+            when(userMapper.toDto(dbUser)).thenReturn(userDto);
 
-            // CRITICAL: This ensures resp is not null!
-            when(userMapper.toResponse(eq(dbUser), any())).thenReturn(expectedResponse);
-
-            // 4. Perform & Assert
             mockMvc.perform(get(getUrl("/me")))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.email").value("test@test.com"))

@@ -1,5 +1,6 @@
 package com.itc.funkart.gateway.service;
 
+import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.exception.OAuthException;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -7,10 +8,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link GithubOAuthService} using a mock web server.
@@ -59,7 +64,12 @@ public class GithubOAuthServiceTest {
     void initialize() {
         String baseUrl = String.format("http://localhost:%s", mockBackend.getPort());
         WebClient webClient = WebClient.create(baseUrl);
-        githubOAuthService = new GithubOAuthService(webClient);
+
+        // You MUST mock AppConfig here too
+        AppConfig appConfig = mock(AppConfig.class, Answers.RETURNS_DEEP_STUBS);
+        when(appConfig.api().version()).thenReturn("/api/v1");
+
+        githubOAuthService = new GithubOAuthService(webClient, appConfig);
     }
 
     /**
@@ -73,14 +83,20 @@ public class GithubOAuthServiceTest {
      */
     @Test
     void whenProcessCode_thenReturnToken() {
-        // 1. Preparing a fake response from user service
+        // FIX: Match the new nested ApiResponse structure
+        String nestedResponse = """
+        {
+            "data": { "token": "fake-jwt-token" },
+            "message": "Success"
+        }
+        """;
+
         mockBackend.enqueue(new MockResponse()
-                .setBody("{\"token\": \"fake-jwt-token\"}")
+                .setBody(nestedResponse)
                 .addHeader("Content-Type", "application/json"));
 
-        // 2. Call the service and use StepVerifier to "watch" the reactive stream
         StepVerifier.create(githubOAuthService.processCode("test-github-code"))
-                .expectNext("fake-jwt-token")// We expect the token string back
+                .expectNext("fake-jwt-token")
                 .verifyComplete();
     }
 
@@ -101,6 +117,6 @@ public class GithubOAuthServiceTest {
         // 2. Verify that our service wraps it in an OAuthException
         StepVerifier.create(githubOAuthService.processCode("bad-code"))
                 .expectError(OAuthException.class)
-                .verify();
+                .verify(java.time.Duration.ofSeconds(5));
     }
 }

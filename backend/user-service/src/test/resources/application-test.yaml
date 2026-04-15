@@ -11,7 +11,6 @@ spring:
     password: ""
 
   jpa:
-    # Let Spring Boot auto-detect the dialect, or use the updated v3 dialect
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: create-drop
@@ -23,10 +22,16 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
     listener:
-      auto-startup: false # This prevents the consumer, but NOT the producer beans
+      auto-startup: false # Disables Consumers
+    producer:
+      properties:
+        # Fails fast if no broker is found, stopping the log loop
+        max.block.ms: 500
+        delivery.timeout.ms: 1000
+        reconnect.backoff.ms: 1000
+        reconnect.backoff.max.ms: 1000
 
-# Use flat keys if your @Value continues to struggle,
-# but this nested version is standard for @ConfigurationProperties
+# Application Custom Config
 api:
   version: v1
 

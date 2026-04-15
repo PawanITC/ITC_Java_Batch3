@@ -4,17 +4,16 @@ import lombok.Builder;
 
 /**
  * The final payload returned to the client upon successful authentication.
- * Aggregates user profile details with the generated JWT access token.
- * * @param id    The unique identifier for the user.
+ * <p>
+ * This record aggregates the user's profile details (via {@link UserDto})
+ * with the generated JWT access token required for subsequent authorized requests.
+ * </p>
  *
- * @param email The registered email address.
- * @param name  The display name.
- * @param token The signed JWT string for subsequent authorized requests.
+ * @param user  The {@link UserDto} containing the user's identity and assigned roles.
+ * @param token The signed JWT string used for Bearer authentication.
  */
 @Builder
 public record SuccessfulLoginResponse(
-        Long id,
-        String email,
-        String name,
+        UserDto user,
         String token
 ) {}

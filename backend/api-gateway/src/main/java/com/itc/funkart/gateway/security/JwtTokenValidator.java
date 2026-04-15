@@ -3,8 +3,13 @@ package com.itc.funkart.gateway.security;
 import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.exception.OAuthException;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -18,12 +23,16 @@ import java.util.Base64;
 @Component
 public class JwtTokenValidator {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtTokenValidator.class);
     private final SecretKey key;
 
     public JwtTokenValidator(AppConfig appConfig) {
-        // Accessing the secret from the nested JWT record
-        byte[] keyBytes = Base64.getDecoder().decode(appConfig.jwt().secret());
-        this.key = Keys.hmacShaKeyFor(keyBytes);
+        try {
+            byte[] keyBytes = Base64.getDecoder().decode(appConfig.jwt().secret());
+            this.key = Keys.hmacShaKeyFor(keyBytes);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("JWT Secret is not a valid Base64 string. Check your configuration.", e);
+        }
     }
 
     /**
@@ -39,9 +48,13 @@ public class JwtTokenValidator {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new OAuthException("Session expired. Please log in again.");
+        } catch (MalformedJwtException | SignatureException e) {
+            log.error("Possible security tampering detected: {}", e.getMessage());
+            throw new OAuthException("Invalid token signature.");
         } catch (Exception e) {
-            // Wrap JJWT technical errors into our domain's OAuthException for uniform handling
-            throw new OAuthException("Token validation failed: " + e.getMessage(), e);
+            throw new OAuthException("Token validation failed: " + e.getMessage());
         }
     }
 }

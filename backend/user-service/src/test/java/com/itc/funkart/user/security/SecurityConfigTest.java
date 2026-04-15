@@ -2,38 +2,40 @@ package com.itc.funkart.user.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itc.funkart.user.config.ApiConfig;
-import com.itc.funkart.user.dto.user.JwtUserDto;
-import com.itc.funkart.user.dto.user.LoginRequest;
-import com.itc.funkart.user.dto.user.SignupRequest;
-import com.itc.funkart.user.dto.user.SuccessfulLoginResponse;
+import com.itc.funkart.user.dto.user.*;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.mapper.UserMapper;
 import com.itc.funkart.user.service.GithubOAuthService;
 import com.itc.funkart.user.service.JwtService;
 import com.itc.funkart.user.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.reset;
 
 /**
  * Security Integration Test Suite for Funkart User Service.
@@ -49,16 +51,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class SecurityConfigTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ApiConfig apiConfig;
-    @Autowired private ObjectMapper objectMapper;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ApiConfig apiConfig;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-    @MockBean private UserService userService;
-    @MockBean private UserMapper userMapper;
-    @MockBean private JwtService jwtService;
-    @MockBean private GithubOAuthService githubOAuthService;
+    @MockitoBean
+    private UserService userService;
+    @MockitoBean
+    private UserMapper userMapper;
+    @MockitoBean
+    private JwtService jwtService;
+    @MockitoBean
+    private GithubOAuthService githubOAuthService;
+    @MockitoBean
+    private KafkaTemplate<String, Object> kafkaTemplate;
+    @MockitoBean
+    private ProducerFactory<String, Object> producerFactory;
+
+    @BeforeEach
+    void setUp() {
+        // 2. Clear all mocks manually to be 100% safe
+        reset(userService, userMapper, jwtService, githubOAuthService, kafkaTemplate);
+
+        // Your existing Kafka fix
+        when(kafkaTemplate.send(anyString(), anyString(), any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+    }
 
     /**
      * Helper to construct the versioned API URL.
@@ -73,7 +97,9 @@ class SecurityConfigTest {
      * Helper to create a standard successful response mock.
      */
     private SuccessfulLoginResponse createMockResponse() {
-        return new SuccessfulLoginResponse(101L, "Tester", "tester@example.com", "fake-jwt-token");
+        // FIX: Use the nested UserDto structure
+        UserDto userDto = new UserDto(101L, "tester@example.com", "Tester", "ROLE_USER");
+        return new SuccessfulLoginResponse(userDto, "fake-jwt-token");
     }
 
     /**
@@ -87,18 +113,35 @@ class SecurityConfigTest {
         }
     }
 
+    @BeforeEach
+    void setUpKafkaMock() {
+        // This ensures that whenever kafkaTemplate.send is called,
+        // it returns a completed future instead of null.
+        when(kafkaTemplate.send(anyString(), anyString(), any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+    }
+
+
     @Nested
     @DisplayName("Public Access Tests")
     class PublicEndpoints {
 
+        private User createMockUser() {
+            User user = new User();
+            user.setId(101L);
+            user.setEmail("tester@example.com");
+            user.setName("Tester");
+            return user;
+        }
+
         @Test
         @DisplayName("POST /signup - Should be publicly accessible")
         void signup_IsPublic() throws Exception {
-            when(userService.signUp(any())).thenReturn(new User());
+            when(userService.signUp(any())).thenReturn(createMockUser());
             when(jwtService.generateJwtToken(any())).thenReturn("token");
             when(userMapper.toResponse(any(), any())).thenReturn(createMockResponse());
 
-            SignupRequest request = new SignupRequest("tester@example.com", "password123", "Tester");
+            SignupRequest request = new SignupRequest("Tester","tester@example.com", "password123");
 
             mockMvc.perform(post(getUrl("/signup"))
                             .contentType(MediaType.APPLICATION_JSON)
@@ -109,7 +152,7 @@ class SecurityConfigTest {
         @Test
         @DisplayName("POST /login - Should be publicly accessible")
         void login_IsPublic() throws Exception {
-            when(userService.login(any())).thenReturn(new User());
+            when(userService.login(any())).thenReturn(createMockUser());
             when(jwtService.generateJwtToken(any())).thenReturn("token");
             when(userMapper.toResponse(any(), any())).thenReturn(createMockResponse());
 
@@ -124,11 +167,15 @@ class SecurityConfigTest {
         @Test
         @DisplayName("POST /oauth/github - Should be publicly accessible")
         void oauth_IsPublic() throws Exception {
-            when(githubOAuthService.processCode(any())).thenReturn(new User());
+            when(githubOAuthService.processCode(any())).thenReturn(createMockUser());
             when(jwtService.generateJwtToken(any())).thenReturn("token");
+
+            // FIX: Match the Controller's use of toOAuthResponse if applicable,
+            // or just ensure the return type matches SuccessfulLoginResponse
             when(userMapper.toResponse(any(), any())).thenReturn(createMockResponse());
 
-            Map<String, String> request = Map.of("code", "github_test_code");
+            // FIX: Use the new OAuthRequest record structure for the body
+            OAuthRequest request = new OAuthRequest("github_test_code");
 
             mockMvc.perform(post(getUrl("/oauth/github"))
                             .contentType(MediaType.APPLICATION_JSON)
@@ -151,13 +198,20 @@ class SecurityConfigTest {
         @Test
         @DisplayName("GET /me - Should return 200 when authenticated with custom principal")
         void getMe_Authenticated_IsAllowed() throws Exception {
-            JwtUserDto principal = new JwtUserDto(101L, "Tester", "tester@example.com");
+            // FIX: Added the 4th argument (Role) to JwtUserDto
+            JwtUserDto principal = new JwtUserDto(101L, "Tester", "tester@example.com", "ROLE_USER");
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
 
-            when(userService.findById(any())).thenReturn(Optional.of(new User()));
-            when(userMapper.toResponse(any(), any())).thenReturn(createMockResponse());
+            User dbUser = new User();
+            dbUser.setId(101L);
+            dbUser.setRole(com.itc.funkart.user.entity.Role.ROLE_USER);
 
+            when(userService.findById(any())).thenReturn(Optional.of(dbUser));
+
+            // FIX: Controller calls userMapper.toDto() for /me, not toResponse()
+            UserDto userDto = new UserDto(101L, "Tester","tester@example.com", "ROLE_USER");
+            when(userMapper.toDto(any())).thenReturn(userDto);
             mockMvc.perform(get(getUrl("/me"))
                             .with(SecurityMockMvcRequestPostProcessors.authentication(auth)))
                     .andDo(print())

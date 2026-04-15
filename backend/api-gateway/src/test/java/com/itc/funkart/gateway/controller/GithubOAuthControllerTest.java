@@ -14,8 +14,9 @@ import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
@@ -23,6 +24,8 @@ import reactor.core.publisher.Mono;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.reset;
+
 
 /**
  * Integration tests for {@link GithubOAuthController}.
@@ -34,28 +37,29 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class GithubOAuthControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockBean
+    @MockitoBean
     private GithubOAuthService githubOAuthService;
 
-    @MockBean
+    @MockitoBean
     private CookieUtil cookieUtil;
 
     /**
      * Deep stubs are required to handle nested calls in Configuration classes (WebConfig, CorsConfig)
      * during the Spring Context bootstrap phase.
      */
-    @MockBean(answer = Answers.RETURNS_DEEP_STUBS)
+    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
     private AppConfig appConfig;
 
-    @MockBean
+    @MockitoBean
     private JwtTokenValidator jwtTokenValidator;
 
-    @MockBean
+    @MockitoBean
     private JwtWebFilter jwtWebFilter;
 
     /**
@@ -64,8 +68,10 @@ class GithubOAuthControllerTest {
      */
     @BeforeEach
     void setUp() {
-        // 1. Security Filter Fix
-        // This prevents the NullPointerException by passing the request through the mock filter.
+        // Clear everything to prevent "TooManyActualInvocations" or "Wrong Arguments"
+        reset(githubOAuthService, cookieUtil, appConfig, jwtTokenValidator, jwtWebFilter); // <-- FIX 2
+
+        // RE-APPLY your Security Filter Fix after the reset
         when(jwtWebFilter.filter(any(), any())).thenAnswer(invocation -> {
             org.springframework.web.server.ServerWebExchange exchange = invocation.getArgument(0);
             org.springframework.web.server.WebFilterChain chain = invocation.getArgument(1);

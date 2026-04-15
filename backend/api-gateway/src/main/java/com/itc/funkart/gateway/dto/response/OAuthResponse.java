@@ -1,8 +1,14 @@
 package com.itc.funkart.gateway.dto.response;
 
+import com.itc.funkart.gateway.dto.UserDto;
+import lombok.Builder;
 
 /**
- * Response received from User-Service after OAuth processing.
- * Contains the JWT token to be set as a cookie and sent to frontend.
+ * Payload returned after a successful GitHub OAuth handshake.
+ * Contains the mapped user profile and the system-generated JWT.
  */
-public record OAuthResponse(String token) {}
+@Builder
+public record OAuthResponse(
+        UserDto user,
+        String token
+) {}

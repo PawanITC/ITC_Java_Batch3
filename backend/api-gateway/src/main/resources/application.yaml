@@ -5,43 +5,54 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
   cloud:
     gateway:
       routes:
-        # Route for actual User Service data (e.g., getting profiles, settings)
-        - id: user-service
+        - id: user-service-data
           uri: ${USER_SERVICE_URL:http://user-service:8080}
           predicates:
-            - Path=/api/v1/users/**
-
+            - Path=/api/v1/users/profile/**, /api/v1/users/settings/**
 
         - id: payment-service
           uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
           predicates:
             - Path=/api/v1/payments/**
           filters:
-            - StripPrefix=1
+            - StripPrefix=2
 
 server:
   port: 8080
 
-# --- Consolidated App Configuration ---
 app:
-  frontend-url: ${FRONTEND_URL}
-  api:
-    version: /api/v1 # This is used by SecurityConfig and WebClient calls
-
+  # --- MISSING SECTION ADDED BELOW ---
   services:
-    user-service-url: ${USER_SERVICE_URL:http://user-service:8080}
+    user-service: ${USER_SERVICE_URL:http://user-service:8080}
+    payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  api:
+    version: /api/v1
 
   jwt:
-    secret: ${JWT_SECRET}
-    expiration-ms: ${JWT_EXPIRATION_MS}
-    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
-    cookie-name: ${APP_COOKIE_NAME}
-    secure-cookie: ${APP_SECURE_COOKIE}
+    # Added default 'secret' to prevent crash if env var is missing
+    secret: ${JWT_SECRET:3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
+    cookie-name: ${APP_COOKIE_NAME:token}
+    secure-cookie: ${APP_SECURE_COOKIE:false}
 
   github:
-    client-id: ${GITHUB_CLIENT_ID}
-    client-secret: ${GITHUB_CLIENT_SECRET}
-    redirect-uri: ${GITHUB_REDIRECT_URI}
+    # Added empty defaults so Spring can at least start
+    client-id: ${GITHUB_CLIENT_ID:placeholder-id}
+    client-secret: ${GITHUB_CLIENT_SECRET:placeholder-secret}
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8080/login/oauth2/code/github}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
