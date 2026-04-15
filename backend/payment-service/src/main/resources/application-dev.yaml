@@ -41,3 +41,12 @@ logging:
   level:
     root: INFO
     com.itc.funkart: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics  # minimal for prod
+  endpoint:
+    health:
+      show-details: always

@@ -38,3 +38,12 @@ spring:
 
         # Connection stability
         reconnect.backoff.ms: 50
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics  # minimal for prod
+  endpoint:
+    health:
+      show-details: always

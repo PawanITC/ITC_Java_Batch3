@@ -8,12 +8,3 @@ server:
 
 api:
   version: api/v1
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info  # minimal for prod
-  endpoint:
-    health:
-      show-details: never

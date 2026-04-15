@@ -43,3 +43,12 @@ app:
     client-id: ${GITHUB_CLIENT_ID}
     client-secret: ${GITHUB_CLIENT_SECRET}
     redirect-uri: ${GITHUB_REDIRECT_URI}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics  # minimal for prod
+  endpoint:
+    health:
+      show-details: always

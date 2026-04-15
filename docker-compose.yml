@@ -47,7 +47,7 @@ services:
       start_period: 10s
     networks:
       - db-network
-      
+
   pgadmin:
     container_name: pgadmin
     image: dpage/pgadmin4
@@ -65,12 +65,15 @@ services:
 
   user-service:
     container_name: user-service
-    image: abbasgureitc/user-service:latest 
-    pull_policy: always 
+    image: abbasgureitc/user-service:latest
+    build:
+      context: ./backend/user-service
+      dockerfile: Dockerfile
+    pull_policy: if_not_present
     env_file:
       - ./backend/user-service/.env
     ports:
-      - "8081:8080" # Host 8081 -> Container 8080
+      - "8081:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -85,17 +88,21 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
+      start_period: 60s
     restart: on-failure:3
 
   payment-service:
     container_name: payment-service
     image: abbasgureitc/payment-service:latest
-    pull_policy: always
+    build:
+      context: ./backend/payment-service
+      dockerfile: Dockerfile
+    pull_policy: if_not_present
     env_file:
       - ./backend/payment-service/.env
     ports:
-      - "8082:8080" # Host 8082 -> Container 8080
+      - "8082:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,26 +117,35 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
+      start_period: 60s
     restart: on-failure
 
   api-gateway:
     container_name: api-gateway
     image: abbasgureitc/api-gateway:latest
-    pull_policy: always
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    pull_policy: if_not_present
     env_file:
       - ./backend/api-gateway/.env
     ports:
-      - "8080:8080" # External Entry Point
+      - "8080:8080"
     depends_on:
       user-service:
-        condition: service_healthy # Wait for healthcheck, not just start
+        condition: service_started
       payment-service:
-        condition: service_healthy
+        condition: service_started
     environment:
-      # INTERNAL MAPPING: Use port 8080 because they are on the same network
       - USER_SERVICE_URL=http://user-service:8080
       - PAYMENT_SERVICE_URL=http://payment-service:8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     networks:
       - db-network
 
@@ -146,10 +162,9 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-   
+
   jenkins:
     container_name: funkart-jenkins
-    # Jenkins needs to stay as a build so it applies your custom Dockerfile
     build:
       context: .
       dockerfile: Dockerfile
@@ -164,7 +179,6 @@ services:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - gradle_cache:/root/.gradle
-      # Mount the whole project so Jenkins can see the subdirectories
       - .:/var/jenkins_home/workspace/funkart-pipeline
     networks:
       - db-network
