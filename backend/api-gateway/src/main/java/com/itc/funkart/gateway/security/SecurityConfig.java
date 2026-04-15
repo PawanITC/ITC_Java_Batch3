@@ -18,12 +18,12 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 public class SecurityConfig {
 
     private final JwtWebFilter jwtWebFilter;
-    private final AppConfig appConfig;
+    private final String version;
 
 
     public SecurityConfig(JwtWebFilter jwtWebFilter, AppConfig appConfig) {
         this.jwtWebFilter = jwtWebFilter;
-        this.appConfig = appConfig;
+        this.version = appConfig.api().version();
     }
 
     /**
@@ -33,48 +33,23 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
-        String version = "/api/v1";
-        try {
-            if (appConfig.api() != null && appConfig.api().version() != null) {
-                version = appConfig.api().version();
-            }
-        } catch (Exception e) {
-            // Fallback for test context initialization
-        }
-
-        String finalVersion = version;
-        return http
-                // Disable CSRF because we use JWTs and our Gateway is stateless
+         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-
-                // Inject our custom JWT 'Re-hydration' logic before the standard Auth check
-                .addFilterBefore(jwtWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-
-                .authorizeExchange(auth -> auth
-                        // 1. PUBLIC: Infrastructure & OAuth (No Version Prefix)
-                        .pathMatchers(
-                                "/oauth/github/**",
-                                "/health"
-                        ).permitAll()
-
-                        // 2. PUBLIC: Auth & Webhooks (With Version Prefix)
-                        .pathMatchers(
-                                finalVersion + "/users/login",
-                                finalVersion + "/users/signup",
-                                finalVersion + "/payments/webhook"
-                        ).permitAll()
-
-                        // 3. SECURE: Admin-only sections (Example of RBAC)
-                        // Note: hasRole checks for "ROLE_ADMIN" if your filter provides "ROLE_ADMIN"
-                        .pathMatchers(finalVersion + "/admin/**").hasRole("ADMIN")
-
-                        // 4. SECURE: Everything else requires a valid JWT
-                        .anyExchange().authenticated()
-                )
-
-                // Disable traditional login forms; the Gateway is a headless API
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+                .addFilterBefore(jwtWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                .authorizeExchange(auth -> auth
+                        .pathMatchers(
+                                "/oauth/github/**",
+                                "/health",
+                                "/payments/webhook"
+                        ).permitAll()
+                        .pathMatchers(
+                                version + "/users/login",
+                                version + "/users/signup"
+                        ).permitAll()
+                        .anyExchange().authenticated()
+                )
                 .build();
     }
 }

@@ -73,7 +73,7 @@ public class SecurityConfigTest {
     @DisplayName("Public Webhook: Should bypass security filters")
     void whenAccessPublicEndpoint_thenSucceeds() {
         webTestClient.post()
-                .uri("/api/v1/payments/webhook")
+                .uri("/payments/webhook")
                 .exchange()
                 .expectStatus().value(status -> {
                     // SUCCESS condition: The bouncer let us in.

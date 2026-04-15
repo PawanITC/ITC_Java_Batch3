@@ -6,6 +6,10 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+  webflux:
+    # Use the variable defined lower down in the file
+    base-path: ${app.api.version}
+
   cloud:
     gateway:
       routes:
@@ -29,6 +33,11 @@ app:
   services:
     user-service: ${USER_SERVICE_URL:http://user-service:8080}
     payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+    product-service: ${PRODUCT_SERVICE_URL:http://product-service:8080}
+    order-service: ${ORDER_SERVICE_URL:http://order-service:8080}
+    catalogue-service: ${CATALOGUE_SERVICE_URL:http://catalogue-service:8080}
+    notification-service: ${NOTIFICATION_SERVICE_URL:http://notification-service:8080}
+    reviewrating-service: ${REVIEWRATING_SERVICE_URL:http://reviewrating-service:8080}
 
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   api:

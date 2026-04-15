@@ -32,19 +32,23 @@ public class JwtTokenValidatorTest {
      */
     @BeforeEach
     void setUp() {
-        // Build the nested records required for the root AppConfig
+        // Build the nested records
         AppConfig.Api api = new AppConfig.Api("/api/v1");
         AppConfig.Jwt jwt = new AppConfig.Jwt(B64_SECRET, 3600000L, 3600, "token", false);
         AppConfig.Github github = new AppConfig.Github("id", "secret", "uri");
-        AppConfig.Services services = new AppConfig.Services("http://user-service");
 
-        // Initialize the root AppConfig
+        // --- FIX: Create a Map for the services parameter ---
+        java.util.Map<String, String> services = java.util.Map.of(
+                "user-service", "http://user-service"
+        );
+
+        // Initialize the root AppConfig using the new constructor signature
         AppConfig config = new AppConfig(
                 "http://localhost:5173",
                 api,
                 jwt,
                 github,
-                services
+                services // Passed as Map
         );
 
         validator = new JwtTokenValidator(config);

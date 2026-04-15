@@ -68,29 +68,31 @@ class GithubOAuthControllerTest {
      */
     @BeforeEach
     void setUp() {
-        // Clear everything to prevent "TooManyActualInvocations" or "Wrong Arguments"
-        reset(githubOAuthService, cookieUtil, appConfig, jwtTokenValidator, jwtWebFilter); // <-- FIX 2
+        reset(githubOAuthService, cookieUtil, appConfig, jwtTokenValidator, jwtWebFilter);
 
-        // RE-APPLY your Security Filter Fix after the reset
         when(jwtWebFilter.filter(any(), any())).thenAnswer(invocation -> {
             org.springframework.web.server.ServerWebExchange exchange = invocation.getArgument(0);
             org.springframework.web.server.WebFilterChain chain = invocation.getArgument(1);
             return chain.filter(exchange);
         });
 
-        // 2. API & Frontend Config
+        // 1. API & Frontend Config
         when(appConfig.api().version()).thenReturn("/api/v1");
         when(appConfig.frontendUrl()).thenReturn("http://localhost:5173");
 
-        // 3. GitHub OAuth Config
+        // 2. GitHub OAuth Config
         when(appConfig.github().clientId()).thenReturn("test-id");
         when(appConfig.github().clientSecret()).thenReturn("test-secret");
         when(appConfig.github().redirectUri()).thenReturn("http://localhost:8080/oauth/github/callback");
 
-        // 4. Internal Services Config
-        when(appConfig.services().userServiceUrl()).thenReturn("http://localhost:8081");
+        // --- FIX: Mocking the dynamic Map instead of the old Services record ---
+        java.util.Map<String, String> mockServices = java.util.Map.of(
+                "user-service", "http://localhost:8081",
+                "payment-service", "http://localhost:8082"
+        );
+        when(appConfig.services()).thenReturn(mockServices);
 
-        // 5. JWT Config
+        // 3. JWT Config
         when(appConfig.jwt().cookieName()).thenReturn("token");
         when(appConfig.jwt().secret()).thenReturn("mXxbssTvw7+m8gAlzYhTCP4IyxMeOK2tDqSDPQAv6Qk=");
     }

@@ -12,6 +12,9 @@ spring:
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 
+  webflux:
+    base-path: /api/v1
+
   cloud:
     gateway:
       routes:
@@ -28,11 +31,11 @@ server:
 app:
   frontend-url: "http://localhost:5173"
   api:
-    version: "/api/v1"
+    version: /api/v1
 
   services:
     # Ensure this key exactly matches the @Value in your Java code
-    user-service-url: "http://localhost:${wiremock.server.port}"
+    user-service: "http://localhost:${wiremock.server.port}"
 
   jwt:
     # Using a 256-bit safe secret for tests
