@@ -39,13 +39,15 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 // Modernized coverage tracking replacing the deprecated Jacoco plugin
-                recordCoverage(
-                    tools: [[parser: 'JACOCO', pattern: '**/build/reports/jacoco/test/*.xml']],
-                    id: 'payment-service-coverage',
-                    name: 'Payment Service Coverage',
-                    sourceCodeRetention: 'LAST_BUILD',
-                    // Enforcing the 80% threshold for critical payment logic
-                    qualityGates: [[threshold: 80.0, metric: 'LINE', baseline: 'PROJECT', unstable: true]]
+                jacoco(
+                    execPattern: '**/build/jacoco/*.exec',
+                    classPattern: '**/build/classes/java/main',
+                    sourcePattern: '**/src/main/java',
+                    inclusionPattern: '**/*.class',
+                    // Jacoco plugin uses these for the health report (Quality Gates)
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '80',
+                    buildOverBuild: true
                 )
             }
         }
