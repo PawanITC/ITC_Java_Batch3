@@ -1,4 +1,4 @@
-import { useState, useContext, type FormEvent } from "react";
+import {useState, useContext, type FormEvent} from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import "../styles/auth.css";
@@ -31,8 +31,7 @@ export default function Login() {
 
             // Call refreshUser to update AuthProvider state consistently
             await refreshUser();
-
-            navigate("/"); // redirect after login
+            navigate("/", { replace: true }); // redirect after login
         } catch (err) {
             console.error("Login error:", err);
             setError("Something went wrong. Please try again.");
@@ -71,7 +70,7 @@ export default function Login() {
                 <button
                     className="github-button"
                     onClick={() =>
-                        (window.location.href = "http://localhost:8080/oauth/github/login")
+                        (window.location.href = "http://localhost:8080/oauth2/authorization/github")
                     }
                 >
                     Login with GitHub

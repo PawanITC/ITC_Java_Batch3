@@ -12,7 +12,7 @@ export default function Signup() {
 
     const [error, setError] = useState("");
     const navigate = useNavigate();
-    const { setUser } = useContext(AuthContext);
+    const { refreshUser  } = useContext(AuthContext);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData(prev => ({
@@ -42,9 +42,7 @@ export default function Signup() {
                 return;
             }
 
-            // Backend returns ApiResponse<SuccessfulLoginResponse>
-            setUser(body.data);
-
+            await refreshUser();
             navigate("/");
         } catch (err) {
             console.error("Signup error:", err);
