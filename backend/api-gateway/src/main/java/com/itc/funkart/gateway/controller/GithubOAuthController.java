@@ -1,7 +1,6 @@
 package com.itc.funkart.gateway.controller;
 
 import com.itc.funkart.gateway.config.AppConfig;
-import com.itc.funkart.gateway.config.NoApiPrefix;
 import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.CookieUtil;
 import com.itc.funkart.gateway.service.GithubOAuthService;
@@ -20,7 +19,6 @@ import java.net.URI;
  * Annotated with {@code @NoApiPrefix} to keep URLs clean (e.g., /oauth/github/login).
  */
 @RestController
-@NoApiPrefix
 @RequestMapping("/oauth/github")
 public class GithubOAuthController {
 

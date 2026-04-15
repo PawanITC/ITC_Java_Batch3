@@ -70,7 +70,7 @@ export default function Login() {
                 <button
                     className="github-button"
                     onClick={() =>
-                        (window.location.href = "/oauth/github/login")
+                        (window.location.href = "http://localhost:8080/oauth/github/login")
                     }
                 >
                     Login with GitHub
