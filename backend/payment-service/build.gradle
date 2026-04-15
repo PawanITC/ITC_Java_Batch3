@@ -25,24 +25,34 @@ repositories {
 // This block handles the version rules silently and globally
 dependencyManagement {
     dependencies {
-        // 1. Jackson Suite (Fixes DoS / Resource Allocation)
-        dependency 'com.fasterxml.jackson.core:jackson-databind:2.21.2'
-        dependency 'com.fasterxml.jackson.core:jackson-core:2.21.2'
-        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.21.2'
-        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.2'
-        dependency 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.21.2'
+        // 1. Jackson Suite - Standardized to 2.18.2 (Stable & Snyk-Safe)
+        dependency 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+        dependency 'com.fasterxml.jackson.core:jackson-core:2.18.2'
+        dependency 'com.fasterxml.jackson.core:jackson-annotations:2.18.2' // Added missing link
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.18.2'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2'
+        dependency 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.18.2'
 
         // 2. Tomcat (Fixes Cryptographic & Auth Bypass bugs)
         dependency 'org.apache.tomcat.embed:tomcat-embed-core:10.1.53'
         dependency 'org.apache.tomcat.embed:tomcat-embed-websocket:10.1.53'
         dependency 'org.apache.tomcat.embed:tomcat-embed-el:10.1.53'
 
-        // 3. Utils & Testing (Fixes Uncontrolled Recursion in Rest-Assured)
+        // 3. Utils & Testing
         dependency 'org.apache.commons:commons-lang3:3.18.0'
         dependency 'io.rest-assured:rest-assured:5.5.7'
 
         // 4. Kafka Support
         dependency 'org.lz4:lz4-java:1.8.0'
+    }
+}
+
+// THE "HAMMER": Add this block to force the version resolution
+configurations.configureEach {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group.startsWith('com.fasterxml.jackson')) {
+            details.useVersion '2.18.2'
+        }
     }
 }
 
