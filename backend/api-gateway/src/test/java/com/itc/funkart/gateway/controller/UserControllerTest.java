@@ -55,9 +55,15 @@ public class UserControllerTest {
      * Reusable JSON response fragment representing a successful identity token
      * returned by the downstream User Service.
      */
+    // UPDATED SUCCESS_JSON
     private final String SUCCESS_JSON = """
-        { "data": { "token": "fake-jwt-token" } }
-        """;
+    { 
+        "data": { 
+            "token": "fake-jwt-token",
+            "user": { "id": 1, "name": "Test User", "email": "test@example.com", "role": "ROLE_USER" }
+        } 
+    }
+    """;
 
     /**
      * Tests the login flow.

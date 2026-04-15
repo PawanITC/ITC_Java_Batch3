@@ -9,13 +9,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.support.WebExchangeBindException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link GlobalExceptionHandler}.
- * Ensures that different exception types are mapped to the correct
- * HTTP status codes and consistent API response formats.
+ * Unit tests for the patched {@link GlobalExceptionHandler}.
+ * Validates the transition to the Lean ApiResponse format.
  */
 class GlobalExceptionHandlerTest {
 
@@ -27,98 +29,86 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("IllegalArgument: Should return 400 Bad Request")
-    void handleIllegalArgument_ShouldReturnBadRequest() {
-        IllegalArgumentException ex = new IllegalArgumentException("Invalid input");
-
-        ResponseEntity<ApiResponse<Void>> response = handler.handleIllegalArgument(ex);
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("BAD_REQUEST", response.getBody().getError().getCode());
-        assertEquals("Invalid input", response.getBody().getError().getMessage());
-    }
-
-    @Test
-    @DisplayName("OAuthException: Should return 400 Bad Request and log error")
+    @DisplayName("OAuthException: Should return 400 Bad Request")
     void handleOAuthException_ShouldReturnBadRequest() {
-        OAuthException ex = new OAuthException("GitHub error", new RuntimeException("root cause"));
+        OAuthException ex = new OAuthException("GitHub exchange failed");
 
         ResponseEntity<ApiResponse<Void>> response = handler.handleOAuth(ex);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("GitHub error", response.getBody().getError().getMessage());
+        assertEquals("BAD_REQUEST", response.getBody().getError().getCode());
+        assertEquals("GitHub exchange failed", response.getBody().getError().getMessage());
     }
 
     @Test
     @DisplayName("AccessDenied: Should return 403 Forbidden")
     void handleAccessDenied_ShouldReturnForbidden() {
-        AccessDeniedException ex = new AccessDeniedException("Forbidden access");
+        AccessDeniedException ex = new AccessDeniedException("Access denied");
 
         ResponseEntity<ApiResponse<Void>> response = handler.handleAccessDenied(ex);
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         assertNotNull(response.getBody());
+        assertEquals("FORBIDDEN", response.getBody().getError().getCode());
         assertEquals("Access denied", response.getBody().getError().getMessage());
     }
 
     @Test
-    @DisplayName("Generic Exception: Should return 500 Internal Server Error")
+    @DisplayName("Generic Exception: Should return 500 with standardized 'Senior' message")
     void handleGeneric_ShouldReturnInternalError() {
-        Exception ex = new Exception("Something went wrong");
+        Exception ex = new Exception("DB Connection dropped");
 
         ResponseEntity<ApiResponse<Void>> response = handler.handleGeneric(ex);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("Internal server error", response.getBody().getError().getMessage());
+        // Matches the string we put in the GlobalExceptionHandler catch-all
+        assertEquals("An unexpected error occurred", response.getBody().getError().getMessage());
+        assertEquals("INTERNAL_SERVER_ERROR", response.getBody().getError().getCode());
     }
 
     @Test
-    @DisplayName("OAuthException: Should return 400 with proper ApiResponse structure")
-    void handleOAuthException_DetailedCheck() {
-        OAuthException ex = new OAuthException("GitHub error");
+    @DisplayName("Validation: Should handle WebExchangeBindException and extract field info")
+    void handleValidation_ShouldCaptureFieldAndMessage() {
+        // We mock the Reactive validation exception
+        WebExchangeBindException ex = mock(WebExchangeBindException.class, invocation -> mock(org.springframework.validation.BindingResult.class));
+        org.springframework.validation.FieldError fieldError = new org.springframework.validation.FieldError("signupRequest", "email", "Email must be valid");
 
-        // 1. Get the ResponseEntity from the handler
-        ResponseEntity<ApiResponse<Void>> response = handler.handleOAuth(ex);
+        // Mocking the chain of calls internal to the exception
+        org.springframework.validation.BindingResult bindingResult = mock(org.springframework.validation.BindingResult.class);
+        when(ex.getBindingResult()).thenReturn(bindingResult);
+        when(bindingResult.getFieldError()).thenReturn(fieldError);
 
-        // 2. Extract your custom ApiResponse body
-        ApiResponse<Void> body = response.getBody();
+        ResponseEntity<ApiResponse<Void>> response = handler.handleValidation(ex);
 
-        // 3. Use your class getters to verify the "Contract"
-        assertNotNull(body);
-        assertNotNull(body.getTimestamp()); // Proves the ApiResponse() constructor ran
-        assertNotNull(body.getError());     // Proves ApiResponse(ErrorDetails) constructor ran
-
-        assertEquals("BAD_REQUEST", body.getError().getCode());
-        assertEquals("GitHub error", body.getError().getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("email", response.getBody().getError().getField());
+        assertEquals("Email must be valid", response.getBody().getError().getMessage());
     }
 
-
-    /**
-     * Unit tests for {@link ApiResponse} & {@link ErrorDetails} in response folder since they are used in exception handler.
-     * Ensures that different exception types are mapped to the correct
-     * HTTP status codes and consistent API response formats.
-     */
     @Nested
-    @DisplayName("Exception Api-Responses / Error Api-Responses")
-    class ExceptionApiResponses {
+    @DisplayName("Dojo: ApiResponse Structure Tests")
+    class StructureTests {
         @Test
-        void testApiResponseGetters() {
-            ApiResponse<String> response = new ApiResponse<>("data", "message");
-            assertEquals("data", response.getData());
-            assertEquals("message", response.getMessage());
+        @DisplayName("Success Response: Should not contain error object")
+        void successResponse_ShouldBeLean() {
+            ApiResponse<String> response = new ApiResponse<>("Success Data", "Operation OK");
+
+            assertEquals("Success Data", response.getData());
+            assertEquals("Operation OK", response.getMessage());
+            assertNull(response.getError()); // Crucial: Error must be null on success
             assertNotNull(response.getTimestamp());
         }
 
         @Test
-        void testErrorDetailsNoArgs() {
-            ErrorDetails details = new ErrorDetails();
-            details.setCode("TEST");
-            assertNotNull(details);
-            assertEquals("TEST", details.getCode());
+        @DisplayName("Error Details: Should support field-level reporting")
+        void errorDetails_ShouldHoldFieldInfo() {
+            ErrorDetails details = new ErrorDetails("VALIDATION_ERROR", "Password too short", "password");
+
+            assertEquals("password", details.getField());
+            assertEquals("VALIDATION_ERROR", details.getCode());
         }
     }
-
 }

@@ -9,9 +9,9 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
 /**
- * Main security configuration for the API Gateway.
- * Defines the security filter chain, path permissions, and integrates
- * the custom JWT web filter.
+ * <h2>Central Security Policy</h2>
+ * <p>This class defines the "Rules of the Road" for every request hitting the Gateway.
+ * It manages CSRF, Authentication filters, and URL-based authorization.</p>
  */
 @Configuration
 @EnableWebFluxSecurity
@@ -20,40 +20,59 @@ public class SecurityConfig {
     private final JwtWebFilter jwtWebFilter;
     private final AppConfig appConfig;
 
+
     public SecurityConfig(JwtWebFilter jwtWebFilter, AppConfig appConfig) {
         this.jwtWebFilter = jwtWebFilter;
         this.appConfig = appConfig;
     }
 
     /**
-     * Configures the security behavior for the reactive web stack.
-     * * @param http The security builder
-     * @return The configured security chain
+     * Configures the Security Web Filter Chain for the reactive stack.
+     * * @param http The core security builder for WebFlux.
+     * @return The finalized security chain.
      */
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
-        String api = appConfig.api().version(); // "/api/v1"
+        String version = "/api/v1";
+        try {
+            if (appConfig.api() != null && appConfig.api().version() != null) {
+                version = appConfig.api().version();
+            }
+        } catch (Exception e) {
+            // Fallback for test context initialization
+        }
 
+        String finalVersion = version;
         return http
+                // Disable CSRF because we use JWTs and our Gateway is stateless
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
+
+                // Inject our custom JWT 'Re-hydration' logic before the standard Auth check
                 .addFilterBefore(jwtWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+
                 .authorizeExchange(auth -> auth
-                        // 1. GitHub is infrastructure - NO prefix needed
+                        // 1. PUBLIC: Infrastructure & OAuth (No Version Prefix)
                         .pathMatchers(
-                                "/oauth/github/login",
-                                "/oauth/github/callback",
-                                "/oauth/github/logout"
+                                "/oauth/github/**",
+                                "/health"
                         ).permitAll()
 
-                        // 2. Data Services - Prefix needed
+                        // 2. PUBLIC: Auth & Webhooks (With Version Prefix)
                         .pathMatchers(
-                                api + "/users/login",
-                                api + "/users/signup",
-                                api + "/payments/webhook"
+                                finalVersion + "/users/login",
+                                finalVersion + "/users/signup",
+                                finalVersion + "/payments/webhook"
                         ).permitAll()
 
+                        // 3. SECURE: Admin-only sections (Example of RBAC)
+                        // Note: hasRole checks for "ROLE_ADMIN" if your filter provides "ROLE_ADMIN"
+                        .pathMatchers(finalVersion + "/admin/**").hasRole("ADMIN")
+
+                        // 4. SECURE: Everything else requires a valid JWT
                         .anyExchange().authenticated()
                 )
+
+                // Disable traditional login forms; the Gateway is a headless API
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .build();

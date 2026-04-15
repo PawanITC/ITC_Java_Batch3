@@ -5,41 +5,39 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
   cloud:
     gateway:
       routes:
-        # Route for actual User Service data (e.g., getting profiles, settings)
-        - id: user-service
+        # Route for general User Service data (e.g., profiles, addresses)
+        # We let the Gateway Controller handle /login and /signup specifically.
+        - id: user-service-data
           uri: ${USER_SERVICE_URL:http://user-service:8080}
           predicates:
-            - Path=/api/v1/users/**
-
+            - Path=/api/v1/users/profile/**, /api/v1/users/settings/**
+          # No StripPrefix needed if User-Service uses @RequestMapping("/api/v1/users")
 
         - id: payment-service
           uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
           predicates:
             - Path=/api/v1/payments/**
           filters:
-            - StripPrefix=1
+            - StripPrefix=2 # Strips /api and /v1 so service gets /payments/**
 
 server:
   port: 8080
 
-# --- Consolidated App Configuration ---
 app:
-  frontend-url: ${FRONTEND_URL}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
   api:
-    version: /api/v1 # This is used by SecurityConfig and WebClient calls
-
-  services:
-    user-service-url: ${USER_SERVICE_URL:http://user-service:8080}
+    version: /api/v1
 
   jwt:
     secret: ${JWT_SECRET}
-    expiration-ms: ${JWT_EXPIRATION_MS}
-    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
-    cookie-name: ${APP_COOKIE_NAME}
-    secure-cookie: ${APP_SECURE_COOKIE}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
+    cookie-name: ${APP_COOKIE_NAME:token}
+    secure-cookie: ${APP_SECURE_COOKIE:false}
 
   github:
     client-id: ${GITHUB_CLIENT_ID}

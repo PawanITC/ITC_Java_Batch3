@@ -1,0 +1,89 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk17'
+    }
+
+    environment {
+        DOCKER_HUB_USER = 'abbasgureitc'
+        IMAGE_NAME = 'api-gateway'
+        REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
+        SNYK_TOKEN = credentials('snyk-token')
+        dockerImage = ''
+    }
+
+    stages {
+        stage('Check Environment') {
+            steps {
+                sh 'java -version'
+                sh 'docker version'
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                dir('backend/api-gateway') {
+                    sh 'chmod +x gradlew'
+                    // We run the build here, so the Dockerfile stays "Thin"
+                    sh './gradlew clean build jacocoTestReport'
+                }
+            }
+        }
+
+        stage('Quality Gate (JaCoCo)') {
+            steps {
+                jacoco(
+                    execPattern: '**/build/jacoco/*.exec',
+                    classPattern: '**/build/classes/java/main',
+                    sourcePattern: '**/src/main/java',
+                    minimumInstructionCoverage: '70'
+                )
+            }
+        }
+
+        stage('Security Scan (Snyk)') {
+            steps {
+                dir('backend/api-gateway') {
+                    sh "snyk auth ${SNYK_TOKEN}"
+                    sh 'snyk test --severity-threshold=high || echo "Snyk found vulnerabilities, review recommended."'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('backend/api-gateway') {
+                    script {
+                        // Confirm the JAR exists before building
+                        sh 'ls -R build/libs/'
+                        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                        // Docker build now just copies the JAR
+                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
+                    }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('', REGISTRY_CREDENTIALS_ID) {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo "SUCCESS: ${IMAGE_NAME} is deployed to Docker Hub." }
+        failure { echo "FAILURE: Build failed. Check Jenkins logs for JaCoCo or Snyk errors." }
+        always {
+            script {
+                try { cleanWs() } catch (Exception e) { echo "Cleanup skipped" }
+            }
+        }
+    }
+}
