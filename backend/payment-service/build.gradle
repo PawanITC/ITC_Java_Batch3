@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.3' // Bumped to 3.4.3 to fix core Spring/Jackson vulnerabilities
+    id 'org.springframework.boot' version '3.5.12' // FIX: Upgrading to 3.5.12 fixes Auth Bypass and Tomcat issues
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
 }
@@ -15,7 +15,7 @@ java {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 17 // Change this from 21 to 17
+    options.release = 17
 }
 
 repositories {
@@ -24,8 +24,8 @@ repositories {
 
 dependencies {
     // === 1. BOILERPLATE & UTILS ===
-    compileOnly 'org.projectlombok:lombok:1.18.30'
-    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     // === 2. CORE SPRING BOOT ===
@@ -38,8 +38,8 @@ dependencies {
     implementation 'org.postgresql:postgresql:42.7.7'
 
     // === 4. MESSAGING & INTEGRATIONS ===
-    implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'com.stripe:stripe-java:28.0.0'
+    implementation 'org.springframework.kafka:spring-kafka:3.3.2' // FIX: Patches Kafka Client SSRF
+    implementation 'com.stripe:stripe-java:28.1.0' // FIX: Maintenance update for security
 
     // === 5. SECURITY & JWT ===
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
@@ -55,17 +55,17 @@ dependencies {
     testImplementation 'com.h2database:h2'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
 
-    // === 7. SNYK ACQUIESCENCE (The Fix) ===
+    // === 7. SNYK ACQUIESCENCE (Manual Force Overrides) ===
     constraints {
-        // Forces all Jackson usage to 2.18.2+ to kill the DoS vulnerabilities
-        implementation('com.fasterxml.jackson.core:jackson-databind:2.18.2')
-        implementation('com.fasterxml.jackson.core:jackson-core:2.18.2')
+        // FIX: Forces Jackson to 2.21.2 to resolve the "Allocation of Resources" (DoS) bugs
+        implementation('com.fasterxml.jackson.core:jackson-databind:2.21.2')
+        implementation('com.fasterxml.jackson.core:jackson-core:2.21.2')
 
-        // Fixes the Rest-Assured transitive vulnerability (CVE-2025-48924)
-        testImplementation('org.apache.commons:commons-lang3:3.17.0')
+        // FIX: Forces commons-lang3 to 3.18.0 to stop the "Uncontrolled Recursion" bug in Rest-Assured
+        testImplementation('org.apache.commons:commons-lang3:3.18.0')
 
-        // Fixes Kafka transitive issues
-        implementation('org.apache.kafka:kafka-clients:3.8.1')
+        // FIX: Forces lz4-java to 1.8.0+ to prevent Out-of-bounds Read in Kafka
+        implementation('org.lz4:lz4-java:1.8.0')
     }
 }
 
@@ -73,12 +73,9 @@ jacocoTestReport {
     dependsOn test
     reports {
         xml.required = true
-        csv.required = false
         html.required = true
     }
 }
-
-// === TASK CONFIGURATION ===
 
 tasks.named('test') {
     useJUnitPlatform()
@@ -86,9 +83,9 @@ tasks.named('test') {
 }
 
 tasks.named('jar') {
-    enabled = false // Ensures we only build the executable bootJar
+    enabled = false
 }
 
 tasks.named('bootJar') {
-    archiveFileName = "payment-service-${version}.jar"
+    archiveFileName = "payment-service.jar"
 }
