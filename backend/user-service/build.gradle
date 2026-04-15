@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.12' // FIX: Upgrading from 3.3.5 to 3.5.12 patches 90% of High/Critical issues
+    id 'org.springframework.boot' version '3.5.12'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
 }
@@ -22,6 +22,32 @@ repositories {
     mavenCentral()
 }
 
+// Move the version rules here - this is much more stable than the constraints block
+dependencyManagement {
+    dependencies {
+        // 1. Jackson Suite
+        dependency 'com.fasterxml.jackson.core:jackson-databind:2.21.2'
+        dependency 'com.fasterxml.jackson.core:jackson-core:2.21.2'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.21.2'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.2'
+        dependency 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.21.2'
+
+        // 2. Netty & Reactor
+        dependency 'io.netty:netty-codec-http:4.1.132.Final'
+        dependency 'io.netty:netty-codec-http2:4.1.132.Final'
+        dependency 'io.netty:netty-handler-proxy:4.1.132.Final'
+        dependency 'io.projectreactor.netty:reactor-netty-http:1.3.3'
+
+        // 3. Tomcat
+        dependency 'org.apache.tomcat.embed:tomcat-embed-core:10.1.53'
+        dependency 'org.apache.tomcat.embed:tomcat-embed-websocket:10.1.53'
+        dependency 'org.apache.tomcat.embed:tomcat-embed-el:10.1.53'
+
+        // 4. Test Vulnerabilities
+        dependency 'net.minidev:json-smart:2.5.2'
+    }
+}
+
 dependencies {
     // --- Core Framework & Web ---
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -31,7 +57,7 @@ dependencies {
 
     // --- Persistence & Database ---
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.postgresql:postgresql:42.7.5'
+    implementation 'org.postgresql:postgresql:42.7.7'
     runtimeOnly 'com.h2database:h2'
 
     // --- Security & Identity ---
@@ -41,10 +67,10 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
     // --- Messaging ---
-    implementation 'org.springframework.kafka:spring-kafka:3.3.2' // FIX: Resolves SSRF vulnerabilities in Kafka clients
+    implementation 'org.springframework.kafka:spring-kafka:3.3.2'
 
     // --- Logic Generation (Lombok) ---
-    compileOnly 'org.projectlombok:lombok:1.18.34' // FIX: Improved compatibility for JDK 17+
+    compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
     testCompileOnly 'org.projectlombok:lombok:1.18.34'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
@@ -56,12 +82,6 @@ dependencies {
     testImplementation 'com.h2database:h2'
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-    // --- Direct Dependency Overrides (The Snyk Killers) ---
-    constraints {
-        // FIX: Forces json-smart to 2.5.2 to kill the Denial of Service (DoS) bug
-        testImplementation('net.minidev:json-smart:2.5.2')
-    }
 }
 
 jacocoTestReport {
@@ -82,5 +102,5 @@ tasks.named('jar') {
 }
 
 tasks.named('bootJar') {
-    archiveFileName = "user-service.jar" // Simplified for easier Docker handling
+    archiveFileName = "user-service.jar"
 }
