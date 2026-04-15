@@ -15,6 +15,10 @@ java {
     }
 }
 
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17 // Change this from 21 to 17
+}
+
 repositories {
     mavenCentral()
 }

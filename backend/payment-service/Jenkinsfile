@@ -22,23 +22,22 @@ pipeline {
         }
 
         stage('Build & Test') {
-                    steps {
-                        dir('backend/payment-service') {
-                            script {
-                                // Dynamically find where Jenkins installed 'jdk17'
-                                def jdkPath = tool name: 'jdk17', type: 'jdk'
+            steps {
+                dir('backend/api-gateway') {
+                    script {
+                        // This must match the name 'jdk17' in Jenkins Global Tool Configuration
+                        def jdkPath = tool name: 'jdk17', type: 'jdk'
 
-                                // Execute with the correct JAVA_HOME environment
-                                withEnv(["JAVA_HOME=${jdkPath}"]) {
-                                    sh 'chmod +x gradlew'
-                                    // Add -Porg.gradle.java.installations.auto-download=false
-                                    // to force it to use the provided JAVA_HOME
-                                    sh './gradlew clean build jacocoTestReport'
-                                }
-                            }
+                        withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
+                            sh 'chmod +x gradlew'
+
+                            // Passing -Dorg.gradle.java.home ensures Gradle uses the Jenkins-provided JDK
+                            sh "./gradlew clean build jacocoTestReport -Dorg.gradle.java.home=${jdkPath}"
                         }
                     }
                 }
+            }
+        }
 
         stage('Quality Gate (JaCoCo)') {
             steps {
