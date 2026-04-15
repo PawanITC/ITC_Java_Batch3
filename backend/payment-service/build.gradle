@@ -10,9 +10,9 @@ version = '0.0.1-SNAPSHOT'
 description = 'payment-service'
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
+//    toolchain {
+//        languageVersion = JavaLanguageVersion.of(17)
+//    }
 }
 
 repositories {
