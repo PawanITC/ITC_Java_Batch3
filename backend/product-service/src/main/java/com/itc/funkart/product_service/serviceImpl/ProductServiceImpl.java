@@ -9,6 +9,7 @@ import com.itc.funkart.product_service.entity.Product;
 import com.itc.funkart.product_service.exceptions.BadRequestException;
 import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
 import com.itc.funkart.product_service.mapper.ProductMapper;
+import com.itc.funkart.product_service.producer.ProductProducer;
 import com.itc.funkart.product_service.repository.CategoryRepository;
 import com.itc.funkart.product_service.repository.ProductRepository;
 import com.itc.funkart.product_service.service.ProductService;
@@ -31,6 +32,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private static final int MAX_IDS = 2000;
+    private final ProductProducer productProducer;
 
     @Override
     @Transactional
@@ -49,6 +51,7 @@ public class ProductServiceImpl implements ProductService {
 
         Product savedProduct = productRepository.save(product);
 
+        productProducer.sendMessage(ProductMapper.toEvent(savedProduct));
         return ProductMapper.toResponse(savedProduct);
     }
 
