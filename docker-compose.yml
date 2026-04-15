@@ -66,10 +66,7 @@ services:
   user-service:
     container_name: user-service
     image: abbasgureitc/user-service:latest
-    build:
-      context: ./backend/user-service
-      dockerfile: Dockerfile
-    pull_policy: if_not_present
+    pull_policy: always # Force pull the latest version Jenkins just pushed
     env_file:
       - ./backend/user-service/.env
     ports:
@@ -86,19 +83,12 @@ services:
       - db-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
     restart: on-failure:3
 
   payment-service:
     container_name: payment-service
     image: abbasgureitc/payment-service:latest
-    build:
-      context: ./backend/payment-service
-      dockerfile: Dockerfile
-    pull_policy: if_not_present
+    pull_policy: always
     env_file:
       - ./backend/payment-service/.env
     ports:
@@ -115,19 +105,12 @@ services:
       - db-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
     restart: on-failure
 
   api-gateway:
     container_name: api-gateway
     image: abbasgureitc/api-gateway:latest
-    build:
-      context: ./backend/api-gateway
-      dockerfile: Dockerfile
-    pull_policy: if_not_present
+    pull_policy: always
     env_file:
       - ./backend/api-gateway/.env
     ports:
@@ -140,12 +123,11 @@ services:
     environment:
       - USER_SERVICE_URL=http://user-service:8080
       - PAYMENT_SERVICE_URL=http://payment-service:8080
+      # --- CRITICAL FIX: Mapping for AppConfig.java ---
+      - APP_SERVICES_USER-SERVICE=http://user-service:8080
+      - APP_SERVICES_PAYMENT-SERVICE=http://payment-service:8080
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
     networks:
       - db-network
 
