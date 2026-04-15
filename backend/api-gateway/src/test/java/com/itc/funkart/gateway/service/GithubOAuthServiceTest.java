@@ -117,6 +117,6 @@ public class GithubOAuthServiceTest {
         // 2. Verify that our service wraps it in an OAuthException
         StepVerifier.create(githubOAuthService.processCode("bad-code"))
                 .expectError(OAuthException.class)
-                .verify();
+                .verify(java.time.Duration.ofSeconds(5));
     }
 }

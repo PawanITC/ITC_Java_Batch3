@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.server.ServerWebExchange;
@@ -16,6 +17,7 @@ import org.springframework.web.server.WebFilterChain;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.reset;
 
 /**
  * Verification of the Gateway Security Perimeter.
@@ -25,6 +27,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class SecurityConfigTest {
 
     @Autowired
@@ -44,11 +47,12 @@ public class SecurityConfigTest {
 
     @BeforeEach
     void setUp() {
-        // Ensure the version matches your URI
+        // Fix 2: Clean the slate for the global filter
+        reset(appConfig, cookieUtil, jwtTokenValidator, jwtWebFilter);
+
         when(appConfig.api().version()).thenReturn("/api/v1");
 
-        // 2. Mock the filter to be a "No-Op" pass-through
-        // Without this, the mock filter returns an empty Mono and the request hangs/fails.
+        // Re-establish the pass-through logic
         when(jwtWebFilter.filter(any(), any()))
                 .thenAnswer(invocation -> {
                     ServerWebExchange exchange = invocation.getArgument(0);

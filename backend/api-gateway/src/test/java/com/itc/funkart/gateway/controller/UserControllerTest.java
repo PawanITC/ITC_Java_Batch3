@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -19,6 +20,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import org.junit.jupiter.api.BeforeEach;
+import static org.mockito.Mockito.reset;
 
 /**
  * Integration tests for {@link UserController} using WireMock to simulate downstream microservices.
@@ -33,6 +36,7 @@ import static org.mockito.Mockito.verify;
 @AutoConfigureWebTestClient
 @AutoConfigureWireMock(port = 0)
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class UserControllerTest {
 
     @Autowired
@@ -51,11 +55,16 @@ public class UserControllerTest {
     @MockBean
     private JwtTokenValidator jwtTokenValidator;
 
+    @BeforeEach
+    void setUp() {
+        // This is the secret sauce for Jenkins stability
+        reset(cookieUtil, jwtTokenValidator);
+    }
+
     /**
      * Reusable JSON response fragment representing a successful identity token
      * returned by the downstream User Service.
      */
-    // UPDATED SUCCESS_JSON
     private final String SUCCESS_JSON = """
     { 
         "data": { 
