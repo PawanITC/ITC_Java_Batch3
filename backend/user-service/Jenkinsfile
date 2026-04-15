@@ -23,15 +23,15 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                dir('backend/api-gateway') {
+                // Ensure this matches your repo structure for User Service
+                dir('backend/user-service') {
                     script {
-                        // This must match the name 'jdk17' in Jenkins Global Tool Configuration
                         def jdkPath = tool name: 'jdk17', type: 'jdk'
-
                         withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
+                            // FIX: Grant execution permission to the wrapper
                             sh 'chmod +x gradlew'
 
-                            // Passing -Dorg.gradle.java.home ensures Gradle uses the Jenkins-provided JDK
+                            // Run the build to generate the JAR in build/libs/
                             sh "./gradlew clean build jacocoTestReport -Dorg.gradle.java.home=${jdkPath}"
                         }
                     }
@@ -57,8 +57,14 @@ pipeline {
         stage('Security Scan (Snyk)') {
             steps {
                 dir('backend/user-service') {
-                    sh "snyk auth ${SNYK_TOKEN}"
-                    sh 'snyk test --severity-threshold=high || echo "Snyk found issues, review required."'
+                    script {
+                        // FIX: Snyk needs this permission to analyze Gradle dependencies
+                        sh 'chmod +x gradlew'
+                        sh "snyk auth ${SNYK_TOKEN}"
+
+                        // Use the threshold but don't kill the build yet if issues are found
+                        sh 'snyk test --severity-threshold=high || echo "Snyk found vulnerabilities in User Service"'
+                    }
                 }
             }
         }

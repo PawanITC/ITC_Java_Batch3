@@ -23,15 +23,12 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                dir('backend/api-gateway') {
+                // CHANGE THIS from 'api-gateway' to 'payment-service'
+                dir('backend/payment-service') {
                     script {
-                        // This must match the name 'jdk17' in Jenkins Global Tool Configuration
                         def jdkPath = tool name: 'jdk17', type: 'jdk'
-
                         withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
                             sh 'chmod +x gradlew'
-
-                            // Passing -Dorg.gradle.java.home ensures Gradle uses the Jenkins-provided JDK
                             sh "./gradlew clean build jacocoTestReport -Dorg.gradle.java.home=${jdkPath}"
                         }
                     }
@@ -55,10 +52,14 @@ pipeline {
             steps {
                 dir('backend/payment-service') {
                     script {
+                        // 1. Give Snyk permission to run the Gradle wrapper
+                        sh 'chmod +x gradlew'
+
+                        // 2. Authenticate
                         sh "snyk auth ${SNYK_TOKEN}"
-                        // Use '--severity-threshold=high' but add '|| true'
-                        // This records the issues in the logs but returns a 'success' code to Jenkins
-                        sh 'snyk test --severity-threshold=high || echo "!!! SECURITY WARNING: High vulnerabilities found. Check Snyk report, but continuing build."'
+
+                        // 3. Run the test (The || true ensures the build doesn't crash if it finds a vulnerability)
+                        sh 'snyk test --severity-threshold=high || echo "Snyk found high-severity issues, check logs."'
                     }
                 }
             }
