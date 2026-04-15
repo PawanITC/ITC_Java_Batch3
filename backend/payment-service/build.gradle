@@ -23,9 +23,7 @@ dependencies {
     // === 1. BOILERPLATE & UTILS ===
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
-    // Jackson version is now managed by Spring Boot 3.4.3 (fixes high-severity CVEs)
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator' // Monitoring & Management
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     // === 2. CORE SPRING BOOT ===
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -34,12 +32,10 @@ dependencies {
 
     // === 3. DATABASE & PERSISTENCE ===
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    // Forced version 42.7.7 to fix "Incorrect Implementation of Authentication Algorithm"
     implementation 'org.postgresql:postgresql:42.7.7'
 
     // === 4. MESSAGING & INTEGRATIONS ===
     implementation 'org.springframework.kafka:spring-kafka'
-    // Updated to 28.0.0 to ensure dependency chain is secure
     implementation 'com.stripe:stripe-java:28.0.0'
 
     // === 5. SECURITY & JWT ===
@@ -47,17 +43,27 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // === 6. TESTING (Unit & Integration) ===
+    // === 6. TESTING ===
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
-    // Required specifically to make .with(jwt()) compile in tests
     testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     testImplementation 'io.rest-assured:rest-assured:5.5.0'
-
-    // In-Memory DB & Static Mocking for 100% coverage
     testImplementation 'com.h2database:h2'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
+
+    // === 7. SNYK ACQUIESCENCE (The Fix) ===
+    constraints {
+        // Forces all Jackson usage to 2.18.2+ to kill the DoS vulnerabilities
+        implementation('com.fasterxml.jackson.core:jackson-databind:2.18.2')
+        implementation('com.fasterxml.jackson.core:jackson-core:2.18.2')
+
+        // Fixes the Rest-Assured transitive vulnerability (CVE-2025-48924)
+        testImplementation('org.apache.commons:commons-lang3:3.17.0')
+
+        // Fixes Kafka transitive issues
+        implementation('org.apache.kafka:kafka-clients:3.8.1')
+    }
 }
 
 jacocoTestReport {
