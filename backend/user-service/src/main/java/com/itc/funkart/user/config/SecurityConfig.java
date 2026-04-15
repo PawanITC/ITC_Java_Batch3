@@ -1,6 +1,7 @@
 package com.itc.funkart.user.config;
 
 import com.itc.funkart.user.security.JwtWebFilter;
+import com.itc.funkart.user.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,8 +24,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * and fully initialized at startup, preventing NullPointerExceptions during
  * filter registration.</p>
  *
- * @author Gemini
- * @version 1.5
+ * @author Abbas
+ * @version 1.3
  */
 @Configuration
 @EnableWebSecurity
@@ -33,9 +34,13 @@ public class SecurityConfig {
 
     /** Configuration properties bean containing API versioning metadata. */
     private final ApiConfig apiConfig;
+    private final JwtService jwtService;
 
     /** Custom JWT authentication filter. */
-    private final JwtWebFilter jwtWebFilter;
+    @Bean
+    public JwtWebFilter jwtWebFilter() {
+        return new JwtWebFilter(jwtService);
+    }
 
     /**
      * Configures the HTTP security filter chain.
@@ -68,7 +73,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtWebFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtWebFilter(), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

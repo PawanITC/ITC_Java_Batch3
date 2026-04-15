@@ -43,6 +43,7 @@ public class JwtService {
                 .issuer("funkart-user-service")
                 .claim("name", user.name())
                 .claim("email", user.email())
+                .claim("role", user.role())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)

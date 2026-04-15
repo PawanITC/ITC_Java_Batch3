@@ -22,8 +22,8 @@ import java.lang.reflect.Method;
  * production and test environments.
  * </p>
  *
- * @author Gemini
- * @version 2.0
+ * @author Abbas
+ * @version 1.2
  */
 @Configuration
 @RequiredArgsConstructor

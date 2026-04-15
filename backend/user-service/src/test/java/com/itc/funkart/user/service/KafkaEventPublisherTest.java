@@ -2,6 +2,9 @@ package com.itc.funkart.user.service;
 
 import com.itc.funkart.user.dto.event.UserLoginEvent;
 import com.itc.funkart.user.dto.event.UserSignupEvent;
+import com.itc.funkart.user.exceptions.InvalidEventException;
+import com.itc.funkart.user.exceptions.MessagingException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -10,20 +13,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link KafkaEventPublisher}.
- * <p>
- * This suite verifies that domain events are correctly routed to the appropriate
- * Kafka topics and that internal exceptions are caught and logged rather than
- * disrupting the calling service's flow.
- * </p>
- *
- * @author Gemini
- * @version 1.0
+ * Verifies that domain events are correctly routed to Kafka topics and that
+ * synchronous vs. asynchronous error handling behaves according to architectural standards.
  */
 @ExtendWith(MockitoExtension.class)
 class KafkaEventPublisherTest {
@@ -37,88 +39,110 @@ class KafkaEventPublisherTest {
     private static final Long TEST_USER_ID = 1L;
     private static final String TEST_EMAIL = "tester@funkart.com";
 
+    /**
+     * Test suite for User Signup events.
+     * Signup events are critical and must be handled synchronously (Strict).
+     */
     @Nested
-    @DisplayName("User Signup Events")
+    @DisplayName("User Signup Events (Strict/Sync)")
     class SignupEvents {
 
-        @Test
-        @DisplayName("SUCCESS: Should publish signup event with correct topic and key")
-        void publishUserSignupEvent_Success() {
-            // Arrange
-            UserSignupEvent event = UserSignupEvent.builder()
+        private UserSignupEvent validEvent;
+
+        @BeforeEach
+        void setUp() {
+            // This "Base Ingredient" is ready for every test
+            validEvent = UserSignupEvent.builder()
                     .userId(TEST_USER_ID)
                     .email(TEST_EMAIL)
-                    .name("Tester")
-                    .timestamp(System.currentTimeMillis())
                     .build();
+        }
 
-            // Act
-            kafkaEventPublisher.publishUserSignupEvent(event);
+        /**
+         * SUCCESS: Verifies that the publisher waits for the broker acknowledgment
+         * before completing the method.
+         */
+        @Test
+        @DisplayName("Should successfully publish and acknowledge signup event")
+        void publishUserSignupEvent_Success() {
+            // Arrange
+            CompletableFuture<SendResult<String, Object>> future =
+                    CompletableFuture.completedFuture(null);
+            when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
+
+            // Act - Using the shared validEvent
+            kafkaEventPublisher.publishUserSignupEvent(validEvent);
 
             // Assert
-            // Verify topic is 'user-signup' and key is the stringified user ID
             verify(kafkaTemplate, times(1))
-                    .send(eq("user-signup"), eq(TEST_USER_ID.toString()), eq(event));
+                    .send(eq("user-signup"), eq(TEST_USER_ID.toString()), eq(validEvent));
+        }
+
+
+        /**
+         * FAILURE: Verifies that a Kafka failure results in a {@link MessagingException},
+         * triggering the GlobalExceptionHandler.
+         */
+        @Test
+        @DisplayName("Should throw MessagingException when Kafka broker is down")
+        void publishUserSignupEvent_InfrastructureFailure() {
+            // Arrange
+            CompletableFuture<SendResult<String, Object>> future = new CompletableFuture<>();
+            future.completeExceptionally(new RuntimeException("Broker Offline"));
+
+            when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
+
+            // Act & Assert
+            assertThrows(MessagingException.class, () ->
+                    kafkaEventPublisher.publishUserSignupEvent(validEvent)
+            );
         }
 
         @Test
-        @DisplayName("FAILURE: Should catch and log exceptions during signup publishing")
-        void publishUserSignupEvent_Failure_HandlesException() {
-            // Arrange
-            UserSignupEvent event = UserSignupEvent.builder()
-                    .userId(TEST_USER_ID)
+        @DisplayName("Should throw InvalidEventException when userId is missing")
+        void publishUserSignupEvent_ValidationFailure() {
+            // Arrange - Create a SPECIFICALLY bad event for this test
+            UserSignupEvent invalidEvent = UserSignupEvent.builder()
+                    .userId(null) // This triggers the Guard Clause
+                    .email(TEST_EMAIL)
                     .build();
 
-            when(kafkaTemplate.send(anyString(), anyString(), any()))
-                    .thenThrow(new RuntimeException("Broker Connection Lost"));
-
             // Act & Assert
-            // Ensure no exception bubbles up to the caller
-            kafkaEventPublisher.publishUserSignupEvent(event);
-
-            verify(kafkaTemplate).send(anyString(), anyString(), any());
+            assertThrows(InvalidEventException.class, () ->
+                    kafkaEventPublisher.publishUserSignupEvent(invalidEvent)
+            );
         }
     }
 
+    /**
+     * Test suite for User Login events.
+     * Login events are informational and are handled asynchronously (Graceful).
+     */
     @Nested
-    @DisplayName("User Login Events")
+    @DisplayName("User Login Events (Graceful/Async)")
     class LoginEvents {
 
+        /**
+         * SUCCESS: Verifies that login events are sent to the correct topic.
+         */
         @Test
-        @DisplayName("SUCCESS: Should publish login event with correct topic and key")
+        @DisplayName("Should publish login event via fire-and-forget mechanism")
         void publishUserLoginEvent_Success() {
             // Arrange
             UserLoginEvent event = UserLoginEvent.builder()
                     .userId(TEST_USER_ID)
-                    .email(TEST_EMAIL)
                     .loginMethod("EMAIL")
-                    .timestamp(System.currentTimeMillis())
                     .build();
+
+            CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(null);
+            when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
             // Act
             kafkaEventPublisher.publishUserLoginEvent(event);
 
             // Assert
-            // Verify topic is 'user-login' and key is the stringified user ID
             verify(kafkaTemplate, times(1))
                     .send(eq("user-login"), eq(TEST_USER_ID.toString()), eq(event));
-        }
-
-        @Test
-        @DisplayName("FAILURE: Should catch and log exceptions during login publishing")
-        void publishUserLoginEvent_Failure_HandlesException() {
-            // Arrange
-            UserLoginEvent event = UserLoginEvent.builder()
-                    .userId(TEST_USER_ID)
-                    .build();
-
-            when(kafkaTemplate.send(anyString(), anyString(), any()))
-                    .thenThrow(new RuntimeException("Partition Unreachable"));
-
-            // Act & Assert
-            kafkaEventPublisher.publishUserLoginEvent(event);
-
-            verify(kafkaTemplate).send(anyString(), anyString(), any());
         }
     }
 }

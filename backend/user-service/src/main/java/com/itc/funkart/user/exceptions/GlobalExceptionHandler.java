@@ -25,99 +25,121 @@ public class GlobalExceptionHandler {
 
     /**
      * Helper method to construct a consistent error response.
-     * * @param status       The HTTP status to return.
+     *
+     * @param status       The HTTP status to return.
      * @param message      The human-readable error message.
+     * @param field        The specific field related to the error (if applicable).
      * @param logStackTrace Whether to log the full stack trace (useful for 5xx errors).
      * @param ex           The intercepted exception.
      * @return A formatted {@link ResponseEntity} containing an {@link ApiResponse}.
      */
-    private ResponseEntity<ApiResponse<Void>> buildErrorResponse(HttpStatus status, String message, boolean logStackTrace, Exception ex) {
+    private ResponseEntity<ApiResponse<Void>> buildErrorResponse(
+            HttpStatus status,
+            String message,
+            String field,
+            boolean logStackTrace,
+            Exception ex) {
+
         if (logStackTrace) {
             log.error("Unhandled exception: {}", ex.getMessage(), ex);
         } else {
             log.warn("{}: {}", status.name(), message);
         }
 
-        ErrorDetails errorDetails = new ErrorDetails(status.name(), message);
+        ErrorDetails errorDetails = new ErrorDetails(status.name(), message, field);
         return ResponseEntity.status(status)
                 .body(new ApiResponse<>(errorDetails));
+    }
+
+    /**
+     * Handles JSR-303 validation errors for {@code @RequestBody} parameters.
+     * Extracts the primary field error to provide specific feedback to the client.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
+        var fieldError = ex.getBindingResult().getFieldError();
+        String field = fieldError != null ? fieldError.getField() : null;
+        String message = fieldError != null ? fieldError.getDefaultMessage() : "Validation failed";
+
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, message, field, false, ex);
     }
 
     /** Handles business logic violations resulting in a 400 Bad Request. */
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(BadRequestException ex) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), false, ex);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null, false, ex);
     }
 
     /** Handles authentication failures. */
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException ex) {
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), false, ex);
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), null, false, ex);
     }
 
     /** Handles missing resource lookups. */
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(NotFoundException ex) {
-        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), false, ex);
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), null, false, ex);
     }
 
     /** Handles data integrity violations like duplicate emails. */
     @ExceptionHandler(AlreadyExistsException.class)
     public ResponseEntity<ApiResponse<Void>> handleConflict(AlreadyExistsException ex) {
-        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), false, ex);
+        // Since this is almost always a duplicate email in this service:
+        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), "email", false, ex);
     }
 
     /** Handles invalid arguments passed to methods. */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), false, ex);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null, false, ex);
     }
 
     /** Handles permission-based failures. */
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ApiResponse<Void>> handleForbidden(ForbiddenException ex) {
-        return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), false, ex);
-    }
-
-    /**
-     * Handles JSR-303 validation errors for {@code @RequestBody} parameters.
-     * Concatenates all field errors into a single string for client clarity.
-     */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
-        String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(err -> err.getField() + ": " + err.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, message, false, ex);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), null, false, ex);
     }
 
     /** Handles JSR-303 validation errors for {@code @RequestParam} or {@code @PathVariable}. */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException ex) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), false, ex);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null, false, ex);
     }
 
     /** Handles failures during JWT parsing or validation. */
     @ExceptionHandler(JwtAuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleJwtAuthentication(JwtAuthenticationException ex) {
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), false, ex);
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), null, false, ex);
     }
 
     /** Handles failures during the external OAuth2 handshake (e.g., GitHub). */
     @ExceptionHandler(OAuthException.class)
     public ResponseEntity<ApiResponse<Void>> handleOAuth(OAuthException ex) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), true, ex);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null, true, ex);
     }
 
     /** Handles Security-level access denials. */
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(Exception ex) {
-        return buildErrorResponse(HttpStatus.FORBIDDEN, "Access denied", false, ex);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "Access denied", null, false, ex);
+    }
+
+    /** Handles failures in the Messaging/Kafka infrastructure. */
+    @ExceptionHandler(MessagingException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMessaging(MessagingException ex) {
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "Messaging system is temporarily unavailable", null, true, ex);
+    }
+
+    /** Handles Invalid events. */
+    @ExceptionHandler(InvalidEventException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidEvent(InvalidEventException ex) {
+        return buildErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), null, false, ex);
     }
 
     /** Fallback handler for all uncaught exceptions. Returns a 500 Internal Server Error. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error", true, ex);
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error", null, true, ex);
     }
 }

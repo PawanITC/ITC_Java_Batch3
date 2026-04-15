@@ -2,6 +2,7 @@ package com.itc.funkart.user.service;
 
 import com.itc.funkart.user.dto.user.LoginRequest;
 import com.itc.funkart.user.dto.user.SignupRequest;
+import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.AlreadyExistsException;
 import com.itc.funkart.user.exceptions.BadRequestException;
@@ -35,9 +36,10 @@ public class UserService {
         checkEmailExists(request.email());
 
         User newUser = User.builder()
+                .name(request.name())
                 .email(request.email())
                 .password(hashPassword(request.password()))
-                .name(request.name())
+                .role(Role.ROLE_USER)
                 .build();
 
         return userRepository.save(newUser);
@@ -147,9 +149,10 @@ public class UserService {
      */
     public User createUser(String email, String password, String name) {
         User user = User.builder()
+                .name(name)
                 .email(email)
                 .password(password)
-                .name(name)
+                .role(Role.ROLE_USER)
                 .build();
         return userRepository.save(user);
     }

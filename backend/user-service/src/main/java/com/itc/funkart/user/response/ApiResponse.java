@@ -24,7 +24,6 @@ public class ApiResponse<T> {
     private T data;              // success payload
     private ErrorDetails error;     // error info
     private String message;      // optional human-friendly message
-    private Boolean success;     // optional, derived from HTTP status
     private Instant timestamp;   // ISO 8601 timestamp
 
     // Constructors
@@ -45,5 +44,4 @@ public class ApiResponse<T> {
         this();
         this.error = error;
     }
-
 }
