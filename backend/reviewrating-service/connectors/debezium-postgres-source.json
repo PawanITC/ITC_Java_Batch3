@@ -1,0 +1,17 @@
+{
+  "name": "reviews-source",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "password",
+    "database.dbname": "reviewsdb",
+    "database.server.name": "review-service",
+    "table.include.list": "public.reviews",
+    "plugin.name": "pgoutput",
+    "slot.name": "reviews_slot",
+    "publication.name": "reviews_pub",
+    "tombstones.on.delete": "false"
+  }
+}

@@ -1,0 +1,90 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk17'
+    }
+
+    environment {
+        DOCKER_HUB_USER = 'abbasgureitc'
+        IMAGE_NAME = 'user-service'
+        REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
+        SNYK_TOKEN = credentials('snyk-token')
+        dockerImage = ''
+    }
+
+    stages {
+        stage('Check Environment') {
+            steps {
+                sh 'java -version'
+                sh 'docker version'
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                dir('backend/user-service') {
+                    sh 'chmod +x gradlew'
+                    sh './gradlew clean build jacocoTestReport'
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                // This is the part that makes it readable on the Jenkins UI
+                jacoco(
+                    execPattern: '**/build/jacoco/*.exec',
+                    classPattern: '**/build/classes/java/main',
+                    sourcePattern: '**/src/main/java',
+                    inclusionPattern: '**/*.class',
+                    // Optional: exclude generated code to keep percentages accurate
+                    exclusionPattern: '**/*Test*.class,**/DTO/*.class',
+                    minimumInstructionCoverage: '70'
+                )
+            }
+        }
+
+        stage('Security Scan (Snyk)') {
+            steps {
+                dir('backend/user-service') {
+                    sh "snyk auth ${SNYK_TOKEN}"
+                    sh 'snyk test --severity-threshold=high || echo "Snyk found issues, review required."'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('backend/user-service') {
+                    script {
+                        sh 'ls -R build/libs/'
+                        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
+                    }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('', REGISTRY_CREDENTIALS_ID) {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo 'SUCCESS: User Service is live on Docker Hub.' }
+        failure { echo 'FAILURE: Check unit tests or Snyk logs.' }
+        always {
+            script {
+                try { cleanWs() } catch (Exception e) { echo "Cleanup skipped" }
+            }
+        }
+    }
+}
