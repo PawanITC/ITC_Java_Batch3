@@ -16,6 +16,9 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       acks: all
       retries: 3
+      properties:
+        # This is what replaces your Java code's 'ADD_TYPE_INFO_HEADERS = false'
+        spring.json.add.type.headers: false
 
 management:
   endpoints:
