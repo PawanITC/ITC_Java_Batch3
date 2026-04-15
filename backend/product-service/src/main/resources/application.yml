@@ -14,18 +14,6 @@ spring:
 
   cache:
     type: redis
-
-#  kafka:
-#    producer:
-#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-#    consumer:
-#      group-id: product-group-v2
-#      auto-offset-reset: earliest
-#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-#      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-#      properties:
-#        spring.json.trusted.packages: com.itc.funkart.product_service.dto.events
   kafka:
     bootstrap-servers: localhost:9092
     producer:
@@ -33,7 +21,7 @@ spring:
       # Use Spring's JSON Serializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
-      group-id: spring-ops-json-group
+      group-id: products-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       # Use Spring's JSON Deserializer
@@ -41,7 +29,8 @@ spring:
       properties:
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         # Critical: Allow the consumer to turn bytes back into this specific class
-        spring.json.trusted.packages: "com.itc.funkart.product_service.dto.events"
+#        spring.json.trusted.packages: "com.itc.funkart.product_service.dto.events"
+        spring.json.trusted.packages: "*"
 server:
   port: 9090
 
@@ -80,4 +69,4 @@ logging:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     org.springframework.kafka: DEBUG
-    org.apache.kafka: WARN
+    org.apache.kafka: DEBUG

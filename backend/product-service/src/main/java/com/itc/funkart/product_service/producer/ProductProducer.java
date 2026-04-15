@@ -15,6 +15,6 @@ public class ProductProducer {
 
     public void sendMessage(ProductEvent event) {
         log.info("Producing event: {}", event);
-        kafkaTemplate.send("product-topic", event);
+        kafkaTemplate.send("products", event);
     }
 }

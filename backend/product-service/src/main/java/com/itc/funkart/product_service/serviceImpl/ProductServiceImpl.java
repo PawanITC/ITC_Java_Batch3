@@ -6,6 +6,7 @@ import com.itc.funkart.product_service.dto.response.ProductResponse;
 import com.itc.funkart.product_service.dto.response.ProductsResponse;
 import com.itc.funkart.product_service.entity.Category;
 import com.itc.funkart.product_service.entity.Product;
+import com.itc.funkart.product_service.enums.ProductEventType;
 import com.itc.funkart.product_service.exceptions.BadRequestException;
 import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
 import com.itc.funkart.product_service.mapper.ProductMapper;
@@ -51,7 +52,7 @@ public class ProductServiceImpl implements ProductService {
 
         Product savedProduct = productRepository.save(product);
 
-        productProducer.sendMessage(ProductMapper.toEvent(savedProduct));
+        productProducer.sendMessage(ProductMapper.toEvent(savedProduct, ProductEventType.CREATE,savedProduct.getId()));
         return ProductMapper.toResponse(savedProduct);
     }
 
@@ -75,6 +76,7 @@ public class ProductServiceImpl implements ProductService {
         if (request.getBrand() != null) product.setBrand(request.getBrand());
 
         productRepository.save(product);
+        productProducer.sendMessage(ProductMapper.toEvent(product, ProductEventType.UPDATE,product.getId()));
         return ProductMapper.toResponse(product);
     }
 
@@ -105,6 +107,7 @@ public class ProductServiceImpl implements ProductService {
             throw new ResourceNotFoundException("Product not found with id: " + id);
         }
         productRepository.deleteById(id);
+        productProducer.sendMessage(ProductMapper.toEvent(null, ProductEventType.DELETE,id));
     }
 
     @Override
