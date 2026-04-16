@@ -12,7 +12,10 @@ spec:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
       command:
-        - /busybox/cat
+        - /bin/sh
+      args:
+        - -c
+        - "sleep 999999"
       tty: true
 '''
             defaultContainer 'jnlp'
