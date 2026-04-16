@@ -10,9 +10,9 @@ spec:
       image: jenkins/inbound-agent
       args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']
     - name: kaniko
-      image: gcr.io/kaniko-project/executor:latest
+      image: gcr.io/kaniko-project/executor:debug
       command:
-        - /bin/sh
+        - /busybox/sh
       args:
         - -c
         - "sleep 999999"
