@@ -12,21 +12,16 @@ spec:
 
     - name: kaniko
       image: gcr.io/kaniko-project/executor:debug
-      command:
-        - /busybox/sh
-      args:
-        - -c
-        - "sleep 999999"
+      command: ["/busybox/sh"]
+      args: ["-c", "sleep 999999"]
       tty: true
 
     - name: kubectl
       image: bitnami/kubectl:latest
-      command:
-        - /bin/sh
-        - -c
-      args:
-        - sleep 999999
+      command: ["sleep", "infinity"]
       tty: true
+
+  restartPolicy: Never
 '''
             defaultContainer 'jnlp'
         }
@@ -76,8 +71,8 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    kubectl version --client
                     kubectl apply -f k8s/
+                    kubectl get pods
                     '''
                 }
             }
