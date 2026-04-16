@@ -50,13 +50,17 @@ class SecurityConfigTest {
     @Test
     @DisplayName("Auth endpoints: Should be public")
     void publicAuth_shouldPassSecurity() {
-        webTestClient.mutateWith(csrf()).post()
+        webTestClient.mutateWith(csrf())
+                .post()
                 .uri("/api/v1/users/login")
                 .exchange()
                 .expectStatus()
                 .value(status -> {
+                    // If we get 401 or 403, Security is the problem.
+                    // If we get 404 (No resource) or 500 (Connection refused),
+                    // Security SUCCEEDED in letting us through the gate.
                     if (status == 401 || status == 403) {
-                        throw new AssertionError("Security blocked the login endpoint!");
+                        throw new AssertionError("Security blocked the request with status: " + status);
                     }
                 });
     }

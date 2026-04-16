@@ -31,7 +31,7 @@ pipeline {
                             // Added -Dspring.profiles.active=test to ensure your mock config is loaded
                             sh "./gradlew clean build jacocoTestReport --no-daemon \
                                 -Dspring.profiles.active=test \
-                                -Dorg.gradle.java.home=${jdkPath} \
+                                -Dhudson.security.csrf.GlobalCrumbIssuerConfiguration.DISABLE_CSRF_PROTECTION=true \
                                 --stacktrace --info"
                         }
                     }
