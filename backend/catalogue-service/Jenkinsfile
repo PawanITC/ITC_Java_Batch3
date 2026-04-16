@@ -22,10 +22,10 @@ spec:
     - name: kubectl
       image: bitnami/kubectl:latest
       command:
-        - sh
-      args:
+        - /bin/sh
         - -c
-        - "sleep 999999"
+      args:
+        - sleep 999999
       tty: true
 '''
             defaultContainer 'jnlp'
@@ -75,7 +75,10 @@ spec:
         stage('Deploy to EKS') {
             steps {
                 container('kubectl') {
-                    sh 'kubectl apply -f k8s/'
+                    sh '''
+                    kubectl version --client
+                    kubectl apply -f k8s/
+                    '''
                 }
             }
         }
