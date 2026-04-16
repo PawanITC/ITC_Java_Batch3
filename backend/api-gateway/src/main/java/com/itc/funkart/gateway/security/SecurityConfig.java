@@ -1,6 +1,5 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.config.AppConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -18,12 +17,10 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 public class SecurityConfig {
 
     private final JwtWebFilter jwtWebFilter;
-    private final String version;
 
 
-    public SecurityConfig(JwtWebFilter jwtWebFilter, AppConfig appConfig) {
+    public SecurityConfig(JwtWebFilter jwtWebFilter) {
         this.jwtWebFilter = jwtWebFilter;
-        this.version = appConfig.api().version();
     }
 
     /**
@@ -40,13 +37,11 @@ public class SecurityConfig {
                 .addFilterBefore(jwtWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .authorizeExchange(auth -> auth
                         .pathMatchers(
+                                "/api/v1/users/login",
+                                "/api/v1/users/signup",
                                 "/oauth/github/**",
                                 "/health",
                                 "/payments/webhook"
-                        ).permitAll()
-                        .pathMatchers(
-                                version + "/users/login",
-                                version + "/users/signup"
                         ).permitAll()
                         .anyExchange().authenticated()
                 )

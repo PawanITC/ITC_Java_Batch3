@@ -13,33 +13,33 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: user-service-data
-          uri: ${USER_SERVICE_URL:http://user-service:8080}
+        - id: user-service
+          uri: ${USER_SERVICE_URL:https://user-service:8080}
           predicates:
-            - Path=/api/v1/users/profile/**, /api/v1/users/settings/**
+            - Path=/api/v1/users/**
 
         - id: payment-service
-          uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+          uri: ${PAYMENT_SERVICE_URL:https://payment-service:8080}
           predicates:
             - Path=/api/v1/payments/**
-          filters:
-            - StripPrefix=2
+
 
 server:
   port: 8080
 
 app:
-  # --- MISSING SECTION ADDED BELOW ---
+  # --- App config ---
   services:
-    user-service: ${USER_SERVICE_URL:http://user-service:8080}
-    payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
-    product-service: ${PRODUCT_SERVICE_URL:http://product-service:8080}
-    order-service: ${ORDER_SERVICE_URL:http://order-service:8080}
-    catalogue-service: ${CATALOGUE_SERVICE_URL:http://catalogue-service:8080}
-    notification-service: ${NOTIFICATION_SERVICE_URL:http://notification-service:8080}
-    reviewrating-service: ${REVIEWRATING_SERVICE_URL:http://reviewrating-service:8080}
+    user-service: ${USER_SERVICE_URL:https://user-service:8080}
+    payment-service: ${PAYMENT_SERVICE_URL:https://payment-service:8080}
+    product-service: ${PRODUCT_SERVICE_URL:https://product-service:8080}
+    order-service: ${ORDER_SERVICE_URL:https://order-service:8080}
+    catalogue-service: ${CATALOGUE_SERVICE_URL:https://catalogue-service:8080}
+    notification-service: ${NOTIFICATION_SERVICE_URL:https://notification-service:8080}
+    reviewrating-service: ${REVIEWRATING_SERVICE_URL:https://reviewrating-service:8080}
 
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+
   api:
     version: /api/v1
 
