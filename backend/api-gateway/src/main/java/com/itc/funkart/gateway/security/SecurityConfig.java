@@ -64,7 +64,7 @@ public class SecurityConfig {
                                 "/api/v1/users/signup",
                                 "/oauth/github/**",
                                 "/health",
-                                "/payments/webhook"
+                                "/payments/webhook/**"
                         ).permitAll()
 
                         // Everything else requires valid JWT

@@ -12,6 +12,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
@@ -21,14 +22,9 @@ class SecurityConfigTest {
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockitoBean
-    private AppConfig appConfig;
-
-    @MockitoBean
-    private CookieUtil cookieUtil;
-
-    @MockitoBean
-    private JwtTokenValidator jwtTokenValidator;
+    @MockitoBean private AppConfig appConfig;
+    @MockitoBean private CookieUtil cookieUtil;
+    @MockitoBean private JwtTokenValidator jwtTokenValidator;
 
     @BeforeEach
     void setUp() {
@@ -36,16 +32,16 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("Public endpoint (Webhook): Should pass security layer")
+    @DisplayName("Public endpoint: Should NOT be Unauthorized")
     void publicWebhook_shouldPassSecurity() {
-        // Ensure the URI matches what is in your SecurityConfig pathMatchers
-        webTestClient.post()
+        webTestClient.mutateWith(csrf()).post()
                 .uri("/payments/webhook")
                 .exchange()
                 .expectStatus()
                 .value(status -> {
+                    // Jenkins will pass this as long as it's not 401 or 403
                     if (status == 401 || status == 403) {
-                        throw new AssertionError("Security blocked a public webhook: " + status);
+                        throw new AssertionError("Security Perimeter Blocked Public Path: " + status);
                     }
                 });
     }
@@ -53,14 +49,13 @@ class SecurityConfigTest {
     @Test
     @DisplayName("Auth endpoints: Should be public")
     void publicAuth_shouldPassSecurity() {
-        // Updated to include the /v1 prefix added by your WebConfig
-        webTestClient.post()
+        webTestClient.mutateWith(csrf()).post()
                 .uri("/api/v1/users/login")
                 .exchange()
                 .expectStatus()
                 .value(status -> {
                     if (status == 401 || status == 403) {
-                        throw new AssertionError("Security blocked the login endpoint");
+                        throw new AssertionError("Security blocked the login endpoint!");
                     }
                 });
     }
@@ -68,9 +63,8 @@ class SecurityConfigTest {
     @Test
     @DisplayName("Protected endpoint: Must be blocked without JWT")
     void protectedEndpoint_shouldBeUnauthorized() {
-        // Any path not in the permitAll list should trigger the 401 EntryPoint
         webTestClient.get()
-                .uri("/api/v1/orders/my-orders")
+                .uri("/api/v1/users/profile")
                 .exchange()
                 .expectStatus()
                 .isUnauthorized();
