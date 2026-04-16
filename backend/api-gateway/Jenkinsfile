@@ -28,7 +28,11 @@ pipeline {
                         def jdkPath = tool name: 'jdk17', type: 'jdk'
                         withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
                             sh 'chmod +x gradlew'
-                            sh "./gradlew clean build jacocoTestReport --no-daemon -Dorg.gradle.java.home=${jdkPath} --stacktrace --info"
+                            // Added -Dspring.profiles.active=test to ensure your mock config is loaded
+                            sh "./gradlew clean build jacocoTestReport --no-daemon \
+                                -Dspring.profiles.active=test \
+                                -Dorg.gradle.java.home=${jdkPath} \
+                                --stacktrace --info"
                         }
                     }
                 }

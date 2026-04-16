@@ -32,16 +32,17 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("Public endpoint: Should NOT be Unauthorized")
+    @DisplayName("Public endpoint (Webhook): Should pass security layer")
     void publicWebhook_shouldPassSecurity() {
         webTestClient.mutateWith(csrf()).post()
                 .uri("/payments/webhook")
                 .exchange()
                 .expectStatus()
                 .value(status -> {
-                    // Jenkins will pass this as long as it's not 401 or 403
+                    // If it's 404 or 500, security let us through.
+                    // We ONLY fail if it's 401 (Unauthorized) or 403 (Forbidden).
                     if (status == 401 || status == 403) {
-                        throw new AssertionError("Security Perimeter Blocked Public Path: " + status);
+                        throw new AssertionError("Security blocked the webhook: " + status);
                     }
                 });
     }
