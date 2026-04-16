@@ -17,67 +17,31 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
+    // 1. This is the bean SecurityConfig is looking for!
     @Bean
-    public CorsWebFilter corsWebFilter(AppConfig appConfig) {
-
+    public UrlBasedCorsConfigurationSource corsConfigurationSource(AppConfig appConfig) {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ---------------------------
-        // Origins (single source)
-        // ---------------------------
         String frontend = appConfig.frontendUrl();
-
         if (frontend != null && !frontend.isBlank()) {
             config.addAllowedOrigin(frontend);
         }
-
-        // Dev fallback ONLY (keep minimal and explicit)
         config.addAllowedOrigin("http://localhost:5173");
 
-        // If you still need legacy support, keep ONE:
-        // config.addAllowedOrigin("http://localhost:3000");
-
-        // ---------------------------
-        // Critical for JWT cookies
-        // ---------------------------
         config.setAllowCredentials(true);
-
-        // ---------------------------
-        // Headers (be explicit)
-        // ---------------------------
-        config.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin",
-                "X-Requested-With"
-        ));
-
-        // ---------------------------
-        // Methods (explicit is safer than "*")
-        // ---------------------------
-        config.setAllowedMethods(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "DELETE",
-                "PATCH",
-                "OPTIONS"
-        ));
-
-        // ---------------------------
-        // Exposed headers (frontend-readable only)
-        // ---------------------------
-        config.setExposedHeaders(List.of(
-                "Authorization",
-                "Set-Cookie"
-        ));
-
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+        return source;
+    }
 
+    // 2. Wrap it in a filter so the rest of the app still uses it
+    @Bean
+    public CorsWebFilter corsWebFilter(UrlBasedCorsConfigurationSource source) {
         return new CorsWebFilter(source);
     }
 }

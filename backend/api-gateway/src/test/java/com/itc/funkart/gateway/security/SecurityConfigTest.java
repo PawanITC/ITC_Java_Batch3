@@ -7,22 +7,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static org.mockito.Mockito.when;
 
-/**
- * Verification of the Gateway Security Perimeter.
- * Ensures public endpoints (webhooks, auth) are accessible without tokens
- * and protected endpoints (user data, etc.) are strictly guarded.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 @ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class SecurityConfigTest {
 
     @Autowired
@@ -42,35 +35,42 @@ class SecurityConfigTest {
         when(appConfig.frontendUrl()).thenReturn("http://localhost:5173");
     }
 
-    /**
-     * Verifies that public endpoints are NOT blocked by security filters.
-     * We only assert that the request is NOT rejected with 401/403.
-     * Any other status (404/405) means it passed security layer successfully.
-     */
     @Test
-    @DisplayName("Public endpoint should not be blocked by security")
-    void whenAccessPublicEndpoint_thenNotUnauthorizedOrForbidden() {
-
+    @DisplayName("Public endpoint (Webhook): Should pass security layer")
+    void publicWebhook_shouldPassSecurity() {
+        // Ensure the URI matches what is in your SecurityConfig pathMatchers
         webTestClient.post()
                 .uri("/payments/webhook")
                 .exchange()
                 .expectStatus()
                 .value(status -> {
                     if (status == 401 || status == 403) {
-                        throw new AssertionError("Public endpoint incorrectly blocked by security");
+                        throw new AssertionError("Security blocked a public webhook: " + status);
                     }
                 });
     }
 
-    /**
-     * Ensures protected endpoints require authentication.
-     */
     @Test
-    @DisplayName("Protected endpoint should require authentication")
-    void whenAccessProtectedEndpoint_thenUnauthorized() {
+    @DisplayName("Auth endpoints: Should be public")
+    void publicAuth_shouldPassSecurity() {
+        // Updated to include the /v1 prefix added by your WebConfig
+        webTestClient.post()
+                .uri("/api/v1/users/login")
+                .exchange()
+                .expectStatus()
+                .value(status -> {
+                    if (status == 401 || status == 403) {
+                        throw new AssertionError("Security blocked the login endpoint");
+                    }
+                });
+    }
 
+    @Test
+    @DisplayName("Protected endpoint: Must be blocked without JWT")
+    void protectedEndpoint_shouldBeUnauthorized() {
+        // Any path not in the permitAll list should trigger the 401 EntryPoint
         webTestClient.get()
-                .uri("/api/v1/users/profile")
+                .uri("/api/v1/orders/my-orders")
                 .exchange()
                 .expectStatus()
                 .isUnauthorized();
