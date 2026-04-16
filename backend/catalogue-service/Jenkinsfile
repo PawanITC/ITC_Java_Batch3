@@ -9,10 +9,20 @@ spec:
     - name: jnlp
       image: jenkins/inbound-agent:jdk17
       args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']
+
     - name: kaniko
       image: gcr.io/kaniko-project/executor:debug
       command:
         - /busybox/sh
+      args:
+        - -c
+        - "sleep 999999"
+      tty: true
+
+    - name: kubectl
+      image: bitnami/kubectl:latest
+      command:
+        - sh
       args:
         - -c
         - "sleep 999999"
@@ -64,7 +74,9 @@ spec:
 
         stage('Deploy to EKS') {
             steps {
-                sh 'kubectl apply -f k8s/'
+                container('kubectl') {
+                    sh 'kubectl apply -f k8s/'
+                }
             }
         }
     }
