@@ -11,6 +11,8 @@ spec:
       args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
+      command:
+        - /busybox/cat
       tty: true
 '''
             defaultContainer 'jnlp'
