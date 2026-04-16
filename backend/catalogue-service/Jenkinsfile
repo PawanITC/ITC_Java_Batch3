@@ -13,6 +13,7 @@ spec:
       image: gcr.io/kaniko-project/executor:latest
       tty: true
 '''
+            defaultContainer 'jnlp'
         }
     }
 
