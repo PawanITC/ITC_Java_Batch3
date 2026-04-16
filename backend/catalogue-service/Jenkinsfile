@@ -18,7 +18,8 @@ spec:
 
     - name: kubectl
       image: bitnami/kubectl:latest
-      command: ["sleep", "infinity"]
+      command: ["/bin/sh"]
+      args: ["-c", "sleep infinity"]
       tty: true
 
   restartPolicy: Never
@@ -59,7 +60,7 @@ spec:
                     sh '''
                     /kaniko/executor \
                       --dockerfile=backend/catalogue-service/Dockerfile \
-                      --context=dir://backend/catalogue-service \
+                      --context=dir://. \
                       --destination=666127452756.dkr.ecr.eu-west-2.amazonaws.com/catalogue-service:latest \
                       --verbosity=info
                     '''
@@ -71,7 +72,7 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    kubectl apply -f k8s/
+                    kubectl apply -f backend/catalogue-service/k8s/
                     kubectl get pods
                     '''
                 }
