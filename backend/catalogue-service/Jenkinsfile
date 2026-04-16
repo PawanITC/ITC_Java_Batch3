@@ -1,5 +1,19 @@
 pipeline {
-    agent any
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:latest
+      command:
+        - cat
+      tty: true
+'''
+        }
+    }
 
     stages {
 
@@ -27,18 +41,17 @@ pipeline {
             }
         }
 
-        stage('Build & Push Image (ECR)') {
+        stage('Build & Push Image (Kaniko)') {
             steps {
-                sh '''
-                cd backend/catalogue-service
-
-                aws ecr get-login-password --region eu-west-2 \
-                | docker login --username AWS --password-stdin 666127452756.dkr.ecr.eu-west-2.amazonaws.com
-
-                docker build -t catalogue-service .
-                docker tag catalogue-service 666127452756.dkr.ecr.eu-west-2.amazonaws.com/catalogue-service:latest
-                docker push 666127452756.dkr.ecr.eu-west-2.amazonaws.com/catalogue-service:latest
-                '''
+                container('kaniko') {
+                    sh '''
+                    /kaniko/executor \
+                      --dockerfile=backend/catalogue-service/Dockerfile \
+                      --context=dir://backend/catalogue-service \
+                      --destination=666127452756.dkr.ecr.eu-west-2.amazonaws.com/catalogue-service:latest \
+                      --verbosity=info
+                    '''
+                }
             }
         }
 
