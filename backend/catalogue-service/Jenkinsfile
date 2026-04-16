@@ -7,7 +7,7 @@ kind: Pod
 spec:
   containers:
     - name: jnlp
-      image: jenkins/inbound-agent
+      image: jenkins/inbound-agent:jdk17
       args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']
     - name: kaniko
       image: gcr.io/kaniko-project/executor:debug
