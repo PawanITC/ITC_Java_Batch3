@@ -27,11 +27,15 @@ public class JwtTokenValidator {
     private final SecretKey key;
 
     public JwtTokenValidator(AppConfig appConfig) {
+        if (appConfig == null || appConfig.jwt() == null || appConfig.jwt().secret() == null) {
+            throw new IllegalStateException("JWT config missing");
+        }
+
         try {
             byte[] keyBytes = Base64.getDecoder().decode(appConfig.jwt().secret());
             this.key = Keys.hmacShaKeyFor(keyBytes);
         } catch (IllegalArgumentException e) {
-            throw new IllegalStateException("JWT Secret is not a valid Base64 string. Check your configuration.", e);
+            throw new IllegalStateException("JWT Secret is not a valid Base64 string", e);
         }
     }
 

@@ -27,20 +27,21 @@ public class SecurityConfig {
     /**
      * Configures the Security Web Filter Chain for the reactive stack.
      * * @param http The core security builder for WebFlux.
+     *
      * @return The finalized security chain.
      */
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
-         return http
+        return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
-                 .exceptionHandling(ex -> ex
-                         .authenticationEntryPoint((exchange, ex2) -> {
-                             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                             return exchange.getResponse().setComplete();
-                         })
-                 )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((exchange, ex2) -> {
+                            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                            return exchange.getResponse().setComplete();
+                        })
+                )
                 .addFilterBefore(jwtWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .authorizeExchange(auth -> auth
                         .pathMatchers(

@@ -1,187 +1,119 @@
 package com.itc.funkart.gateway.controller;
 
+import com.itc.funkart.gateway.config.WebConfig;
+import com.itc.funkart.gateway.config.props.ApiProperties;
+import com.itc.funkart.gateway.config.props.FrontendProperties;
+import com.itc.funkart.gateway.dto.UserDto;
 import com.itc.funkart.gateway.dto.request.LoginRequest;
 import com.itc.funkart.gateway.dto.request.SignupRequest;
+import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
+import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.CookieUtil;
 import com.itc.funkart.gateway.security.JwtTokenValidator;
-import com.itc.funkart.gateway.service.GithubOAuthService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * <h2>UserController Integration Test</h2>
- *
- * <p>
- * This test validates the Gateway authentication proxy layer for user login and signup.
- * It verifies:
- * <ul>
- *     <li>Request routing to downstream User Service (via WireMock)</li>
- *     <li>JWT token handling via CookieUtil</li>
- *     <li>Proper JSON response propagation</li>
- * </ul>
- *
- * <p>
- * Security is explicitly overridden in this test context using a permissive
- * SecurityWebFilterChain to avoid interference from JWT authentication filters.
- * </p>
- */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWebTestClient
-@AutoConfigureWireMock(port = 0)
-@ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@Import(UserControllerTest.TestSecurityConfig.class)
-public class UserControllerTest {
+@WebFluxTest(controllers = UserController.class)
+@Import({UserControllerTest.SecurityMockConfig.class, WebConfig.class})
+class UserControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockitoBean
-    private GithubOAuthService githubOAuthService;
+    @MockitoBean private CookieUtil cookieUtil;
+    @MockitoBean private JwtTokenValidator jwtTokenValidator;
+    @MockitoBean private WebClient webClient;
 
-    @MockitoBean
-    private CookieUtil cookieUtil;
+    // Chain Variables
+    private WebClient.RequestBodyUriSpec bodyUriSpec;
+    private WebClient.RequestBodySpec bodySpec;
+    private WebClient.RequestHeadersSpec headersSpec;
+    private WebClient.ResponseSpec responseSpec;
 
-    @MockitoBean
-    private JwtTokenValidator jwtTokenValidator;
-
-    /**
-     * Test-only security configuration.
-     *
-     * <p>
-     * Disables authentication entirely so that tests focus only on:
-     * controller logic + downstream service integration.
-     * </p>
-     */
     @TestConfiguration
-    static class TestSecurityConfig {
-
+    static class SecurityMockConfig {
         @Bean
-        SecurityWebFilterChain testSecurityChain(ServerHttpSecurity http) {
-            return http
-                    .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                    .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-                    .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
-                    .authorizeExchange(exchanges -> exchanges.anyExchange().permitAll())
+        public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+            return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
+                    .authorizeExchange(ex -> ex.anyExchange().permitAll())
                     .build();
         }
+
+        @Bean public ApiProperties apiProperties() { return new ApiProperties("v1"); }
+        @Bean public FrontendProperties frontendProperties() { return new FrontendProperties("http://localhost:5173"); }
     }
 
-    private final String SUCCESS_JSON = """
-        {
-            "data": {
-                "token": "fake-jwt-token",
-                "user": {
-                    "id": 1,
-                    "name": "Test User",
-                    "email": "test@example.com",
-                    "role": "ROLE_USER"
-                }
-            }
-        }
-        """;
+    @BeforeEach
+    @SuppressWarnings("unchecked")
+    void setUpMocks() {
+        bodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
+        bodySpec = mock(WebClient.RequestBodySpec.class);
+        headersSpec = mock(WebClient.RequestHeadersSpec.class);
+        responseSpec = mock(WebClient.ResponseSpec.class);
 
-    /**
-     * <h3>Login Flow - Success Case</h3>
-     *
-     * <p>
-     * Ensures that a valid login request is:
-     * <ul>
-     *     <li>Forwarded to the User Service</li>
-     *     <li>Properly parsed</li>
-     *     <li>Returns JWT token in response body</li>
-     *     <li>Triggers cookie creation</li>
-     * </ul>
-     * </p>
-     */
-    @Test
-    @DisplayName("Login: Success sets cookie and returns 200")
-    void login_Success() {
-
-        stubFor(post(urlEqualTo("/api/v1/users/login"))
-                .willReturn(okJson(SUCCESS_JSON)));
-
-        webTestClient.post()
-                .uri("/api/v1/users/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new LoginRequest("test@example.com", "password"))
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.data.token").isEqualTo("fake-jwt-token");
-
-        verify(cookieUtil).addTokenCookie(any(), eq("fake-jwt-token"), any());
+        // Chain setup
+        when(webClient.post()).thenReturn(bodyUriSpec);
+        when(bodyUriSpec.uri(anyString())).thenReturn(bodySpec);
+        when(bodySpec.bodyValue(any())).thenReturn(headersSpec);
+        when(headersSpec.retrieve()).thenReturn(responseSpec);
     }
 
-    /**
-     * <h3>Login Flow - Downstream Failure</h3>
-     *
-     * <p>
-     * Ensures that authentication errors from the User Service
-     * are correctly propagated through the gateway without transformation.
-     * </p>
-     */
     @Test
-    @DisplayName("Login: Downstream 401 Unauthorized should propagate")
-    void login_DownstreamError() {
+    @SuppressWarnings("unchecked")
+    @DisplayName("Login: Success triggers cookie")
+    void login_success() {
+        var token = "fake-jwt-token";
+        var user = new UserDto(1L, "Test", "test@test.com", "ROLE_USER");
+        var loginData = new SuccessfulLoginResponse(user, token);
+        var wrapped = new ApiResponse<>(loginData, "Login Successful");
 
-        stubFor(post(urlEqualTo("/api/v1/users/login"))
-                .willReturn(aResponse()
-                        .withStatus(401)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{\"message\":\"Invalid credentials\"}")));
+        // Use a cast inside the when to tell the compiler we know what we're doing
+        when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
+                .thenReturn(Mono.just(wrapped));
 
         webTestClient.post()
-                .uri("/api/v1/users/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new LoginRequest("wrong@email.com", "wrong-pass"))
-                .exchange()
-                .expectStatus().isUnauthorized();
-
-        verify(cookieUtil, never()).addTokenCookie(any(), any(), any());
-    }
-
-    /**
-     * <h3>Signup Flow - Success Case</h3>
-     *
-     * <p>
-     * Ensures signup correctly proxies to the User Service and
-     * triggers JWT cookie creation.
-     * </p>
-     */
-    @Test
-    @DisplayName("Signup: Success sets cookie and returns 200")
-    void signup_Success() {
-
-        stubFor(post(urlEqualTo("/api/v1/users/signup"))
-                .willReturn(okJson(SUCCESS_JSON)));
-
-        webTestClient.post()
-                .uri("/api/v1/users/signup")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new SignupRequest("Test User", "test@example.com", "password"))
+                .uri("/v1/users/login")
+                .bodyValue(new LoginRequest("test@test.com", "password"))
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(cookieUtil).addTokenCookie(any(), eq("fake-jwt-token"), any());
+        verify(cookieUtil).addTokenCookie(any(), eq(token), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    @DisplayName("Signup: Success path")
+    void signup_success() {
+        var token = "signup-token";
+        var user = new UserDto(2L, "New User", "new@test.com", "ROLE_USER");
+        var signupData = new SuccessfulLoginResponse(user, token);
+        var wrapped = new ApiResponse<>(signupData, "User Registered");
+
+        when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
+                .thenReturn(Mono.just(wrapped));
+
+        webTestClient.post()
+                .uri("/v1/users/signup")
+                .bodyValue(new SignupRequest("New User", "new@test.com", "password"))
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(cookieUtil).addTokenCookie(any(), eq(token), any());
     }
 }

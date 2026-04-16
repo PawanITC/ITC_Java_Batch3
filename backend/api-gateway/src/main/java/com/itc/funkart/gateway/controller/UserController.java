@@ -1,6 +1,5 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.dto.request.LoginRequest;
 import com.itc.funkart.gateway.dto.request.SignupRequest;
 import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
@@ -24,13 +23,11 @@ public class UserController {
 
     private final WebClient webClient;
     private final CookieUtil cookieUtil;
-    private final String userBaseUri;
 
-    public UserController(WebClient webClient, CookieUtil cookieUtil, AppConfig appConfig) {
+    public UserController(WebClient webClient,
+                          CookieUtil cookieUtil) {
         this.webClient = webClient;
         this.cookieUtil = cookieUtil;
-        // Dynamically build the path based on version config
-        this.userBaseUri = appConfig.api().version() + "/users";
     }
 
     @PostMapping("/login")
@@ -38,7 +35,7 @@ public class UserController {
             @RequestBody LoginRequest request, ServerWebExchange exchange) {
 
         return webClient.post()
-                .uri(userBaseUri + "/login")
+                .uri("/users/login")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {})
@@ -51,7 +48,7 @@ public class UserController {
             @RequestBody SignupRequest request, ServerWebExchange exchange) {
 
         return webClient.post()
-                .uri(userBaseUri + "/signup")
+                .uri("/users/signup")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {})

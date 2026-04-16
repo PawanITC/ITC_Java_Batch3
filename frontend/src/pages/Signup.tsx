@@ -29,7 +29,8 @@ export default function Signup() {
             const res = await fetch("/api/v1/users/signup", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
                 },
                 credentials: "include",
                 body: JSON.stringify(formData)
@@ -38,7 +39,7 @@ export default function Signup() {
             const body = await res.json();
 
             if (!res.ok) {
-                setError(body.message || "Signup failed");
+                setError(body?.message ?? "Signup failed");
                 return;
             }
 

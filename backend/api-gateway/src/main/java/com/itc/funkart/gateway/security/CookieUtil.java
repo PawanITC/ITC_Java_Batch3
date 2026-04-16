@@ -1,7 +1,6 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.config.AppConfig;
-import lombok.Getter;
+import com.itc.funkart.gateway.config.JwtCookieConfig;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -15,15 +14,10 @@ import java.time.Duration;
 @Component
 public class CookieUtil {
 
-    @Getter
-    private final String cookieName;
-    private final boolean secure;
-    private final int defaultMaxAgeSeconds;
+    private final JwtCookieConfig config;
 
-    public CookieUtil(AppConfig appConfig) {
-        this.cookieName = appConfig.jwt().cookieName();
-        this.secure = appConfig.jwt().secureCookie();
-        this.defaultMaxAgeSeconds = appConfig.jwt().cookieMaxAgeSeconds();
+    public CookieUtil(JwtCookieConfig config) {
+        this.config = config;
     }
 
     /**
@@ -32,32 +26,46 @@ public class CookieUtil {
      * talking to Backend on AWS), but it <i>must</i> be paired with the <b>Secure</b> flag.</p>
      */
     public void addTokenCookie(ServerWebExchange exchange, String token, Integer maxAgeSeconds) {
-        int age = (maxAgeSeconds != null) ? maxAgeSeconds : defaultMaxAgeSeconds;
+
+        int age = (maxAgeSeconds != null)
+                ? maxAgeSeconds
+                : config.cookieMaxAgeSeconds();
 
         ResponseCookie cookie = ResponseCookie
-                .from(cookieName, token)
-                .httpOnly(true) // Crucial: JS cannot touch this cookie
-                .secure(secure) // Only sent over HTTPS
+                .from(config.cookieName(), token)
+                .httpOnly(true)
+                .secure(config.secureCookie())
                 .path("/")
                 .maxAge(Duration.ofSeconds(age))
-                // If secure (HTTPS), use 'None' for cross-domain. Otherwise, 'Lax' for local dev.
-                .sameSite(secure ? "None" : "Lax")
+                .sameSite(config.secureCookie() ? "None" : "Lax")
                 .build();
 
         exchange.getResponse().addCookie(cookie);
     }
 
     /**
+     * Method to extract token.
+     */
+    public String extractToken(ServerWebExchange exchange) {
+        var cookie = exchange.getRequest()
+                .getCookies()
+                .getFirst(config.cookieName());
+
+        return (cookie != null) ? cookie.getValue() : null;
+    }
+
+    /**
      * Instructs the browser to delete the session cookie immediately.
      */
     public void clearTokenCookie(ServerWebExchange exchange) {
+
         ResponseCookie cookie = ResponseCookie
-                .from(cookieName, "")
+                .from(config.cookieName(), "")
                 .httpOnly(true)
-                .secure(secure)
+                .secure(config.secureCookie())
                 .path("/")
-                .maxAge(Duration.ZERO) // Expires the cookie instantly
-                .sameSite(secure ? "None" : "Lax")
+                .maxAge(Duration.ZERO)
+                .sameSite(config.secureCookie() ? "None" : "Lax")
                 .build();
 
         exchange.getResponse().addCookie(cookie);

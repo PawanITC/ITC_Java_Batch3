@@ -1,5 +1,6 @@
 package com.itc.funkart.gateway.config;
 
+import com.itc.funkart.gateway.config.props.ApiProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerTypePredicate;
@@ -14,16 +15,16 @@ import org.springframework.web.reactive.config.WebFluxConfigurer;
 @Configuration
 public class WebConfig implements WebFluxConfigurer {
 
-    private final AppConfig appConfig;
+    private final ApiProperties apiProperties;
 
-    public WebConfig(AppConfig appConfig) {
-        this.appConfig = appConfig;
+    public WebConfig(ApiProperties apiProperties) {
+        this.apiProperties = apiProperties;
     }
 
     @Override
     public void configurePathMatching(PathMatchConfigurer configurer) {
 
-        String prefix = appConfig.api().version();
+        String prefix = apiProperties.version();
 
         configurer.addPathPrefix(prefix,
                 HandlerTypePredicate.forAnnotation(RestController.class)

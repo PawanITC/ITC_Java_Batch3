@@ -61,9 +61,10 @@ public class JwtWebFilter implements WebFilter {
 
             // 2. Convert role to Spring Authority (e.g., "ROLE_USER")
             // Note: Spring expects "ROLE_" prefix for hasRole() checks
-            List<SimpleGrantedAuthority> authorities = (role != null)
-                    ? List.of(new SimpleGrantedAuthority(role))
-                    : List.of();
+            List<SimpleGrantedAuthority> authorities =
+                    (role != null && !role.isBlank())
+                            ? List.of(new SimpleGrantedAuthority(role))
+                            : List.of();
 
             // 3. Create the Auth object with authorities
             UsernamePasswordAuthenticationToken auth =
@@ -85,20 +86,17 @@ public class JwtWebFilter implements WebFilter {
     }
 
     private String extractToken(ServerWebExchange exchange) {
-        // 1. Priority: Check Authorization header
-        List<String> authHeaders = exchange.getRequest().getHeaders().get("Authorization");
-        if (authHeaders != null && !authHeaders.isEmpty()) {
-            String header = authHeaders.get(0);
-            if (header.startsWith("Bearer ")) {
-                return header.substring(7);
-            }
+
+        // 1. Authorization header
+        String auth = exchange.getRequest().getHeaders().getFirst("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            return auth.substring(7);
         }
 
-        // 2. Fallback: Check secure HttpOnly cookie
-        String cookieName = cookieUtil.getCookieName();
-        var cookie = exchange.getRequest().getCookies().getFirst(cookieName);
-        if (cookie != null) {
-            return cookie.getValue();
+        // 2. Cookie fallback (delegated properly)
+        String cookieToken = cookieUtil.extractToken(exchange);
+        if (cookieToken != null && !cookieToken.isBlank()) {
+            return cookieToken;
         }
 
         return null;

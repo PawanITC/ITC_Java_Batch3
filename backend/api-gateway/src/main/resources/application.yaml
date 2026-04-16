@@ -1,67 +1,69 @@
 spring:
   application:
     name: api-gateway
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
-  webflux:
-    # Use the variable defined lower down in the file
-    base-path: ${app.api.version}
 
   cloud:
     gateway:
       routes:
         - id: user-service
-          uri: ${USER_SERVICE_URL:https://user-service:8080}
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
           predicates:
             - Path=/api/v1/users/**
 
         - id: payment-service
-          uri: ${PAYMENT_SERVICE_URL:https://payment-service:8080}
+          uri: ${PAYMENT_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/v1/payments/**
 
+        - id: product-service
+          uri: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/products/**
+
+        - id: order-service
+          uri: ${ORDER_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/orders/**
 
 server:
   port: 8080
 
 app:
-  # --- App config ---
-  services:
-    user-service: ${USER_SERVICE_URL:https://user-service:8080}
-    payment-service: ${PAYMENT_SERVICE_URL:https://payment-service:8080}
-    product-service: ${PRODUCT_SERVICE_URL:https://product-service:8080}
-    order-service: ${ORDER_SERVICE_URL:https://order-service:8080}
-    catalogue-service: ${CATALOGUE_SERVICE_URL:https://catalogue-service:8080}
-    notification-service: ${NOTIFICATION_SERVICE_URL:https://notification-service:8080}
-    reviewrating-service: ${REVIEWRATING_SERVICE_URL:https://reviewrating-service:8080}
-
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
 
-  api:
-    version: /api/v1
+  services:
+    user-service: ${USER_SERVICE_URL:http://localhost:8081}
+    payment-service: ${PAYMENT_SERVICE_URL:http://localhost:8082}
+    product-service: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+    order-service: ${ORDER_SERVICE_URL:http://localhost:8084}
+    catalogue-service: ${CATALOGUE_SERVICE_URL:http://localhost:8085}
+    notification-service: ${NOTIFICATION_SERVICE_URL:http://localhost:8086}
+    reviewrating-service: ${REVIEWRATING_SERVICE_URL:http://localhost:8087}
 
   jwt:
-    # Added default 'secret' to prevent crash if env var is missing
-    secret: ${JWT_SECRET:3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b}
+    secret: ${JWT_SECRET:default-dev-secret-change-me}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
     cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
     cookie-name: ${APP_COOKIE_NAME:token}
     secure-cookie: ${APP_SECURE_COOKIE:false}
 
   github:
-    # Added empty defaults so Spring can at least start
     client-id: ${GITHUB_CLIENT_ID:placeholder-id}
     client-secret: ${GITHUB_CLIENT_SECRET:placeholder-secret}
-    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8080/login/oauth2/code/github}
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8080/oauth/github/callback}
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics,mappings
+
   endpoint:
     health:
       show-details: always

@@ -1,7 +1,7 @@
 package com.itc.funkart.gateway.security;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts; // Use this for modern claims creation
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,13 +15,20 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link JwtWebFilter}.
- * Validates the extraction and validation logic for JWT tokens from both
- * HTTP Headers and Browser Cookies.
+ *
+ * <p>
+ * Validates extraction and validation logic for JWT tokens from:
+ * <ul>
+ *     <li>Authorization header (Bearer token)</li>
+ *     <li>HttpOnly cookies</li>
+ * </ul>
+ * </p>
  */
 @ExtendWith(MockitoExtension.class)
 class JwtWebFilterTest {
@@ -40,25 +47,20 @@ class JwtWebFilterTest {
     @BeforeEach
     void setUp() {
         jwtWebFilter = new JwtWebFilter(cookieUtil, jwtTokenValidator);
-        // Ensure the filter chain always continues
         when(filterChain.filter(any())).thenReturn(Mono.empty());
     }
 
-    /**
-     * Verifies that a valid JWT in the Authorization header is correctly identified
-     * and processed. Using Jwts.claims() for modern JJWT compatibility.
-     */
     @Test
     @DisplayName("Header: Should extract and validate token from Authorization Bearer header")
     void whenValidBearerToken_thenContinueChain() {
-        // Arrange
+
         String token = "valid.jwt.token";
+
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/test")
                         .header("Authorization", "Bearer " + token)
         );
 
-        // Modern way to create claims for testing
         Claims claims = Jwts.claims()
                 .subject("1")
                 .add("name", "Test User")
@@ -67,7 +69,6 @@ class JwtWebFilterTest {
 
         when(jwtTokenValidator.validateAndParseClaims(token)).thenReturn(claims);
 
-        // Act & Assert
         StepVerifier.create(jwtWebFilter.filter(exchange, filterChain))
                 .verifyComplete();
 
@@ -78,15 +79,12 @@ class JwtWebFilterTest {
     @Test
     @DisplayName("Cookie: Should extract and validate token from cookies when header is missing")
     void whenValidCookieToken_thenContinueChain() {
-        // Arrange
-        String token = "cookie.jwt.token";
-        String cookieName = "token";
 
-        when(cookieUtil.getCookieName()).thenReturn(cookieName);
+        String token = "cookie.jwt.token";
 
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/test")
-                        .cookie(new HttpCookie(cookieName, token))
+                        .cookie(new HttpCookie("token", token))
         );
 
         Claims claims = Jwts.claims()
@@ -95,23 +93,25 @@ class JwtWebFilterTest {
                 .add("email", "test@example.com")
                 .build();
 
+        when(cookieUtil.extractToken(exchange)).thenReturn(token);
         when(jwtTokenValidator.validateAndParseClaims(token)).thenReturn(claims);
+        when(filterChain.filter(any())).thenReturn(Mono.empty());
 
-        // Act & Assert
         StepVerifier.create(jwtWebFilter.filter(exchange, filterChain))
                 .verifyComplete();
 
+        verify(cookieUtil).extractToken(exchange);
         verify(jwtTokenValidator).validateAndParseClaims(token);
+        verify(filterChain).filter(exchange);
     }
 
     @Test
-    @DisplayName("No Token: Should simply continue the chain if no token is found")
+    @DisplayName("No Token: Should continue chain without authentication")
     void whenNoToken_thenJustContinueChain() {
-        // Arrange
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/test"));
-        when(cookieUtil.getCookieName()).thenReturn("token");
 
-        // Act & Assert
+        MockServerWebExchange exchange =
+                MockServerWebExchange.from(MockServerHttpRequest.get("/api/test"));
+
         StepVerifier.create(jwtWebFilter.filter(exchange, filterChain))
                 .verifyComplete();
 

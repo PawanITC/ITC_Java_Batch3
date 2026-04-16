@@ -1,7 +1,8 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.config.NoApiPrefix;
+import com.itc.funkart.gateway.config.props.FrontendProperties;
+import com.itc.funkart.gateway.config.props.GitHubProperties;
 import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.CookieUtil;
 import com.itc.funkart.gateway.service.GithubOAuthService;
@@ -26,22 +27,25 @@ public class GithubOAuthController {
 
     private final CookieUtil cookieUtil;
     private final GithubOAuthService githubOAuthService;
-    private final AppConfig appConfig;
+    private final GitHubProperties gitHubProperties;
+    private final FrontendProperties frontendProperties;
 
     public GithubOAuthController(CookieUtil cookieUtil,
                                  GithubOAuthService githubOAuthService,
-                                 AppConfig appConfig) {
+                                 FrontendProperties frontendProperties,
+                                 GitHubProperties gitHubProperties) {
         this.cookieUtil = cookieUtil;
         this.githubOAuthService = githubOAuthService;
-        this.appConfig = appConfig;
+        this.frontendProperties = frontendProperties;
+        this.gitHubProperties = gitHubProperties;
     }
 
     /** Redirects the user to GitHub to begin the OAuth flow. */
     @GetMapping("/login")
     public Mono<ResponseEntity<Void>> login() {
         String githubAuthUrl = UriComponentsBuilder.fromUriString("https://github.com/login/oauth/authorize")
-                .queryParam("client_id", appConfig.github().clientId())
-                .queryParam("redirect_uri", appConfig.github().redirectUri())
+                .queryParam("client_id", gitHubProperties.clientId())
+                .queryParam("redirect_uri", gitHubProperties.redirectUri())
                 .queryParam("scope", "user:email")
                 .toUriString();
 
@@ -58,7 +62,7 @@ public class GithubOAuthController {
         return githubOAuthService.processCode(code)
                 .doOnNext(jwt -> cookieUtil.addTokenCookie(exchange, jwt, null))
                 .then(Mono.just(ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
-                        .location(URI.create(appConfig.frontendUrl()))
+                        .location(URI.create(frontendProperties.url()))
                         .build()));
     }
 

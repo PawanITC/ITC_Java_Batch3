@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+
 import java.util.List;
 
 /**
@@ -21,17 +22,29 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // IMPORTANT: credentials ON
+        // ---------------------------
+        // Origins (single source)
+        // ---------------------------
+        String frontend = appConfig.frontendUrl();
+
+        if (frontend != null && !frontend.isBlank()) {
+            config.addAllowedOrigin(frontend);
+        }
+
+        // Dev fallback ONLY (keep minimal and explicit)
+        config.addAllowedOrigin("http://localhost:5173");
+
+        // If you still need legacy support, keep ONE:
+        // config.addAllowedOrigin("http://localhost:3000");
+
+        // ---------------------------
+        // Critical for JWT cookies
+        // ---------------------------
         config.setAllowCredentials(true);
 
-        // EXACT origins only (no wildcards)
-        config.setAllowedOrigins(List.of(
-                appConfig.frontendUrl(),
-                "http://localhost:5173",
-                "http://localhost:3000"
-        ));
-
-        // STRICT headers (not *)
+        // ---------------------------
+        // Headers (be explicit)
+        // ---------------------------
         config.setAllowedHeaders(List.of(
                 "Authorization",
                 "Content-Type",
@@ -40,15 +53,27 @@ public class CorsConfig {
                 "X-Requested-With"
         ));
 
-        // STRICT methods
+        // ---------------------------
+        // Methods (explicit is safer than "*")
+        // ---------------------------
         config.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH",
+                "OPTIONS"
         ));
 
+        // ---------------------------
+        // Exposed headers (frontend-readable only)
+        // ---------------------------
         config.setExposedHeaders(List.of(
                 "Authorization",
                 "Set-Cookie"
         ));
+
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

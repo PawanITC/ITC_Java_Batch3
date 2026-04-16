@@ -2,7 +2,6 @@ spring:
   application:
     name: api-gateway-test
 
-  # Crucial for allowing @MockitoBean to replace production beans
   main:
     allow-bean-definition-overriding: true
 
@@ -12,40 +11,36 @@ spring:
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 
-  webflux:
-    base-path: /api/v1
-
   cloud:
     gateway:
       routes:
-        - id: user-service-data-test
+        - id: user-service
           uri: http://localhost:${wiremock.server.port}
           predicates:
-            - Path=/api/v1/users/profile/**
-          filters:
-            - StripPrefix=0
+            - Path=/api/v1/users/**
+
+        - id: payment-service
+          uri: http://localhost:${wiremock.server.port}
+          predicates:
+            - Path=/api/v1/payments/**
 
 server:
   port: 0
 
 app:
-  frontend-url: "http://localhost:5173"
-  api:
-    version: /api/v1
+  frontend-url: http://localhost:5173
 
   services:
-    # Ensure this key exactly matches the @Value in your Java code
-    user-service: "http://localhost:${wiremock.server.port}"
+    user-service: http://localhost:${wiremock.server.port}
 
   jwt:
-    # Using a 256-bit safe secret for tests
-    secret: "mXxbssTvw7+m8gAlzYhTCP4IyxMeOK2tDqSDPQAv6Qk="
+    secret: "dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci10ZXN0aW5nLWJhc2U2NA=="
     expiration-ms: 3600000
     cookie-max-age-seconds: 3600
-    cookie-name: "token"
+    cookie-name: token
     secure-cookie: false
 
   github:
-    client-id: "test-id"
-    client-secret: "test-secret"
-    redirect-uri: "http://localhost:8080/oauth/github/callback"
+    client-id: test-id
+    client-secret: test-secret
+    redirect-uri: http://localhost:8080/oauth/github/callback

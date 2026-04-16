@@ -1,6 +1,6 @@
 package com.itc.funkart.gateway.service;
 
-import com.itc.funkart.gateway.config.AppConfig;
+import com.itc.funkart.gateway.config.props.ApiProperties;
 import com.itc.funkart.gateway.dto.request.CodeRequest;
 import com.itc.funkart.gateway.dto.response.OAuthResponse;
 import com.itc.funkart.gateway.exception.OAuthException;
@@ -22,15 +22,17 @@ public class GithubOAuthService {
     private final WebClient webClient;
     private final String oauthUri;
 
-    public GithubOAuthService(WebClient webClient, AppConfig appConfig) {
+    public GithubOAuthService(WebClient webClient, ApiProperties apiProperties) {
         this.webClient = webClient;
-        // Dynamically build URI using the config version: /api/v1/users/oauth/github
-        this.oauthUri = appConfig.api().version() + "/users/oauth/github";
+
+        // ✅ "cache" computed once at startup (safe + immutable)
+        this.oauthUri = apiProperties.version() + "/users/oauth/github";
     }
 
     /**
      * Delegates OAuth processing to the User-Service.
-     * * @param code GitHub authorization code.
+     *
+     * @param code GitHub authorization code.
      * @return Mono containing the verified JWT string.
      */
     public Mono<String> processCode(String code) {
@@ -39,16 +41,22 @@ public class GithubOAuthService {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new CodeRequest(code))
                 .retrieve()
-                // Use ParameterizedTypeReference to unwrap the ApiResponse<OAuthResponse>
                 .bodyToMono(new ParameterizedTypeReference<ApiResponse<OAuthResponse>>() {})
-                .flatMap(response -> {
-                    if (response.getData() != null && response.getData().token() != null) {
-                        return Mono.just(response.getData().token());
-                    }
-                    return Mono.error(new OAuthException("OAuth response was successful but contained no token"));
-                })
                 .onErrorMap(WebClientResponseException.class, ex ->
-                        new OAuthException("User-Service authentication failed: " + ex.getResponseBodyAsString(), ex))
+                        new OAuthException(
+                                "User-Service authentication failed: " + ex.getResponseBodyAsString(),
+                                ex))
+                .flatMap(response -> {
+                    var data = response.getData();
+
+                    if (data == null || data.token() == null) {
+                        return Mono.error(
+                                new OAuthException("OAuth response was successful but contained no token")
+                        );
+                    }
+
+                    return Mono.just(data.token());
+                })
                 .onErrorMap(ex -> !(ex instanceof OAuthException),
                         ex -> new OAuthException("Communication failure with User-Service", ex));
     }

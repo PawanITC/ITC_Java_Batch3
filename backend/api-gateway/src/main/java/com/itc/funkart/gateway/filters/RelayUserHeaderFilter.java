@@ -39,16 +39,20 @@ public class RelayUserHeaderFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
-                .filter(auth -> auth.getPrincipal() instanceof JwtUserDto)
+                .filter(auth -> auth != null && auth.getPrincipal() instanceof JwtUserDto)
                 .map(auth -> (JwtUserDto) auth.getPrincipal())
-                .map(user -> exchange.mutate()
-                        .request(r -> r
-                                .header("X-User-Id", String.valueOf(user.id()))
-                                .header("X-User-Email", user.email())
-                                .header("X-User-Role", user.role()))
-                        .build())
-                .flatMap(chain::filter)
-                // If no user is logged in (Guest), just pass the request through as-is
+                .flatMap(user -> {
+
+                    ServerWebExchange mutatedExchange = exchange.mutate()
+                            .request(builder -> builder
+                                    .header("X-User-Id", String.valueOf(user.id()))
+                                    .header("X-User-Email", user.email())
+                                    .header("X-User-Role", user.role())
+                            )
+                            .build();
+
+                    return chain.filter(mutatedExchange);
+                })
                 .switchIfEmpty(chain.filter(exchange));
     }
 
@@ -58,6 +62,7 @@ public class RelayUserHeaderFilter implements GlobalFilter, Ordered {
      */
     @Override
     public int getOrder() {
+        // MUST run AFTER authentication filter, BEFORE routing
         return Ordered.LOWEST_PRECEDENCE;
     }
 }

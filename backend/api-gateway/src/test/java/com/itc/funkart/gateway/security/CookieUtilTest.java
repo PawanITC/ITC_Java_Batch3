@@ -1,92 +1,92 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.config.AppConfig;
+import com.itc.funkart.gateway.config.JwtCookieConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.ResponseCookie;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.http.ResponseCookie;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for {@link CookieUtil}.
- * Validates that JWT cookies are correctly attached to and removed from
- * the reactive ServerWebExchange.
+ *
+ * <p>
+ * Ensures JWT cookies are correctly created and cleared using reactive response handling.
+ * This test does not load Spring context and validates pure business logic.
+ * </p>
  */
 class CookieUtilTest {
 
     private CookieUtil cookieUtil;
-    private AppConfig appConfig;
 
     @BeforeEach
     void setUp() {
-        // Mocking the nested configuration structure
-        AppConfig.Jwt jwt = new AppConfig.Jwt(
-                "YmFzZTY0LXNlY3JldC1rZXktZm9yLXRlc3RpbmctcHVycG9zZXM=", // Dummy B64
-                3600000L,
-                3600,
+
+        JwtCookieConfig config = new JwtCookieConfig(
                 "test-token",
-                false
+                false,
+                3600
         );
 
-        // Creating the root config (nulls for irrelevant parts of this specific test)
-        appConfig = new AppConfig("http://frontend", null, jwt, null, null);
-        cookieUtil = new CookieUtil(appConfig);
+        cookieUtil = new CookieUtil(config);
     }
 
     @Test
-    @DisplayName("Add Cookie: Should attach a valid JWT cookie to the response")
-    void whenAddTokenCookie_thenResponseHasCorrectCookie() {
-        // Arrange
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/"));
-        String dummyJwt = "header.payload.signature";
+    @DisplayName("Should attach JWT cookie correctly")
+    void addCookie_success() {
 
-        // Act
-        cookieUtil.addTokenCookie(exchange, dummyJwt, null);
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/"));
 
-        // Assert
-        ResponseCookie cookie = exchange.getResponse().getCookies().getFirst("test-token");
+        cookieUtil.addTokenCookie(exchange, "jwt-token", null);
 
-        assertNotNull(cookie, "Cookie should be present in the response");
-        assertEquals(dummyJwt, cookie.getValue());
+        ResponseCookie cookie =
+                exchange.getResponse().getCookies().getFirst("test-token");
+
+        assertNotNull(cookie);
+        assertEquals("jwt-token", cookie.getValue());
         assertTrue(cookie.isHttpOnly());
         assertEquals("/", cookie.getPath());
         assertEquals(3600, cookie.getMaxAge().getSeconds());
     }
 
     @Test
-    @DisplayName("Clear Cookie: Should set an expired cookie to trigger browser deletion")
-    void whenClearTokenCookie_thenCookieIsExpired() {
-        // Arrange
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/"));
+    @DisplayName("Should clear cookie with zero max age")
+    void clearCookie_success() {
 
-        // Act
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/"));
+
         cookieUtil.clearTokenCookie(exchange);
 
-        // Assert
-        ResponseCookie cookie = exchange.getResponse().getCookies().getFirst("test-token");
+        ResponseCookie cookie =
+                exchange.getResponse().getCookies().getFirst("test-token");
 
         assertNotNull(cookie);
         assertEquals("", cookie.getValue());
-        assertTrue(cookie.getMaxAge().isZero(), "MaxAge should be 0 to delete the cookie");
+        assertTrue(cookie.getMaxAge().isZero());
     }
 
     @Test
-    @DisplayName("Secure Flag: Should use SameSite=None when secure-cookie is true")
-    void whenSecureEnabled_thenSameSiteIsNone() {
-        // Arrange: Re-init with secure=true
-        AppConfig.Jwt jwtSecure = new AppConfig.Jwt("secret", 3600L, 3600, "token", true);
-        AppConfig configSecure = new AppConfig("url", null, jwtSecure, null, null);
-        CookieUtil secureUtil = new CookieUtil(configSecure);
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/"));
+    @DisplayName("Should set SameSite=None when secure enabled")
+    void secureCookie_setsSameSiteNone() {
 
-        // Act
+        JwtCookieConfig secureConfig = new JwtCookieConfig(
+                "token",
+                true,
+                3600
+        );
+
+        CookieUtil secureUtil = new CookieUtil(secureConfig);
+
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/"));
+
         secureUtil.addTokenCookie(exchange, "jwt", null);
 
-        // Assert
-        ResponseCookie cookie = exchange.getResponse().getCookies().getFirst("token");
+        ResponseCookie cookie =
+                exchange.getResponse().getCookies().getFirst("token");
+
         assertNotNull(cookie);
         assertEquals("None", cookie.getSameSite());
         assertTrue(cookie.isSecure());
