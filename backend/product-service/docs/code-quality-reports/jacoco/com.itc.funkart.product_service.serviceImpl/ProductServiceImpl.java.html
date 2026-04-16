@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProductServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">product-service</a> &gt; <a href="index.source.html" class="el_package">com.itc.funkart.product_service.serviceImpl</a> &gt; <span class="el_source">ProductServiceImpl.java</span></div><h1>ProductServiceImpl.java</h1><pre class="source lang-java linenums">package com.itc.funkart.product_service.serviceImpl;
+
+import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
+import com.itc.funkart.product_service.dto.request.ProductUpdateRequest;
+import com.itc.funkart.product_service.dto.response.ProductResponse;
+import com.itc.funkart.product_service.dto.response.ProductsResponse;
+import com.itc.funkart.product_service.entity.Category;
+import com.itc.funkart.product_service.entity.Product;
+import com.itc.funkart.product_service.exceptions.BadRequestException;
+import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
+import com.itc.funkart.product_service.mapper.ProductMapper;
+import com.itc.funkart.product_service.repository.CategoryRepository;
+import com.itc.funkart.product_service.repository.ProductRepository;
+import com.itc.funkart.product_service.service.ProductService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+
+@Service
+<span class="fc" id="L27">@Slf4j</span>
+<span class="fc" id="L28">@RequiredArgsConstructor</span>
+public class ProductServiceImpl implements ProductService {
+
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private static final int MAX_IDS = 2000;
+
+    @Override
+    @Transactional
+    @CacheEvict(value = &quot;product-service:products&quot;, allEntries = true)
+    public ProductResponse createProduct(ProductCreateRequest request) {
+<span class="fc" id="L39">        log.info(&quot;Creating product with name: {}&quot;, request.getName());</span>
+
+<span class="fc" id="L41">        Product product = ProductMapper.toEntity(request);</span>
+
+        // Fetch and set Category
+<span class="pc bpc" id="L44" title="1 of 2 branches missed.">        if (request.getCategoryId() != null) {</span>
+<span class="fc" id="L45">            Category category = (Category) categoryRepository.findById(request.getCategoryId())</span>
+<span class="fc" id="L46">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category not found with id: &quot; + request.getCategoryId()));</span>
+<span class="fc" id="L47">            product.setCategory(category);</span>
+        }
+
+<span class="fc" id="L50">        Product savedProduct = productRepository.save(product);</span>
+
+<span class="fc" id="L52">        return ProductMapper.toResponse(savedProduct);</span>
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = &quot;product-service:products&quot;, allEntries = true)
+    public ProductResponse updateProduct(Long id, ProductUpdateRequest request) {
+<span class="fc" id="L59">        log.info(&quot;Updating product id: {}&quot;, id);</span>
+
+<span class="fc" id="L61">        Product product = productRepository.findById(id)</span>
+<span class="fc" id="L62">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Product not found with id: &quot; + id));</span>
+
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (request.getName() != null) {</span>
+<span class="fc" id="L65">            product.setName(request.getName());</span>
+<span class="fc" id="L66">            product.setSlug(request.getName().toLowerCase().replace(&quot; &quot;, &quot;-&quot;));</span>
+        }
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        if (request.getDescription() != null) product.setDescription(request.getDescription());</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (request.getPrice() != null) product.setPrice(request.getPrice());</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        if (request.getStockQuantity() != null) product.setStockQuantity(request.getStockQuantity());</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">        if (request.getActive() != null) product.setActive(request.getActive());</span>
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if (request.getBrand() != null) product.setBrand(request.getBrand());</span>
+
+<span class="fc" id="L74">        productRepository.save(product);</span>
+<span class="fc" id="L75">        return ProductMapper.toResponse(product);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductResponse getProduct(Long id) {
+<span class="fc" id="L81">        return productRepository.findById(id)</span>
+<span class="fc" id="L82">                .map(ProductMapper::toResponse)</span>
+<span class="fc" id="L83">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Product not found with id: &quot; + id));</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = &quot;product-service:products&quot;)
+    public List&lt;ProductResponse&gt; getAllProducts() {
+<span class="fc" id="L90">        log.info(&quot;Fetching all products from database&quot;);</span>
+<span class="fc" id="L91">        return productRepository.findAllByOrderByCreatedAtDesc()</span>
+<span class="fc" id="L92">                .stream()</span>
+<span class="fc" id="L93">                .map(ProductMapper::toResponse)</span>
+<span class="fc" id="L94">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = &quot;product-service:products&quot;, allEntries = true)
+    public void deleteProduct(Long id) {
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (!productRepository.existsById(id)) {</span>
+<span class="fc" id="L102">            throw new ResourceNotFoundException(&quot;Product not found with id: &quot; + id);</span>
+        }
+<span class="fc" id="L104">        productRepository.deleteById(id);</span>
+<span class="fc" id="L105">    }</span>
+
+    @Override
+    public ProductsResponse getProductsByIds(List&lt;Long&gt; ids) {
+<span class="pc bpc" id="L109" title="1 of 4 branches missed.">        if (ids == null || ids.isEmpty()) {</span>
+<span class="fc" id="L110">            throw new BadRequestException(&quot;ID list cannot be empty&quot;);</span>
+        }
+
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (ids.size() &gt; MAX_IDS) {</span>
+<span class="fc" id="L114">            throw new BadRequestException(&quot;Too many IDs requested. Max allowed: &quot; + MAX_IDS);</span>
+        }
+<span class="fc" id="L116">        ids = ids.stream().distinct().toList();</span>
+<span class="fc" id="L117">        List&lt;Product&gt; products = productRepository.findAllById(ids);</span>
+
+<span class="fc" id="L119">        Set&lt;Long&gt; foundIds = products.stream()</span>
+<span class="fc" id="L120">                .map(Product::getId)</span>
+<span class="fc" id="L121">                .collect(Collectors.toSet());</span>
+
+<span class="fc" id="L123">        List&lt;Long&gt; missingIds = ids.stream()</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">                .filter(id -&gt; !foundIds.contains(id))</span>
+<span class="fc" id="L125">                .toList();</span>
+<span class="fc" id="L126">        ProductsResponse response = new ProductsResponse();</span>
+<span class="fc" id="L127">        response.setFound(products);</span>
+<span class="fc" id="L128">        response.setMissing(missingIds);</span>
+
+<span class="fc" id="L130">        return response;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

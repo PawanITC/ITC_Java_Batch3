@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - CartItemRepositoryTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>CartItemRepositoryTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/com.itc.funkart.product_service.repository.html">com.itc.funkart.product_service.repository</a> &gt; CartItemRepositoryTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">5</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.315s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Method name</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">Should allow same product in different carts</td>
+<td class="success">shouldAllowSameProductInDifferentCarts()</td>
+<td class="success">0.117s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should delete cart item</td>
+<td class="success">shouldDeleteCartItem()</td>
+<td class="success">0.089s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should save cart item with cart and product</td>
+<td class="success">shouldSaveCartItem()</td>
+<td class="success">0.030s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should persist multiple cart items for one cart</td>
+<td class="success">shouldSaveMultipleItemsForCart()</td>
+<td class="success">0.030s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should update cart item quantity</td>
+<td class="success">shouldUpdateCartItemQuantity()</td>
+<td class="success">0.049s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>2026-04-13T12:45:51.912+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.itc.funkart.product_service.repository.CartItemRepositoryTest]: CartItemRepositoryTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-04-13T12:45:52.010+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.itc.funkart.product_service.ProductServiceApplication for test class com.itc.funkart.product_service.repository.CartItemRepositoryTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.5)
+
+2026-04-13T12:45:52.243+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.r.CartItemRepositoryTest         : Starting CartItemRepositoryTest using Java 17.0.12 with PID 2252 (started by hamal in C:\ITC project\Funkart E-commerce-app\ITC_Java_Batch3\backend\product-service)
+2026-04-13T12:45:52.243+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.r.CartItemRepositoryTest         : The following 1 profile is active: &quot;test&quot;
+2026-04-13T12:45:52.870+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-04-13T12:45:52.870+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-13T12:45:53.142+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 271 ms. Found 5 JPA repository interfaces.
+2026-04-13T12:45:53.238+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] beddedDataSourceBeanFactoryPostProcessor : Replacing 'dataSource' DataSource bean with embedded version
+2026-04-13T12:45:53.401+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.s.j.d.e.EmbeddedDatabaseFactory        : Starting embedded database: url='jdbc:h2:mem:83ed0e2e-c08c-4429-836f-92c5d43670dc;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false', username='sa'
+2026-04-13T12:45:53.542+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-13T12:45:53.566+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-13T12:45:53.676+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-13T12:45:53.682+01:00  WARN [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-13T12:45:54.217+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+Hibernate: 
+    drop table if exists cart_items cascade 
+Hibernate: 
+    drop table if exists carts cascade 
+Hibernate: 
+    drop table if exists categories cascade 
+Hibernate: 
+    drop table if exists product_images cascade 
+Hibernate: 
+    drop table if exists products cascade 
+Hibernate: 
+    create table cart_items (
+        quantity integer,
+        cart_id bigint,
+        id bigint generated by default as identity,
+        product_id bigint not null,
+        primary key (id)
+    )
+Hibernate: 
+    create table carts (
+        id bigint generated by default as identity,
+        user_id bigint not null unique,
+        primary key (id)
+    )
+Hibernate: 
+    create table categories (
+        id bigint generated by default as identity,
+        description varchar(255),
+        name varchar(255) not null unique,
+        primary key (id)
+    )
+Hibernate: 
+    create table product_images (
+        is_primary boolean,
+        id bigint generated by default as identity,
+        product_id bigint,
+        image_url varchar(255) not null,
+        primary key (id)
+    )
+Hibernate: 
+    create table products (
+        active boolean,
+        price numeric(10,2),
+        stock_quantity integer,
+        category_id bigint,
+        created_at timestamp(6),
+        id bigint generated by default as identity,
+        updated_at timestamp(6),
+        description varchar(1000),
+        brand varchar(255),
+        name varchar(255) not null,
+        slug varchar(255) not null unique,
+        primary key (id)
+    )
+Hibernate: 
+    alter table if exists cart_items 
+       add constraint FKpcttvuq4mxppo8sxggjtn5i2c 
+       foreign key (cart_id) 
+       references carts
+Hibernate: 
+    alter table if exists cart_items 
+       add constraint FK1re40cjegsfvw58xrkdp6bac6 
+       foreign key (product_id) 
+       references products
+Hibernate: 
+    alter table if exists product_images 
+       add constraint FKqnq71xsohugpqwf3c9gxmsuy 
+       foreign key (product_id) 
+       references products
+Hibernate: 
+    alter table if exists products 
+       add constraint FKog2rp4qthbtt2lfyhfo32lsw9 
+       foreign key (category_id) 
+       references categories
+2026-04-13T12:45:54.281+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-13T12:45:54.547+01:00 DEBUG [product-service,,] 2252 --- [product-service] [ntainer#0-0-C-1] [                                                 ] o.s.k.l.KafkaMessageListenerContainer    : Received: 0 records
+2026-04-13T12:45:54.548+01:00 DEBUG [product-service,,] 2252 --- [product-service] [ntainer#0-0-C-1] [                                                 ] o.s.k.l.KafkaMessageListenerContainer    : Commit list: {}
+2026-04-13T12:45:54.649+01:00 DEBUG [product-service,,] 2252 --- [product-service] [ntainer#0-0-C-1] [                                                 ] o.s.k.l.KafkaMessageListenerContainer    : Received: 0 records
+2026-04-13T12:45:54.649+01:00 DEBUG [product-service,,] 2252 --- [product-service] [ntainer#0-0-C-1] [                                                 ] o.s.k.l.KafkaMessageListenerContainer    : Commit list: {}
+2026-04-13T12:45:54.789+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.r.CartItemRepositoryTest         : Started CartItemRepositoryTest in 2.765 seconds (process running for 139.499)
+Hibernate: 
+    insert 
+    into
+        carts
+        (user_id, id) 
+    values
+        (?, default)
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        cart_items
+        (cart_id, product_id, quantity, id) 
+    values
+        (?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        carts
+        (user_id, id) 
+    values
+        (?, default)
+Hibernate: 
+    insert 
+    into
+        carts
+        (user_id, id) 
+    values
+        (?, default)
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        cart_items
+        (cart_id, product_id, quantity, id) 
+    values
+        (?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        cart_items
+        (cart_id, product_id, quantity, id) 
+    values
+        (?, ?, ?, default)
+Hibernate: 
+    select
+        ci1_0.id,
+        ci1_0.cart_id,
+        ci1_0.product_id,
+        ci1_0.quantity 
+    from
+        cart_items ci1_0
+Hibernate: 
+    insert 
+    into
+        carts
+        (user_id, id) 
+    values
+        (?, default)
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        cart_items
+        (cart_id, product_id, quantity, id) 
+    values
+        (?, ?, ?, default)
+Hibernate: 
+    delete 
+    from
+        cart_items 
+    where
+        id=?
+Hibernate: 
+    select
+        ci1_0.id,
+        ci1_0.cart_id,
+        ci1_0.product_id,
+        ci1_0.quantity 
+    from
+        cart_items ci1_0
+Hibernate: 
+    insert 
+    into
+        carts
+        (user_id, id) 
+    values
+        (?, default)
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        cart_items
+        (cart_id, product_id, quantity, id) 
+    values
+        (?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        cart_items
+        (cart_id, product_id, quantity, id) 
+    values
+        (?, ?, ?, default)
+Hibernate: 
+    select
+        ci1_0.id,
+        ci1_0.cart_id,
+        ci1_0.product_id,
+        ci1_0.quantity 
+    from
+        cart_items ci1_0
+Hibernate: 
+    insert 
+    into
+        carts
+        (user_id, id) 
+    values
+        (?, default)
+Hibernate: 
+    insert 
+    into
+        products
+        (active, brand, category_id, created_at, description, name, price, slug, stock_quantity, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    insert 
+    into
+        cart_items
+        (cart_id, product_id, quantity, id) 
+    values
+        (?, ?, ?, default)
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 9.0.0</a> at 13 Apr 2026, 12:46:03</p>
+</div>
+</div>
+</body>
+</html>
