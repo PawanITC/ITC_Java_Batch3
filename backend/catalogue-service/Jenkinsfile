@@ -12,7 +12,10 @@ spec:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
       command:
-        - cat
+        - /busybox/sh
+      args:
+        - -c
+        - "sleep 999999"
       tty: true
 '''
         }
@@ -60,9 +63,7 @@ spec:
 
         stage('Deploy to EKS') {
             steps {
-                sh '''
-                kubectl apply -f k8s/
-                '''
+                sh 'kubectl apply -f k8s/'
             }
         }
     }
