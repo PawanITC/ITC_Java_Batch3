@@ -18,8 +18,7 @@ spec:
 
     - name: kubectl
       image: bitnami/kubectl:latest
-      command: ["/bin/sh"]
-      args: ["-c", "sleep infinity"]
+      command: ["cat"]
       tty: true
 
   restartPolicy: Never
