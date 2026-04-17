@@ -5,8 +5,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -15,19 +15,28 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWebTestClient
 @ActiveProfiles("test")
 class SecurityConfigTest {
 
-    @Autowired
-    private WebTestClient webTestClient;
+    private WebTestClient webTestClient; // Remove @Autowired
 
-    @MockitoBean private AppConfig appConfig;
-    @MockitoBean private CookieUtil cookieUtil;
-    @MockitoBean private JwtTokenValidator jwtTokenValidator;
+    @Autowired
+    private ApplicationContext context; // Inject the context
+
+    @MockitoBean
+    private AppConfig appConfig;
+    @MockitoBean
+    private CookieUtil cookieUtil;
+    @MockitoBean
+    private JwtTokenValidator jwtTokenValidator;
 
     @BeforeEach
     void setUp() {
+        // Manually bind to context to bypass the network/Jenkins proxy
+        this.webTestClient = WebTestClient.bindToApplicationContext(context)
+                .configureClient()
+                .build();
+
         when(appConfig.frontendUrl()).thenReturn("http://localhost:5173");
     }
 
