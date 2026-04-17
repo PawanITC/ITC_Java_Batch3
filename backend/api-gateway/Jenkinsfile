@@ -25,15 +25,24 @@ pipeline {
             steps {
                 dir('backend/api-gateway') {
                     script {
-                        def jdkPath = tool name: 'jdk17', type: 'jdk'
-                        withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
-                            sh 'chmod +x gradlew'
-                            // Added -Dspring.profiles.active=test to ensure your mock config is loaded
-                            sh "./gradlew clean build jacocoTestReport --no-daemon \
-                                -Dspring.profiles.active=test \
-                                -Dhudson.security.csrf.GlobalCrumbIssuerConfiguration.DISABLE_CSRF_PROTECTION=true \
-                                --stacktrace --info"
-                        }
+                        // Ensure we use the correct JDK and pass the test profile
+                        sh "./gradlew clean build jacocoTestReport \
+                            -Dspring.profiles.active=test \
+                            --no-daemon --stacktrace"
+                    }
+                }
+            }
+        }
+
+        stage('Security Scan (Snyk)') {
+            steps {
+                dir('backend/api-gateway') {
+                    script {
+                        // No need for 'auth' if SNYK_TOKEN is in environment
+                        // '--sarif' or '--json' can be added for better reporting
+                        sh 'snyk test --severity-threshold=high'
+                        // Optional: upload results to Snyk UI
+                        sh 'snyk monitor'
                     }
                 }
             }
@@ -53,18 +62,6 @@ pipeline {
             }
         }
 
-        stage('Security Scan (Snyk)') {
-            steps {
-                dir('backend/api-gateway') {
-                    script {
-                        // Added chmod +x gradlew here too as Snyk often needs to run Gradle locally to resolve dependencies
-                        sh 'chmod +x gradlew'
-                        sh "snyk auth ${SNYK_TOKEN}"
-                        sh 'snyk test --severity-threshold=high || echo "Snyk found vulnerabilities in API Gateway, review logs."'
-                    }
-                }
-            }
-        }
 
         stage('Build Docker Image') {
             steps {
