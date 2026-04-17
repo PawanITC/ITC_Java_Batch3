@@ -40,10 +40,11 @@ pipeline {
             steps {
                 dir('backend/api-gateway') {
                     script {
-                        // No need for 'auth' if SNYK_TOKEN is in environment
-                        // '--sarif' or '--json' can be added for better reporting
-                        sh 'snyk test --severity-threshold=high'
-                        // Optional: upload results to Snyk UI
+                        // Retry the scan up to 3 times if it fails due to network/server issues
+                        retry(3) {
+                            // Added --timeout to give the remote server more breathing room
+                            sh 'snyk test --severity-threshold=high --timeout=300'
+                        }
                         sh 'snyk monitor'
                     }
                 }
@@ -59,7 +60,6 @@ pipeline {
                     sourcePattern: '**/src/main/java',
                     inclusionPattern: '**/*.class',
                     minimumLineCoverage: '70',
-                    maximumLineCoverage: '80'
                 )
             }
         }
