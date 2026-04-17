@@ -4,14 +4,14 @@ spring:
 
   data:
     redis:
-      host: redis
+      host: redis.catalogue-service.svc.cluster.local
       port: 6379
 
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: kafka.catalogue-service.svc.cluster.local:9092
 
     consumer:
-      bootstrap-servers: kafka:9092
+      bootstrap-servers: kafka.catalogue-service.svc.cluster.local:9092
       group-id: catalogue-service
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -22,7 +22,7 @@ spring:
         spring.json.value.default.type: com.itc.catalogueservice.kafka.listener.dto.ProductEventDTO
 
     producer:
-      bootstrap-servers: kafka:9092
+      bootstrap-servers: kafka.catalogue-service.svc.cluster.local:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
