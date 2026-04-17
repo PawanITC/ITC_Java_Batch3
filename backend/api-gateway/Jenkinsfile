@@ -14,12 +14,14 @@ pipeline {
     }
 
     stages {
+
         stage('Check Environment') {
             steps {
                 sh 'java -version'
                 sh 'docker version'
             }
         }
+
 
         stage('Build & Test') {
             steps {
@@ -36,35 +38,27 @@ pipeline {
             }
         }
 
-//         stage('Security Scan (Snyk)') {
-//             steps {
-//                 dir('backend/api-gateway') {
-//                     script {
-//                         // Retry the scan up to 3 times if it fails due to network/server issues
-//                         retry(3) {
-//                             // Added --timeout to give the remote server more breathing room
-//                             sh 'snyk test --severity-threshold=high --timeout=300'
-//                         }
-//                         sh 'snyk monitor'
-//                     }
-//                 }
-//             }
-//         }
-
 
         stage('Security Scan (Snyk)') {
+            options {
+                // Hard stop for Jenkins to reclaim the agent
+                timeout(time: 2, unit: 'MINUTES')
+            }
             steps {
                 dir('backend/api-gateway') {
                     script {
-                        // This block allows the pipeline to continue even if Snyk returns a 500
                         catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            sh 'snyk test --severity-threshold=high'
+                            // Internal retry for transient network flips
+                            retry(3) {
+                                sh 'snyk test --severity-threshold=high'
+                            }
                             sh 'snyk monitor'
                         }
                     }
                 }
             }
         }
+
 
         stage('Quality Gate') {
             steps {
