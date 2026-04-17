@@ -1,6 +1,5 @@
 package com.itc.funkart.gateway.controller;
 
-
 import com.itc.funkart.gateway.config.props.ApiProperties;
 import com.itc.funkart.gateway.config.props.FrontendProperties;
 import com.itc.funkart.gateway.config.props.GitHubProperties;
@@ -66,6 +65,10 @@ class GithubOAuthControllerTest {
             WebFilterChain chain = invocation.getArgument(1);
             return chain.filter(exchange);
         }).when(jwtWebFilter).filter(any(ServerWebExchange.class), any(WebFilterChain.class));
+
+        // Stub void methods to prevent Mockito/Reactive hanging issues
+        doNothing().when(cookieUtil).clearTokenCookie(any());
+        doNothing().when(cookieUtil).addTokenCookie(any(), anyString(), any());
     }
 
     /**
@@ -110,16 +113,18 @@ class GithubOAuthControllerTest {
         verify(cookieUtil, times(1)).clearTokenCookie(any());
     }
 
-    // This nested config satisfies WebConfig and the Controller dependencies
+    /**
+     * <h3>Mock Configuration</h3>
+     * Satisfies WebConfig and Controller dependencies for the test slice.
+     */
     @TestConfiguration
     static class MockConfig {
 
         @Bean
         @Primary
-        public SecurityWebFilterChain springSecurityFilterChain(
-                ServerHttpSecurity http) {
+        public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
             return http
-                    .csrf(org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec::disable)
+                    .csrf(ServerHttpSecurity.CsrfSpec::disable)
                     .authorizeExchange(ex -> ex.anyExchange().permitAll())
                     .build();
         }
@@ -146,9 +151,9 @@ class GithubOAuthControllerTest {
      * <p>
      * Tests the OAuth callback success path:
      * <ul>
-     *     <li>Authorization code is exchanged for JWT</li>
-     *     <li>JWT is stored in cookie</li>
-     *     <li>User is redirected to frontend</li>
+     * <li>Authorization code is exchanged for JWT</li>
+     * <li>JWT is stored in cookie</li>
+     * <li>User is redirected to frontend</li>
      * </ul>
      * </p>
      */
@@ -168,7 +173,6 @@ class GithubOAuthControllerTest {
                     .expectStatus().isTemporaryRedirect()
                     .expectHeader().location("http://localhost:5173");
 
-            // Adjusted to match your specific CookieUtil signature
             verify(cookieUtil).addTokenCookie(any(), eq("jwt-token"), any());
         }
 
@@ -185,7 +189,6 @@ class GithubOAuthControllerTest {
                     .exchange()
                     .expectStatus().isBadRequest()
                     .expectBody()
-                    // Verify this matches your GlobalExceptionHandler's JSON structure
                     .jsonPath("$.error.message").isEqualTo("GitHub Exchange Failed");
         }
     }
