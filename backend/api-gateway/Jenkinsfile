@@ -25,7 +25,9 @@ pipeline {
             steps {
                 dir('backend/api-gateway') {
                     script {
-                        // Ensure we use the correct JDK and pass the test profile
+                        // Grant execute permission to the wrapper
+                        sh "chmod +x gradlew"
+
                         sh "./gradlew clean build jacocoTestReport \
                             -Dspring.profiles.active=test \
                             --no-daemon --stacktrace"
