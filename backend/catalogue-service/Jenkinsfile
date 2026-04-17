@@ -60,7 +60,7 @@ spec:
                     sh '''
                     /kaniko/executor \
                       --dockerfile=backend/catalogue-service/Dockerfile \
-                      --context=dir://. \
+                      --context=dir://backend/catalogue-service \
                       --destination=666127452756.dkr.ecr.eu-west-2.amazonaws.com/catalogue-service:latest \
                       --verbosity=info
                     '''
