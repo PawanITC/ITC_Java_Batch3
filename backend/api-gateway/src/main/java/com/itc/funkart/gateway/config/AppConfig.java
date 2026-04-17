@@ -34,6 +34,17 @@ public record AppConfig(
 ) {
 
     /**
+     * Helper to ensure service URLs are present during load tests.
+     */
+    public String getServiceUrl(String serviceName) {
+        String url = services.get(serviceName);
+        if (url == null || url.isBlank()) {
+            throw new IllegalStateException("Service URL missing for: " + serviceName);
+        }
+        return url;
+    }
+
+    /**
      * JWT security configuration.
      */
     public record Jwt(

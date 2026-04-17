@@ -1,8 +1,7 @@
 package com.itc.funkart.gateway.controller;
 
+import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.config.NoApiPrefix;
-import com.itc.funkart.gateway.config.props.FrontendProperties;
-import com.itc.funkart.gateway.config.props.GitHubProperties;
 import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.CookieUtil;
 import com.itc.funkart.gateway.service.GithubOAuthService;
@@ -16,9 +15,15 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 
 /**
- * <h2>GitHub OAuth2 Entry Point</h2>
- * Handles the redirect-heavy handshake with GitHub.
- * Annotated with {@code @NoApiPrefix} to keep URLs clean (e.g., /oauth/github/login).
+ * <h2>GitHub OAuth2 Controller</h2>
+ * <p>
+ * Manages the multistep OAuth2 handshake with GitHub. This controller is responsible for:
+ * <ul>
+ * <li>Initiating the redirect to GitHub's authorization server.</li>
+ * <li>Handling the callback and exchanging the auth code for a system JWT.</li>
+ * <li>Abstracting the JWT into a secure HttpOnly cookie.</li>
+ * </ul>
+ * </p>
  */
 @NoApiPrefix
 @RestController
@@ -27,25 +32,26 @@ public class GithubOAuthController {
 
     private final CookieUtil cookieUtil;
     private final GithubOAuthService githubOAuthService;
-    private final GitHubProperties gitHubProperties;
-    private final FrontendProperties frontendProperties;
+    private final AppConfig appConfig;
 
     public GithubOAuthController(CookieUtil cookieUtil,
                                  GithubOAuthService githubOAuthService,
-                                 FrontendProperties frontendProperties,
-                                 GitHubProperties gitHubProperties) {
+                                 AppConfig appConfig) {
         this.cookieUtil = cookieUtil;
         this.githubOAuthService = githubOAuthService;
-        this.frontendProperties = frontendProperties;
-        this.gitHubProperties = gitHubProperties;
+        this.appConfig = appConfig;
     }
 
-    /** Redirects the user to GitHub to begin the OAuth flow. */
+    /**
+     * Redirects the end-user to the GitHub OAuth authorization page.
+     *
+     * @return A 307 Temporary Redirect to GitHub.
+     */
     @GetMapping("/login")
     public Mono<ResponseEntity<Void>> login() {
         String githubAuthUrl = UriComponentsBuilder.fromUriString("https://github.com/login/oauth/authorize")
-                .queryParam("client_id", gitHubProperties.clientId())
-                .queryParam("redirect_uri", gitHubProperties.redirectUri())
+                .queryParam("client_id", appConfig.github().clientId())
+                .queryParam("redirect_uri", appConfig.github().redirectUri())
                 .queryParam("scope", "user:email")
                 .toUriString();
 
@@ -54,22 +60,35 @@ public class GithubOAuthController {
                 .build());
     }
 
-    /** * Receives the 'code' from GitHub and converts it to a cookie-based session.
-     * Finally redirects back to the Frontend (e.g., localhost:3000).
+    /**
+     * Handles the callback from GitHub after user authorization.
+     * <p>
+     * Exchanges the code for a JWT via {@link GithubOAuthService}, attaches it as a cookie,
+     * and redirects the user back to the application frontend.
+     * </p>
+     *
+     * @param code     The temporary authorization code provided by GitHub.
+     * @param exchange The current server exchange to modify response cookies.
+     * @return A redirect to the configured frontend URL.
      */
     @GetMapping("/callback")
     public Mono<ResponseEntity<Void>> callback(@RequestParam String code, ServerWebExchange exchange) {
         return githubOAuthService.processCode(code)
-                .doOnNext(jwt -> cookieUtil.addTokenCookie(exchange, jwt, null))
+                .flatMap(jwt -> cookieUtil.addTokenCookie(exchange, jwt))
                 .then(Mono.just(ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
-                        .location(URI.create(frontendProperties.url()))
+                        .location(URI.create(appConfig.frontendUrl()))
                         .build()));
     }
 
-    /** Standardized Logout. Clears the cookie and returns a unified response. */
+    /**
+     * Invalidates the user session by clearing the security cookie.
+     *
+     * @param exchange The current server exchange.
+     * @return A success message wrapped in an {@link ApiResponse}.
+     */
     @GetMapping("/logout")
     public Mono<ResponseEntity<ApiResponse<Void>>> logout(ServerWebExchange exchange) {
-        cookieUtil.clearTokenCookie(exchange);
-        return Mono.just(ResponseEntity.ok(new ApiResponse<>(null, "Logged out successfully")));
+        return cookieUtil.clearTokenCookie(exchange)
+                .then(Mono.just(ResponseEntity.ok(new ApiResponse<>(null, "Logged out successfully"))));
     }
 }

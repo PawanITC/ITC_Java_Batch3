@@ -5,6 +5,7 @@ spring:
   main:
     allow-bean-definition-overriding: true
 
+  # Prevents Spring from looking for a DB during Gateway tests
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
@@ -18,7 +19,6 @@ spring:
           uri: http://localhost:${wiremock.server.port}
           predicates:
             - Path=/api/v1/users/**
-
         - id: payment-service
           uri: http://localhost:${wiremock.server.port}
           predicates:
@@ -27,20 +27,25 @@ spring:
 server:
   port: 0
 
+# Matches your AppConfig / apiProperties records
+api:
+  version: /api/v1
+
 app:
   frontend-url: http://localhost:5173
-
   services:
     user-service: http://localhost:${wiremock.server.port}
 
   jwt:
+    # This is a valid Base64 string for a 256-bit key
     secret: "dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci10ZXN0aW5nLWJhc2U2NA=="
     expiration-ms: 3600000
     cookie-max-age-seconds: 3600
     cookie-name: token
-    secure-cookie: false
+    secure-cookie: false # MUST be false for localhost testing
 
   github:
     client-id: test-id
     client-secret: test-secret
-    redirect-uri: http://localhost:8080/oauth/github/callback
+    # Path must match @RequestMapping in GithubOAuthController
+    redirect-uri: http://localhost:8060/oauth/github/callback

@@ -1,5 +1,6 @@
 package com.itc.funkart.gateway.controller;
 
+import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.config.props.ApiProperties;
 import com.itc.funkart.gateway.config.props.FrontendProperties;
 import com.itc.funkart.gateway.config.props.GitHubProperties;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -47,28 +49,65 @@ class GithubOAuthControllerTest {
 
     @MockitoBean
     private GithubOAuthService githubOAuthService;
-
     @MockitoBean
     private CookieUtil cookieUtil;
-
     @MockitoBean
     private JwtTokenValidator jwtTokenValidator;
-
     @MockitoBean
     private JwtWebFilter jwtWebFilter;
 
+    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
+    private AppConfig appConfig;
+
+
+    /**
+     * <h3>Mock Configuration</h3>
+     * Satisfies WebConfig and Controller dependencies for the test slice.
+     */
+    @TestConfiguration
+    static class MockConfig {
+        @Bean
+        @Primary
+        public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+            return http
+                    .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                    .authorizeExchange(ex -> ex.anyExchange().permitAll())
+                    .build();
+        }
+
+        // Ensure these match the property records exactly
+        @Bean ApiProperties apiProperties() { return new ApiProperties("/api/v1"); }
+        @Bean GitHubProperties gitHubProperties() {
+            return new GitHubProperties("test-id", "test-secret", "http://callback");
+        }
+        @Bean FrontendProperties frontendProperties() {
+            return new FrontendProperties("http://localhost:5173");
+        }
+    }
+
     @BeforeEach
     void setUp() {
-        // Use doAnswer to avoid calling the real filter logic during stubbing
-        doAnswer(invocation -> {
+        // 1. BULLETPROOF FILTER STUB
+        // We use lenient() to prevent Mockito from complaining about unused stubs
+        // and add a null check for the chain to stop the NPE.
+        lenient().when(jwtWebFilter.filter(any(), any())).thenAnswer(invocation -> {
             ServerWebExchange exchange = invocation.getArgument(0);
             WebFilterChain chain = invocation.getArgument(1);
-            return chain.filter(exchange);
-        }).when(jwtWebFilter).filter(any(ServerWebExchange.class), any(WebFilterChain.class));
 
-        // Stub void methods to prevent Mockito/Reactive hanging issues
-        doNothing().when(cookieUtil).clearTokenCookie(any());
-        doNothing().when(cookieUtil).addTokenCookie(any(), anyString(), any());
+            // If the chain is null (happens in some error dispatches),
+            // just return Mono.empty() to stop the crash.
+            return (chain != null) ? chain.filter(exchange) : Mono.empty();
+        });
+
+        // 2. STUB DEEP APPCONFIG
+        when(appConfig.jwt().cookieName()).thenReturn("token");
+        when(appConfig.github().clientId()).thenReturn("test-client-id");
+        when(appConfig.github().redirectUri()).thenReturn("http://localhost:8080/callback");
+        when(appConfig.frontendUrl()).thenReturn("http://localhost:5173");
+
+        // 3. STUB COOKIEUTIL
+        when(cookieUtil.addTokenCookie(any(), anyString())).thenReturn(Mono.empty());
+        when(cookieUtil.clearTokenCookie(any())).thenReturn(Mono.empty());
     }
 
     /**
@@ -114,38 +153,6 @@ class GithubOAuthControllerTest {
     }
 
     /**
-     * <h3>Mock Configuration</h3>
-     * Satisfies WebConfig and Controller dependencies for the test slice.
-     */
-    @TestConfiguration
-    static class MockConfig {
-
-        @Bean
-        @Primary
-        public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-            return http
-                    .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                    .authorizeExchange(ex -> ex.anyExchange().permitAll())
-                    .build();
-        }
-
-        @Bean
-        ApiProperties apiProperties() {
-            return new ApiProperties("/api/v1");
-        }
-
-        @Bean
-        GitHubProperties gitHubProperties() {
-            return new GitHubProperties("test-client-id", "test-secret", "http://callback");
-        }
-
-        @Bean
-        FrontendProperties frontendProperties() {
-            return new FrontendProperties("http://localhost:5173");
-        }
-    }
-
-    /**
      * <h3>Callback Flow</h3>
      *
      * <p>
@@ -160,7 +167,7 @@ class GithubOAuthControllerTest {
     @Nested
     class CallbackTests {
         @Test
-        @DisplayName("Callback: success sets cookie and redirects")
+        @DisplayName("Callback: success sets cookie and redirects to frontend")
         void callback_success() {
             when(githubOAuthService.processCode("code"))
                     .thenReturn(Mono.just("jwt-token"));
@@ -173,11 +180,11 @@ class GithubOAuthControllerTest {
                     .expectStatus().isTemporaryRedirect()
                     .expectHeader().location("http://localhost:5173");
 
-            verify(cookieUtil).addTokenCookie(any(), eq("jwt-token"), any());
+            verify(cookieUtil).addTokenCookie(any(), eq("jwt-token"));
         }
 
         @Test
-        @DisplayName("Callback: OAuth failure returns error")
+        @DisplayName("Callback: OAuth failure returns 401 with error details")
         void callback_failure() {
             when(githubOAuthService.processCode("bad"))
                     .thenReturn(Mono.error(new OAuthException("GitHub Exchange Failed")));
@@ -187,7 +194,7 @@ class GithubOAuthControllerTest {
                             .queryParam("code", "bad")
                             .build())
                     .exchange()
-                    .expectStatus().isBadRequest()
+                    .expectStatus().isUnauthorized() // Changed from isBadRequest()
                     .expectBody()
                     .jsonPath("$.error.message").isEqualTo("GitHub Exchange Failed");
         }

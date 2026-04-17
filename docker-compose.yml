@@ -41,6 +41,8 @@ services:
     image: abbasgureitc/user-service:latest
     ports:
       - "8081:8080"
+    env_file:
+      - ./backend/user-service/.env
     networks:
       - db-network
 
@@ -49,6 +51,8 @@ services:
     image: abbasgureitc/payment-service:latest
     ports:
       - "8082:8080"
+    env_file:
+      - ./backend/payment-service/.env
     networks:
       - db-network
 
@@ -56,12 +60,9 @@ services:
     container_name: api-gateway
     image: abbasgureitc/api-gateway:latest
     ports:
-      - "8080:8080"
-    environment:
-      USER_SERVICE_URL: http://user-service:8080
-      PAYMENT_SERVICE_URL: http://payment-service:8080
-      APP_API_VERSION: /api/v1
-      APP_FRONTENDURL: http://localhost:5173
+      - "8080:8060"
+    env_file:
+      - ./backend/api-gateway/.env
     networks:
       - db-network
 

@@ -2,6 +2,7 @@ spring:
   application:
     name: api-gateway
 
+  # Essential: Prevents the gateway from trying to connect to a DB it doesn't have
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
@@ -12,31 +13,33 @@ spring:
     gateway:
       routes:
         - id: user-service
-          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          uri: ${app.services.user-service}
           predicates:
             - Path=/api/v1/users/**
 
         - id: payment-service
-          uri: ${PAYMENT_SERVICE_URL:http://localhost:8082}
+          uri: ${app.services.payment-service}
           predicates:
             - Path=/api/v1/payments/**
 
         - id: product-service
-          uri: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+          uri: ${app.services.product-service}
           predicates:
             - Path=/api/v1/products/**
 
         - id: order-service
-          uri: ${ORDER_SERVICE_URL:http://localhost:8084}
+          uri: ${app.services.order-service}
           predicates:
             - Path=/api/v1/orders/**
 
 server:
-  port: 8080
+  # Internal process port: Moved to 8060 to avoid Jenkins (8080) collisions
+  port: ${PORT:8060}
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
 
+  # Service URLs: Gateway uses internal Docker DNS names when in Compose
   services:
     user-service: ${USER_SERVICE_URL:http://localhost:8081}
     payment-service: ${PAYMENT_SERVICE_URL:http://localhost:8082}
@@ -47,23 +50,26 @@ app:
     reviewrating-service: ${REVIEWRATING_SERVICE_URL:http://localhost:8087}
 
   jwt:
-    secret: ${JWT_SECRET:default-dev-secret-change-me}
+    secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
     cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
     cookie-name: ${APP_COOKIE_NAME:token}
     secure-cookie: ${APP_SECURE_COOKIE:false}
 
   github:
-    client-id: ${GITHUB_CLIENT_ID:placeholder-id}
-    client-secret: ${GITHUB_CLIENT_SECRET:placeholder-secret}
-    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8080/oauth/github/callback}
+    client-id: ${GITHUB_CLIENT_ID}
+    client-secret: ${GITHUB_CLIENT_SECRET}
+    # Matches the new internal port 8060 for local testing
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8060/oauth/github/callback}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,mappings
-
+        include: health,info,metrics,prometheus,mappings # Added prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
   endpoint:
     health:
       show-details: always

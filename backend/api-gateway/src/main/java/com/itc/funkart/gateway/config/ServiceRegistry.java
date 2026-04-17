@@ -36,7 +36,6 @@ public interface ServiceRegistry {
      */
     @Component
     class AppServiceRegistry implements ServiceRegistry {
-
         private final AppConfig config;
 
         public AppServiceRegistry(AppConfig config) {
@@ -45,17 +44,17 @@ public interface ServiceRegistry {
 
         @Override
         public String userService() {
-            return config.services().get("user-service");
+            return config.getServiceUrl("user-service");
         }
 
         @Override
         public String paymentService() {
-            return config.services().get("payment-service");
+            return config.getServiceUrl("payment-service");
         }
 
         @Override
         public String orderService() {
-            return config.services().get("order-service");
+            return config.getServiceUrl("order-service");
         }
     }
 }

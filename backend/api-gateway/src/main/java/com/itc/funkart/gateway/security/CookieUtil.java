@@ -1,73 +1,71 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.config.JwtCookieConfig;
+import com.itc.funkart.gateway.config.AppConfig;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
 import java.time.Duration;
 
 /**
  * <h2>Cookie Management Utility</h2>
- * <p>Handles the lifecycle of the JWT Session Cookie. By using <b>HttpOnly</b> cookies,
- * we protect the JWT from being stolen by malicious JavaScript (XSS attacks).</p>
+ * <p>Handles the lifecycle of the JWT Session Cookie using Reactive patterns.</p>
  */
 @Component
 public class CookieUtil {
 
-    private final JwtCookieConfig config;
+    private final AppConfig appConfig;
 
-    public CookieUtil(JwtCookieConfig config) {
-        this.config = config;
+    public CookieUtil(AppConfig appConfig) {
+        this.appConfig = appConfig;
     }
 
     /**
-     * Issues a secure JWT cookie.
-     * <p>Note: <b>SameSite=None</b> is required for cross-site requests (e.g., Frontend on Vercel
-     * talking to Backend on AWS), but it <i>must</i> be paired with the <b>Secure</b> flag.</p>
+     * Issues a secure JWT cookie wrapped in a Mono.
      */
-    public void addTokenCookie(ServerWebExchange exchange, String token, Integer maxAgeSeconds) {
+    public Mono<Void> addTokenCookie(ServerWebExchange exchange, String token) {
+        return Mono.fromRunnable(() -> {
+            ResponseCookie cookie = ResponseCookie
+                    .from(appConfig.jwt().cookieName(), token)
+                    .httpOnly(true)
+                    .secure(appConfig.jwt().secureCookie())
+                    .path("/")
+                    .maxAge(Duration.ofSeconds(appConfig.jwt().cookieMaxAgeSeconds()))
+                    .sameSite(appConfig.jwt().secureCookie() ? "None" : "Lax")
+                    .build();
 
-        int age = (maxAgeSeconds != null)
-                ? maxAgeSeconds
-                : config.cookieMaxAgeSeconds();
-
-        ResponseCookie cookie = ResponseCookie
-                .from(config.cookieName(), token)
-                .httpOnly(true)
-                .secure(config.secureCookie())
-                .path("/")
-                .maxAge(Duration.ofSeconds(age))
-                .sameSite(config.secureCookie() ? "None" : "Lax")
-                .build();
-
-        exchange.getResponse().addCookie(cookie);
+            exchange.getResponse().addCookie(cookie);
+        });
     }
 
     /**
-     * Method to extract token.
+     * Extracts token from the request cookies.
      */
     public String extractToken(ServerWebExchange exchange) {
-        var cookie = exchange.getRequest()
+        HttpCookie cookie = exchange.getRequest()
                 .getCookies()
-                .getFirst(config.cookieName());
+                .getFirst(appConfig.jwt().cookieName());
 
         return (cookie != null) ? cookie.getValue() : null;
     }
 
     /**
-     * Instructs the browser to delete the session cookie immediately.
+     * Clears the session cookie by setting maxAge to zero.
      */
-    public void clearTokenCookie(ServerWebExchange exchange) {
+    public Mono<Void> clearTokenCookie(ServerWebExchange exchange) {
+        return Mono.fromRunnable(() -> {
+            ResponseCookie cookie = ResponseCookie
+                    .from(appConfig.jwt().cookieName(), "")
+                    .httpOnly(true)
+                    .secure(appConfig.jwt().secureCookie())
+                    .path("/")
+                    .maxAge(Duration.ZERO)
+                    .sameSite(appConfig.jwt().secureCookie() ? "None" : "Lax")
+                    .build();
 
-        ResponseCookie cookie = ResponseCookie
-                .from(config.cookieName(), "")
-                .httpOnly(true)
-                .secure(config.secureCookie())
-                .path("/")
-                .maxAge(Duration.ZERO)
-                .sameSite(config.secureCookie() ? "None" : "Lax")
-                .build();
-
-        exchange.getResponse().addCookie(cookie);
+            exchange.getResponse().addCookie(cookie);
+        });
     }
 }

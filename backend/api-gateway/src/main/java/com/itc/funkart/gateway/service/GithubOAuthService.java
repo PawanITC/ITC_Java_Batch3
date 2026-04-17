@@ -25,7 +25,7 @@ public class GithubOAuthService {
     public GithubOAuthService(WebClient webClient, ApiProperties apiProperties) {
         this.webClient = webClient;
 
-        // ✅ "cache" computed once at startup (safe + immutable)
+        // "cache" computed once at startup (safe + immutable)
         this.oauthUri = apiProperties.version() + "/users/oauth/github";
     }
 

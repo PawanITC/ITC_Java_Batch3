@@ -16,8 +16,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for the patched {@link GlobalExceptionHandler}.
- * Validates the transition to the Lean ApiResponse format.
+ * <h2>Global Exception Handler Unit Tests</h2>
+ * Validates that the Gateway correctly translates internal exceptions into
+ * the unified ApiResponse format for the frontend.
  */
 class GlobalExceptionHandlerTest {
 
@@ -29,15 +30,16 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("OAuthException: Should return 400 Bad Request")
-    void handleOAuthException_ShouldReturnBadRequest() {
+    @DisplayName("OAuthException: Should return 401 Unauthorized")
+    void handleOAuthException_ShouldReturnUnauthorized() {
         OAuthException ex = new OAuthException("GitHub exchange failed");
 
         ResponseEntity<ApiResponse<Void>> response = handler.handleOAuth(ex);
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        // Assert 401 (Matches the @ResponseStatus and our updated handler logic)
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("BAD_REQUEST", response.getBody().getError().getCode());
+        assertEquals("UNAUTHORIZED", response.getBody().getError().getCode());
         assertEquals("GitHub exchange failed", response.getBody().getError().getMessage());
     }
 
@@ -51,11 +53,11 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("FORBIDDEN", response.getBody().getError().getCode());
-        assertEquals("Access denied", response.getBody().getError().getMessage());
+        assertEquals("Access denied: Insufficient permissions", response.getBody().getError().getMessage());
     }
 
     @Test
-    @DisplayName("Generic Exception: Should return 500 with standardized 'Senior' message")
+    @DisplayName("Generic Exception: Should return 500 with standardized message")
     void handleGeneric_ShouldReturnInternalError() {
         Exception ex = new Exception("DB Connection dropped");
 
@@ -63,20 +65,18 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotNull(response.getBody());
-        // Matches the string we put in the GlobalExceptionHandler catch-all
-        assertEquals("An unexpected error occurred", response.getBody().getError().getMessage());
+        assertEquals("An unexpected system error occurred", response.getBody().getError().getMessage());
         assertEquals("INTERNAL_SERVER_ERROR", response.getBody().getError().getCode());
     }
 
     @Test
     @DisplayName("Validation: Should handle WebExchangeBindException and extract field info")
     void handleValidation_ShouldCaptureFieldAndMessage() {
-        // We mock the Reactive validation exception
-        WebExchangeBindException ex = mock(WebExchangeBindException.class, invocation -> mock(org.springframework.validation.BindingResult.class));
+        // Mocking the Reactive validation exception structure
+        WebExchangeBindException ex = mock(WebExchangeBindException.class);
+        org.springframework.validation.BindingResult bindingResult = mock(org.springframework.validation.BindingResult.class);
         org.springframework.validation.FieldError fieldError = new org.springframework.validation.FieldError("signupRequest", "email", "Email must be valid");
 
-        // Mocking the chain of calls internal to the exception
-        org.springframework.validation.BindingResult bindingResult = mock(org.springframework.validation.BindingResult.class);
         when(ex.getBindingResult()).thenReturn(bindingResult);
         when(bindingResult.getFieldError()).thenReturn(fieldError);
 
@@ -89,21 +89,21 @@ class GlobalExceptionHandlerTest {
     }
 
     @Nested
-    @DisplayName("Dojo: ApiResponse Structure Tests")
+    @DisplayName("ApiResponse Structure Consistency")
     class StructureTests {
         @Test
-        @DisplayName("Success Response: Should not contain error object")
+        @DisplayName("Success Response: Should be lean and contain no error block")
         void successResponse_ShouldBeLean() {
             ApiResponse<String> response = new ApiResponse<>("Success Data", "Operation OK");
 
             assertEquals("Success Data", response.getData());
             assertEquals("Operation OK", response.getMessage());
-            assertNull(response.getError()); // Crucial: Error must be null on success
+            assertNull(response.getError());
             assertNotNull(response.getTimestamp());
         }
 
         @Test
-        @DisplayName("Error Details: Should support field-level reporting")
+        @DisplayName("Error Details: Should hold field-level reporting info")
         void errorDetails_ShouldHoldFieldInfo() {
             ErrorDetails details = new ErrorDetails("VALIDATION_ERROR", "Password too short", "password");
 

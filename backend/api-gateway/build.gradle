@@ -43,6 +43,11 @@ dependencyManagement {
 
         // Test Vulnerabilities
         dependency 'net.minidev:json-smart:2.5.2'
+
+        // Observability Versions (Enforced versions for high-load consistency)
+        dependency 'io.micrometer:micrometer-tracing-bridge-otel:1.4.2'
+        dependency 'io.opentelemetry:opentelemetry-exporter-otlp:1.46.0'
+        dependency 'io.micrometer:micrometer-registry-prometheus:1.14.3'
     }
 }
 
@@ -61,6 +66,11 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+    // --- Observability (The Prometheus/Otel magic for Grafana) ---
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+
     // --- Security & JWT ---
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
@@ -76,12 +86,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'io.projectreactor:reactor-test'
-
-    // The "Magic" dependency that provides @AutoConfigureWireMock and matches Spring Boot 3
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     testImplementation 'org.springframework.cloud:spring-cloud-contract-wiremock:4.2.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
 }
 
 jacocoTestReport {
@@ -90,7 +97,6 @@ jacocoTestReport {
         xml.required = true
         html.required = true
     }
-    // Optional: Exclude DTOs or Config from coverage
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: [
@@ -112,4 +118,14 @@ tasks.named('jar') {
 
 tasks.named('bootJar') {
     archiveFileName = "api-gateway.jar"
+}
+
+tasks.named('bootRun') {
+    // Optimizations for the G1 Garbage Collector in high-traffic containers
+    jvmArgs = [
+            '-XX:+UseG1GC',
+            '-XX:+UseStringDeduplication',
+            '-Xms512m',
+            '-Xmx1024m'
+    ]
 }

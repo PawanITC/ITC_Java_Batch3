@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpCookie;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -48,6 +49,27 @@ class JwtWebFilterTest {
     void setUp() {
         jwtWebFilter = new JwtWebFilter(cookieUtil, jwtTokenValidator);
         when(filterChain.filter(any())).thenReturn(Mono.empty());
+    }
+
+    @Test
+    @DisplayName("Header: Should extract token and populate SecurityContext")
+    void whenValidBearerToken_thenPopulateContext() {
+        String token = "valid.jwt.token";
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/test").header("Authorization", "Bearer " + token)
+        );
+
+        Claims claims = Jwts.claims().subject("1").add("role", "ROLE_USER").build();
+        when(jwtTokenValidator.validateAndParseClaims(token)).thenReturn(claims);
+
+        // The logic: Run the filter, then fetch the context from the reactor pipeline
+        Mono<Void> filterExecution = jwtWebFilter.filter(exchange, filterChain);
+
+        StepVerifier.create(filterExecution)
+                .expectAccessibleContext() // This looks into the Reactor Context
+                .hasKey(SecurityContext.class) // Spring Security stores context here
+                .then()
+                .verifyComplete();
     }
 
     @Test
