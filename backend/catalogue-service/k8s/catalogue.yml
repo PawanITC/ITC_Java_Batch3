@@ -12,6 +12,8 @@ spec:
       labels:
         app: catalogue-service
     spec:
+      nodeSelector:
+        role: app
       containers:
         - name: catalogue-service
           image: 666127452756.dkr.ecr.eu-west-2.amazonaws.com/catalogue-service:latest
