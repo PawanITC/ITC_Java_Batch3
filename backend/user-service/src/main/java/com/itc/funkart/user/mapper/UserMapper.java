@@ -97,7 +97,6 @@ public class UserMapper {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
-                .providers(extractProviders(user))
                 .build();
     }
 }
