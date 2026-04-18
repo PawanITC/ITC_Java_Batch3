@@ -1,8 +1,10 @@
 package com.itc.funkart.user.auth;
 
+import com.itc.funkart.user.auth.oauth.OAuthProvider;
 import com.itc.funkart.user.config.GithubOAuthConfig;
 import com.itc.funkart.user.dto.github.AccessTokenResponse;
 import com.itc.funkart.user.dto.github.GithubUser;
+import com.itc.funkart.user.dto.user.OAuthUserResult;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.OAuthException;
 import com.itc.funkart.user.service.KafkaEventPublisher;
@@ -61,26 +63,24 @@ public class GithubOAuthService {
 
         String accessToken = getAccessToken(code);
         GithubUser githubUser = fetchGithubUser(accessToken);
+        String githubProvider = OAuthProvider.GITHUB.value();
 
         String providerId = githubUser.id().toString();
         String email = normalizeEmail(githubUser);
         String username = githubUser.login();
 
         // 1. Resolve or create local user FIRST (single source of truth)
-        User user = userService.getOrCreateOAuthUser(email, username);
+        OAuthUserResult result = userService.getOrCreateOAuthUser(email, username);
 
-        // 2. Check if OAuth link already exists (this defines "new OAuth binding", NOT new user)
-        boolean oauthAlreadyLinked =
-                oauthAccountService.findByProviderAndProviderId("github", providerId).isPresent();
+        // 2. Check if User already exists
+        User user = result.user();
+        boolean isNewUser = result.isNew();
 
-        if (!oauthAlreadyLinked) {
-            oauthAccountService.createAccount(user, "github", providerId);
-        }
+        // ensure OAuth account exists
+        oauthAccountService.findOrCreate(user, githubProvider, providerId);
 
         // 3. Only treat as "signup event" if user was newly created (you must derive this explicitly)
-        // the safest practical heuristic in your current architecture:
-        boolean isNewUser = user.getCreatedAt() == null;
-
+        //  Fire signup event ONLY if truly new user
         if (isNewUser) {
             kafkaEventPublisher.publishSignup(user);
         }

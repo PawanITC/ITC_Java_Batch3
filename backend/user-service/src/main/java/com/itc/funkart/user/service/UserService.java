@@ -1,6 +1,7 @@
 package com.itc.funkart.user.service;
 
 import com.itc.funkart.user.dto.user.LoginRequest;
+import com.itc.funkart.user.dto.user.OAuthUserResult;
 import com.itc.funkart.user.dto.user.SignupRequest;
 import com.itc.funkart.user.dto.user.UserProfileDto;
 import com.itc.funkart.user.entity.Role;
@@ -119,17 +120,23 @@ public class UserService {
     // ---------------- Idempotent Method ----------------
 
     @Transactional
-    public User getOrCreateOAuthUser(String email, String name) {
-        return userRepository.findByEmail(email)
-                .orElseGet(() ->
-                        userRepository.save(User.builder()
-                                .email(email)
-                                .name(name)
-                                .password("{OAUTH}")
-                                .role(Role.ROLE_USER)
-                                .build()
-                        )
-                );
+    public OAuthUserResult getOrCreateOAuthUser(String email, String name) {
+
+        Optional<User> existing = userRepository.findByEmail(email);
+
+        if (existing.isPresent()) {
+            return new OAuthUserResult(existing.get(), false);
+        }
+
+        User newUser = userRepository.save(User.builder()
+                .email(email)
+                .name(name)
+                .password("{OAUTH}")
+                .role(Role.ROLE_USER)
+                .build()
+        );
+
+        return new OAuthUserResult(newUser, true);
     }
 
     // ---------------- validation ----------------

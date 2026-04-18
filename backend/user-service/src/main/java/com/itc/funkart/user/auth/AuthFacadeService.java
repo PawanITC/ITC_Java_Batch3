@@ -1,5 +1,6 @@
 package com.itc.funkart.user.auth;
 
+import com.itc.funkart.user.auth.oauth.OAuthProvider;
 import com.itc.funkart.user.dto.user.LoginRequest;
 import com.itc.funkart.user.dto.user.OAuthResponse;
 import com.itc.funkart.user.dto.user.SignupRequest;
@@ -31,8 +32,9 @@ public class AuthFacadeService {
      * GitHub OAuth login flow.
      */
     public OAuthResponse handleGithubLogin(String code) {
+        String github = OAuthProvider.GITHUB.value();
         User user = githubOAuthService.processCode(code);
-        userService.recordLogin(user, "github");
+        userService.recordLogin(user, github);
         String token = jwtService.generateJwtToken(principalFactory.create(user));
         return userMapper.toOAuthResponse(user, token);
     }
