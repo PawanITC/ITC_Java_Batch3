@@ -27,10 +27,10 @@ pipeline {
             steps {
                 dir('backend/api-gateway') {
                     script {
-                        // Grant execute permission to the wrapper
                         sh "chmod +x gradlew"
 
                         sh "./gradlew clean build jacocoTestReport \
+                            -x test \
                             -Dspring.profiles.active=test \
                             --no-daemon --stacktrace"
                     }

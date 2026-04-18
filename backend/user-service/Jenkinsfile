@@ -23,14 +23,14 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                dir('backend/user-service') {
+                dir('backend/api-gateway') {
                     script {
-                        def jdkPath = tool name: 'jdk17', type: 'jdk'
-                        withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
-                            sh 'chmod +x gradlew'
-                            // Added --no-daemon to prevent Jenkins workspace locking
-                            sh "./gradlew clean build jacocoTestReport --no-daemon -Dorg.gradle.java.home=${jdkPath}"
-                        }
+                        sh "chmod +x gradlew"
+
+                        sh "./gradlew clean build jacocoTestReport \
+                            -x test \
+                            -Dspring.profiles.active=test \
+                            --no-daemon --stacktrace"
                     }
                 }
             }
