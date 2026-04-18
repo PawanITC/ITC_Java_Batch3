@@ -1,21 +1,86 @@
 # 🛡️ Funkart API Gateway
 
-The **Funkart API Gateway** serves as the centralized entry point and "Bouncer" for the Funkart microservices architecture. It is built on **Spring Cloud Gateway (Reactive)** to provide high-performance, non-blocking request routing with a heavy focus on security and identity verification.
+The Funkart API Gateway is the **edge routing layer** of the system and acts strictly as a **network + security perimeter**, not an identity authority.
 
-## 🌟 Key Features
+It is built on **Spring Cloud Gateway (Reactive)** and follows a **stateless pass-through security model**.
 
-* **Reactive Security Perimeter:** Utilizes Spring Security WebFlux to manage access control at the edge.
-* **JWT Validation:** A custom `JwtWebFilter` intercepts requests to validate JSON Web Tokens issued by the `user-service`.
-* **OAuth2 Bridge:** Implements a specialized `GithubOAuthService` to handle the exchange of GitHub codes for system-level identity tokens.
-* **Path-Based Routing:** Intelligent routing logic to distinguish between public endpoints and protected resources.
-* **Stateless Cookie Management:** Efficient handling of secure, HTTP-only cookies for token transport.
+---
 
-## 🏗️ Architecture Overview
+## 🌟 Core Responsibility
 
-The Gateway acts as a security filter before requests ever reach downstream services. It handles:
-1.  **Authentication:** Is the user who they say they are?
-2.  **Authorization:** Does the user have permission to access this specific microservice?
-3.  **Transformation:** Stripping or adding headers/cookies to maintain a clean internal state.
+The gateway is responsible for:
+
+- Request routing to downstream microservices
+- Forwarding authentication tokens (JWT)
+- Optional structural validation of tokens (format-level only)
+- Header normalization (Authorization propagation)
+- Enforcing public vs protected route access rules
+
+---
+
+## ❌ Explicit Non-Responsibilities (Important)
+
+The gateway MUST NOT:
+
+- ❌ Generate JWTs
+- ❌ Decode JWT claims for business logic
+- ❌ Perform role-based authorization
+- ❌ Build `Authentication` objects
+- ❌ Access user database
+- ❌ Interpret identity beyond transport
+
+> Identity authority lives ONLY in `user-service`.
+
+---
+
+## 🧭 Architecture Role
+
+The gateway acts as:
+
+**Client → Gateway → User-Service / Other Services**
+
+It is a **dumb router with security awareness**, not a security brain.
+
+---
+
+## 🔐 Security Model
+
+### Current Design (Corrected)
+
+- JWT is issued by `user-service`
+- Gateway only forwards token downstream
+- Downstream services validate and reconstruct identity
+
+### Token Flow
+
+1. Client sends request with JWT
+2. Gateway:
+   - extracts Authorization header
+   - optionally checks token structure (NOT claims logic)
+   - forwards request unchanged
+3. User-service:
+   - fully validates token
+   - builds `SecurityContext`
+
+---
+
+## 🚦 Routing Strategy
+
+- `/auth/**` → User-service
+- `/users/**` → User-service
+- `/oauth/**` → User-service
+- `/products/**` → Product-service (future)
+
+---
+
+## 🧪 Testing Strategy
+
+- Route validation tests
+- Security filter chain tests
+- Header propagation tests
+- Reactive WebTestClient integration tests
+
+
 
 ## 🧪 Quality Assurance & Testing
 
@@ -28,18 +93,29 @@ This project maintains a **100% Code Coverage** standard for all core security l
 * **Reactive Testing:** Extensive use of `StepVerifier` to test non-blocking `Mono` and `Flux` streams in the OAuth service.
 * **Semantic Reporting:** All tests utilize `@DisplayName` to provide a human-readable living specification of system behavior.
 
+---
+
 ## 🛠️ Tech Stack
 
-* **Core:** Spring Boot 3.3.5, Spring Cloud Gateway
-* **Security:** Spring Security (Reactive), JJWT (Java JWT)
-* **Logic:** Project Reactor (Flux/Mono)
-* **Testing:** JUnit 5, Mockito, AssertJ, WebTestClient
+- Spring Boot 3.3+
+- Spring Cloud Gateway (WebFlux)
+- Spring Security (Reactive filter chain)
+- Project Reactor (Mono/Flux)
+- JUnit 5 + WebTestClient
+
+---
+
+## 🚨 Key Design Rule
+
+> The gateway is NOT allowed to evolve into a mini-auth service.
+
+All identity logic belongs in `user-service`.
 
 ## 🚦 Getting Started
 
 ### Prerequisites
 * Java 17 or higher
-* Maven or Gradle
+* Gradle
 * Environment Variables:
     * `JWT_SECRET`: A Base64 encoded 256-bit string.
     * `GITHUB_CLIENT_ID`: Your OAuth App ID.
@@ -48,5 +124,3 @@ This project maintains a **100% Code Coverage** standard for all core security l
 ### Running the Application
 ```bash
 ./gradlew bootRun
-# or
-mvn spring-boot:run
