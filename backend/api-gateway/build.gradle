@@ -1,6 +1,7 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.2'
+    // Patch: Upgraded to 3.4.3 to fix Actuator & Security Bypass vulnerabilities
+    id 'org.springframework.boot' version '3.4.3'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
 }
@@ -24,7 +25,7 @@ repositories {
 
 dependencyManagement {
     imports {
-        // Aligned with Spring Boot 3.4.x / 3.5.x ecosystem
+        // Aligned with Spring Boot 3.4.3+ ecosystem
         mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2024.0.0'
     }
     dependencies {
@@ -36,26 +37,32 @@ dependencyManagement {
         dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2'
         dependency 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.18.2'
 
-        // Netty & Reactor (Critical for Reactive Gateway)
-        dependency 'io.netty:netty-codec-http:4.1.117.Final'
-        dependency 'io.netty:netty-codec-http2:4.1.117.Final'
-        dependency 'io.projectreactor.netty:reactor-netty-http:1.2.2'
+        // Patch: Netty 4.1.118.Final fixes Request Smuggling & DoS issues found in .117
+        dependency 'io.netty:netty-codec-http:4.1.118.Final'
+        dependency 'io.netty:netty-codec-http2:4.1.118.Final'
+        dependency 'io.projectreactor.netty:reactor-netty-http:1.2.3'
 
         // Test Vulnerabilities
         dependency 'net.minidev:json-smart:2.5.2'
+        dependency 'org.assertj:assertj-core:3.27.3'
 
-        // Observability Versions (Enforced versions for high-load consistency)
+        // Observability Versions
         dependency 'io.micrometer:micrometer-tracing-bridge-otel:1.4.2'
         dependency 'io.opentelemetry:opentelemetry-exporter-otlp:1.46.0'
         dependency 'io.micrometer:micrometer-registry-prometheus:1.14.3'
     }
 }
 
-// Force Jackson alignment across all transitive dependencies
+// Resolution Strategy: Forces safe versions for transitive dependencies
 configurations.configureEach {
     resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        // Force Jackson alignment
         if (details.requested.group.startsWith('com.fasterxml.jackson')) {
             details.useVersion '2.18.2'
+        }
+        // Patch: Fixes BouncyCastle "Timing Attack" and "Risky Crypto" (SNYK-JAVA-ORGBOUNCYCASTLE-16074612)
+        if (details.requested.name == 'bcprov-jdk18on') {
+            details.useVersion '1.84'
         }
     }
 }
@@ -66,7 +73,10 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    // --- Observability (The Prometheus/Otel magic for Grafana) ---
+    // Explicitly add safe BouncyCastle to override vulnerable transitive versions
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.84'
+
+    // --- Observability (Prometheus/Otel) ---
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
@@ -87,7 +97,8 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
-    testImplementation 'org.springframework.cloud:spring-cloud-contract-wiremock:4.2.0'
+    // Patch: Upgrade Wiremock to fix httpclient5 vulnerabilities
+    testImplementation 'org.springframework.cloud:spring-cloud-contract-wiremock:4.3.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
@@ -121,7 +132,6 @@ tasks.named('bootJar') {
 }
 
 tasks.named('bootRun') {
-    // Optimizations for the G1 Garbage Collector in high-traffic containers
     jvmArgs = [
             '-XX:+UseG1GC',
             '-XX:+UseStringDeduplication',

@@ -34,15 +34,21 @@ public class GlobalExceptionHandler {
      * @param ex      The caught exception for logging.
      * @return A formatted ResponseEntity containing the ApiResponse.
      */
-    private ResponseEntity<ApiResponse<Void>> buildErrorResponse(HttpStatus status, String message, String field, Exception ex) {
+    private ResponseEntity<ApiResponse<Void>> buildErrorResponse(
+            HttpStatus status,
+            String code,
+            String message,
+            String field,
+            Exception ex
+    ) {
         if (status.is5xxServerError()) {
-            log.error("CRITICAL: Internal Server Error: ", ex);
+            log.error("Gateway Internal Error", ex);
         } else {
-            log.warn("Request Rejected [{}]: {}", status.value(), message);
+            log.warn("Request rejected [{}]: {}", status.value(), message);
         }
 
-        ErrorDetails errorDetails = new ErrorDetails(status.name(), message, field);
-        return ResponseEntity.status(status).body(new ApiResponse<>(errorDetails));
+        ErrorDetails error = new ErrorDetails(code, message, field);
+        return ResponseEntity.status(status).body(new ApiResponse<>(error));
     }
 
     /**
@@ -50,11 +56,19 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(WebExchangeBindException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidation(WebExchangeBindException ex) {
+
         var fieldError = ex.getBindingResult().getFieldError();
+
         String field = (fieldError != null) ? fieldError.getField() : "unknown";
         String message = (fieldError != null) ? fieldError.getDefaultMessage() : "Validation failed";
 
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, message, field, ex);
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_ERROR",
+                message,
+                field,
+                ex
+        );
     }
 
     /**
@@ -62,8 +76,13 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(OAuthException.class)
     public ResponseEntity<ApiResponse<Void>> handleOAuth(OAuthException ex) {
-        // Aligned to 401 Unauthorized for security consistency
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), null, ex);
+        return buildErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                "OAUTH_ERROR",
+                ex.getMessage(),
+                null,
+                ex
+        );
     }
 
     /**
@@ -72,15 +91,16 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(WebClientResponseException.class)
     public ResponseEntity<ApiResponse<Void>> handleWebClientError(WebClientResponseException ex) {
+
         log.warn("Downstream Service failure: {} - {}", ex.getStatusCode(), ex.getStatusText());
 
-        // We wrap the downstream error to ensure the Frontend logic stays consistent
-        ErrorDetails error = new ErrorDetails(
-                ex.getStatusCode().toString(),
-                "Service Error: " + ex.getStatusText()
+        return buildErrorResponse(
+                HttpStatus.valueOf(ex.getStatusCode().value()),
+                "DOWNSTREAM_ERROR_" + ex.getStatusCode().value(),
+                "Service Error: " + ex.getStatusText(),
+                null,
+                ex
         );
-
-        return ResponseEntity.status(ex.getStatusCode()).body(new ApiResponse<>(error));
     }
 
     /**
@@ -88,7 +108,13 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
-        return buildErrorResponse(HttpStatus.FORBIDDEN, "Access denied: Insufficient permissions", null, ex);
+        return buildErrorResponse(
+                HttpStatus.FORBIDDEN,
+                "ACCESS_DENIED",
+                "Access denied: Insufficient permissions",
+                null,
+                ex
+        );
     }
 
     /**
@@ -96,6 +122,12 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected system error occurred", null, ex);
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "INTERNAL_ERROR",
+                "An unexpected system error occurred",
+                null,
+                ex
+        );
     }
 }

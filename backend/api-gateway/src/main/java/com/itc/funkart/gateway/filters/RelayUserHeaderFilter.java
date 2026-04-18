@@ -5,6 +5,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -36,23 +37,24 @@ public class RelayUserHeaderFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+
         return ReactiveSecurityContextHolder.getContext()
-                .filter(c -> c.getAuthentication() != null && c.getAuthentication().getPrincipal() instanceof JwtUserDto)
-                .map(c -> (JwtUserDto) c.getAuthentication().getPrincipal())
+                .map(SecurityContext::getAuthentication)
+                .filter(auth -> auth != null && auth.getPrincipal() instanceof JwtUserDto)
+                .map(auth -> (JwtUserDto) auth.getPrincipal())
                 .flatMap(user -> {
-                    // User is present, mutate and move on
-                    ServerWebExchange mutatedExchange = exchange.mutate()
-                            .request(builder -> builder
-                                    .header("X-User-Id", String.valueOf(user.id()))
-                                    .header("X-User-Email", user.email())
-                                    .header("X-User-Role", user.role())
-                            )
+
+                    ServerWebExchange mutated = exchange.mutate()
+                            .request(r -> r.headers(headers -> {
+                                headers.add("X-User-Id", String.valueOf(user.id()));
+                                headers.add("X-User-Email", user.email());
+                                headers.add("X-User-Role", user.role());
+                            }))
                             .build();
-                    return chain.filter(mutatedExchange);
+
+                    return chain.filter(mutated);
                 })
-                // If the map/flatMap was skipped because the context was empty,
-                // this switchIfEmpty will catch it and proceed with the original exchange.
-                .switchIfEmpty(Mono.defer(() -> chain.filter(exchange)));
+                .switchIfEmpty(chain.filter(exchange));
     }
 
     /**
@@ -64,6 +66,6 @@ public class RelayUserHeaderFilter implements GlobalFilter, Ordered {
         // MUST run AFTER authentication filter, BEFORE routing
         // A value of 0 or 1 is usually safe to ensure it happens
         // after the SecurityWebFilterChain but before routing.
-        return 1;
+        return -1; // safer: run early in Gateway filter chain before routing
     }
 }
