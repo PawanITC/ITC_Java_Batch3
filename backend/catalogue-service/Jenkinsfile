@@ -5,7 +5,10 @@ pipeline {
 apiVersion: v1
 kind: Pod
 spec:
-  serviceAccountName: jenkins   # ← ADD THIS
+  serviceAccountName: jenkins
+
+  nodeSelector:
+    eks.amazonaws.com/nodegroup: jenkins-node-group
 
   containers:
     - name: jnlp
