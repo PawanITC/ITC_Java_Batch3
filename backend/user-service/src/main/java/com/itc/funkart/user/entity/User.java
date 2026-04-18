@@ -3,6 +3,10 @@ package com.itc.funkart.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Core User entity representing a registered user in the Funkart system.
  * <p>
@@ -38,4 +42,15 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private Role role = Role.ROLE_USER;
+
+    /**
+     * One User can have multiple OAuth providers (GitHub, Google, etc.)
+     * 'mappedBy' points to the field name in the OAuthAccount class.
+     */
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<OAuthAccount> oauthAccounts = new ArrayList<>();
+
+    @Column(updatable = false)
+    private Instant createdAt;
 }

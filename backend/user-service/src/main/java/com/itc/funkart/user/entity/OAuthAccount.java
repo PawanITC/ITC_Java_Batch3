@@ -22,11 +22,12 @@ public class OAuthAccount {
     private Long id;
 
     /**
-     * Foreign reference to the {@link User#getId()}.
-     * Stored as a plain Long to maintain service flexibility.
+     * The actual User object.
+     * FetchType.LAZY means we only load the user details if we explicitly ask for them.
      */
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     /**
      * The OAuth provider name (e.g., "GitHub", "google").

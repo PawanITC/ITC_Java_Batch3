@@ -55,7 +55,7 @@ public class KafkaProducerConfig {
         // Interoperability: Strip Java-specific headers for non-JVM consumers (e.g., Python, Go)
         configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
 
-        // Identification: Dynamic Client ID for tracking specific instances in a cluster
+        // Identification: Dynamic Client ID for tracking specific instances in a cluster, Good for monitoring.
         String hostname = System.getenv().getOrDefault("HOSTNAME", "localhost");
         configProps.put(ProducerConfig.CLIENT_ID_CONFIG, "user-service-producer-" + hostname);
 
@@ -64,7 +64,6 @@ public class KafkaProducerConfig {
 
     /**
      * Configures the {@link KafkaTemplate} used for high-level operations.
-     *
      * @return A {@link KafkaTemplate} initialized with the custom producer factory.
      */
     @Bean

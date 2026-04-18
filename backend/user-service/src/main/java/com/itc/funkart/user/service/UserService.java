@@ -2,12 +2,14 @@ package com.itc.funkart.user.service;
 
 import com.itc.funkart.user.dto.user.LoginRequest;
 import com.itc.funkart.user.dto.user.SignupRequest;
+import com.itc.funkart.user.dto.user.UserProfileDto;
 import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.AlreadyExistsException;
 import com.itc.funkart.user.exceptions.BadRequestException;
 import com.itc.funkart.user.exceptions.UnauthorizedException;
 import com.itc.funkart.user.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,8 +17,18 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 /**
- * Service class handling core user operations such as registration, authentication,
- * and profile retrieval. Links directly with {@link UserRepository} for data persistence.
+ * <h2>User Service</h2>
+ *
+ * <p>
+ * Core domain service responsible for user lifecycle operations:
+ * persistence, validation, and retrieval.
+ * </p>
+ *
+ * <p>
+ * IMPORTANT:
+ * This service does NOT generate JWTs or construct API response DTOs.
+ * It only returns domain objects or simple projections.
+ * </p>
  */
 @Service
 @RequiredArgsConstructor
@@ -24,34 +36,34 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
     /**
-     * Registers a new user in the system after validating input and checking for duplicates.
-     * * @param request The {@link SignupRequest} containing {@code email}, {@code password}, and {@code name}.
-     * @return The newly persisted {@link User} entity.
-     * @throws AlreadyExistsException if the email is already in use.
+     * Creates a new user via email/password signup.
+     *
+     * @return persisted User entity
      */
     public User signUp(SignupRequest request) {
+
         validateSignupInput(request.email(), request.password(), request.name());
         checkEmailExists(request.email());
 
-        User newUser = User.builder()
+        User user = userRepository.save(User.builder()
                 .name(request.name())
                 .email(request.email())
                 .password(hashPassword(request.password()))
                 .role(Role.ROLE_USER)
-                .build();
+                .build());
 
-        return userRepository.save(newUser);
+        kafkaEventPublisher.publishSignup(user);
+        return user;
     }
 
     /**
-     * Authenticates a user based on email and password.
-     * * @param request The {@link LoginRequest} containing {@code email} and {@code password}.
-     * @return The authenticated {@link User} entity.
-     * @throws UnauthorizedException if credentials do not match.
+     * Authenticates a user and returns domain User if valid.
      */
     public User login(LoginRequest request) {
+
         validateLoginInput(request.email(), request.password());
 
         User user = fetchUserByEmail(request.email());
@@ -60,9 +72,67 @@ public class UserService {
         return user;
     }
 
-    // ------------------------
-    // Validation Methods
-    // ------------------------
+    /**
+     * Returns user profile projection.
+     *
+     * <p>
+     * NOTE: This method returns a DTO because profile is a read-model concern,
+     * not part of authentication/session handling.
+     * </p>
+     */
+    public UserProfileDto getUserProfile(Long userId) {
+        User user = findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return new UserProfileDto(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole().name()
+        );
+    }
+
+    /**
+     * OAuth user creation (domain operation only).
+     */
+    public User createUser(String email, String password, String name) {
+        return userRepository.save(User.builder()
+                .name(name)
+                .email(email)
+                .password(password)
+                .role(Role.ROLE_USER)
+                .build());
+    }
+
+    public void recordLogin(User user, String method) {
+        kafkaEventPublisher.publishLogin(user, method);
+    }
+
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    // ---------------- Idempotent Method ----------------
+
+    @Transactional
+    public User getOrCreateOAuthUser(String email, String name) {
+        return userRepository.findByEmail(email)
+                .orElseGet(() ->
+                        userRepository.save(User.builder()
+                                .email(email)
+                                .name(name)
+                                .password("{OAUTH}")
+                                .role(Role.ROLE_USER)
+                                .build()
+                        )
+                );
+    }
+
+    // ---------------- validation ----------------
 
     private void validateSignupInput(String email, String password, String name) {
         emailAndPasswordCheck(email, password);
@@ -84,76 +154,24 @@ public class UserService {
         }
     }
 
-    // ------------------------
-    // Helper Methods
-    // ------------------------
-
-    /**
-     * Verifies if an email is already registered in the database.
-     * @param email The {@code email} to check.
-     */
     private void checkEmailExists(String email) {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new AlreadyExistsException("Email already registered");
         }
     }
 
-    /**
-     * Compares a raw password against a Bcrypt encoded hash.
-     * @param rawPassword The plaintext password from the user.
-     * @param storedPassword The hashed password from the database.
-     */
-    private void validatePassword(String rawPassword, String storedPassword) {
-        if (!passwordEncoder.matches(rawPassword, storedPassword)) {
+    private void validatePassword(String raw, String encoded) {
+        if (!passwordEncoder.matches(raw, encoded)) {
             throw new UnauthorizedException("Invalid email or password");
         }
     }
 
-    /**
-     * Encrypts a plaintext password.
-     * @param rawPassword The password to hash.
-     * @return The {@code BCrypt} encoded string.
-     */
     private String hashPassword(String rawPassword) {
         return passwordEncoder.encode(rawPassword);
     }
 
-    /**
-     * Retrieves a user by email or throws an unauthorized exception.
-     */
     private User fetchUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
-    }
-
-    /**
-     * Finds a user by their primary key.
-     */
-    public Optional<User> findById(Long id) {
-        return userRepository.findById(id);
-    }
-
-    /**
-     * Finds a user by email (Safe for OAuth flow).
-     */
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
-
-    /**
-     * Creates a new user record, typically used for OAuth registrations.
-     * * @param email The user's email address.
-     * @param password The password (can be {@code null} for OAuth).
-     * @param name The user's display name.
-     * @return The persisted {@link User}.
-     */
-    public User createUser(String email, String password, String name) {
-        User user = User.builder()
-                .name(name)
-                .email(email)
-                .password(password)
-                .role(Role.ROLE_USER)
-                .build();
-        return userRepository.save(user);
     }
 }

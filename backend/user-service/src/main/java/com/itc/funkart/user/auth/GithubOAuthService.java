@@ -1,10 +1,13 @@
-package com.itc.funkart.user.service;
+package com.itc.funkart.user.auth;
 
 import com.itc.funkart.user.config.GithubOAuthConfig;
 import com.itc.funkart.user.dto.github.AccessTokenResponse;
 import com.itc.funkart.user.dto.github.GithubUser;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.OAuthException;
+import com.itc.funkart.user.service.KafkaEventPublisher;
+import com.itc.funkart.user.service.OAuthAccountService;
+import com.itc.funkart.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -14,8 +17,18 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * Service orchestrating the OAuth2 flow with GitHub.
- * Handles token exchange, user profile retrieval, and local account synchronization.
+ * <h2>GitHub OAuth Orchestrator</h2>
+ *
+ * <p>
+ * Responsible for executing the full GitHub OAuth login flow:
+ * authorization code exchange, GitHub profile retrieval,
+ * local user provisioning, and JWT issuance.
+ * </p>
+ *
+ * <p>
+ * This service acts as a high-level orchestrator and delegates
+ * domain persistence and event publishing to dedicated services.
+ * </p>
  */
 @Service
 @Transactional
@@ -26,46 +39,58 @@ public class GithubOAuthService {
     private final WebClient webClient;
     private final OAuthAccountService oauthAccountService;
     private final UserService userService;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
     /**
-     * Executes the full GitHub OAuth handshake.
-     * * @param code The temporary authorization code received from the GitHub callback.
+     * Executes GitHub OAuth flow and returns a domain User.
      *
-     * @return The local {@link User} entity associated with the GitHub profile.
-     * @throws OAuthException if the token exchange or profile fetch fails.
+     * <p>
+     * Responsibilities:
+     * <ul>
+     *   <li>Exchange authorization code for access token</li>
+     *   <li>Fetch GitHub user profile</li>
+     *   <li>Resolve or create local user</li>
+     *   <li>Link OAuth account</li>
+     * </ul>
+     *
+     * <p>
+     * This service does NOT generate JWTs or return API DTOs.
+     * </p>
      */
     public User processCode(String code) {
+
         String accessToken = getAccessToken(code);
         GithubUser githubUser = fetchGithubUser(accessToken);
 
-        // Standardize email: Use GitHub email or fallback to a synthetic one
-        String email = (githubUser.email() != null && !githubUser.email().isBlank())
-                ? githubUser.email()
-                : githubUser.login() + "@github.oauth";
+        String providerId = githubUser.id().toString();
+        String email = normalizeEmail(githubUser);
+        String username = githubUser.login();
 
-        // Standardize name: Use display name or fallback to login handle
-        String name = (githubUser.name() != null && !githubUser.name().isBlank())
-                ? githubUser.name()
-                : githubUser.login();
+        // 1. Resolve or create local user FIRST (single source of truth)
+        User user = userService.getOrCreateOAuthUser(email, username);
 
-        // Atomic Find or Create local User
-        User user = userService.findByEmail(email)
-                .orElseGet(() -> userService.createUser(email, null, name));
+        // 2. Check if OAuth link already exists (this defines "new OAuth binding", NOT new user)
+        boolean oauthAlreadyLinked =
+                oauthAccountService.findByProviderAndProviderId("github", providerId).isPresent();
 
-        // Link the external GitHub ID to the local user ID
-        oauthAccountService.findOrCreate(
-                user.getId(),
-                "github",
-                githubUser.id().toString()
-        );
+        if (!oauthAlreadyLinked) {
+            oauthAccountService.createAccount(user, "github", providerId);
+        }
+
+        // 3. Only treat as "signup event" if user was newly created (you must derive this explicitly)
+        // the safest practical heuristic in your current architecture:
+        boolean isNewUser = user.getCreatedAt() == null;
+
+        if (isNewUser) {
+            kafkaEventPublisher.publishSignup(user);
+        }
 
         return user;
     }
 
-    /**
-     * Exchanges the authorization code for a Bearer token.
-     * Uses a try-catch to translate WebClient exceptions into business-level OAuthExceptions.
-     */
+    //Helper methods
+
+
     private String getAccessToken(String code) {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("client_id", config.getClientId());
@@ -88,15 +113,12 @@ public class GithubOAuthService {
             }
 
             return response.accessToken();
+
         } catch (Exception ex) {
-            // This catch block hits the 'Actual: Unauthorized' scenario in your tests
             throw new OAuthException("Failed to retrieve GitHub access token: " + ex.getMessage());
         }
     }
 
-    /**
-     * Fetches the user's public profile from the GitHub API.
-     */
     private GithubUser fetchGithubUser(String accessToken) {
         try {
             GithubUser user = webClient.get()
@@ -111,8 +133,21 @@ public class GithubOAuthService {
             }
 
             return user;
+
         } catch (Exception ex) {
             throw new OAuthException("Failed to fetch GitHub user info: " + ex.getMessage());
         }
+    }
+
+    private String normalizeEmail(GithubUser githubUser) {
+        return (githubUser.email() != null && !githubUser.email().isBlank())
+                ? githubUser.email()
+                : githubUser.login() + "@github.oauth";
+    }
+
+    private String normalizeName(GithubUser githubUser) {
+        return (githubUser.name() != null && !githubUser.name().isBlank())
+                ? githubUser.name()
+                : githubUser.login();
     }
 }
