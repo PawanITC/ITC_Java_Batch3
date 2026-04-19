@@ -94,10 +94,12 @@ public class GlobalExceptionHandler {
 
         log.warn("Downstream Service failure: {} - {}", ex.getStatusCode(), ex.getStatusText());
 
+        String responseBody = ex.getResponseBodyAsString();
+
         return buildErrorResponse(
                 HttpStatus.valueOf(ex.getStatusCode().value()),
                 "DOWNSTREAM_ERROR_" + ex.getStatusCode().value(),
-                "Service Error: " + ex.getStatusText(),
+                responseBody,
                 null,
                 ex
         );

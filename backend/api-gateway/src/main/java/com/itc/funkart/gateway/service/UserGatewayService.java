@@ -29,7 +29,8 @@ public class UserGatewayService {
                 .uri("/users/login")
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {})
+                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {
+                })
                 .flatMap(response ->
                         cookieUtil.addTokenCookie(exchange, response.getData().token())
                                 .thenReturn(response)
@@ -41,7 +42,8 @@ public class UserGatewayService {
                 .uri("/users/signup")
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {})
+                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {
+                })
                 .flatMap(response ->
                         cookieUtil.addTokenCookie(exchange, response.getData().token())
                                 .thenReturn(response)

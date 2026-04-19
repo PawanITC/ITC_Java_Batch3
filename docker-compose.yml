@@ -33,6 +33,20 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: mydb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - db-network
+
+  redis:
+    container_name: redis
+    image: redis:7
+    restart: always
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", ""]
+    volumes:
+      - redis_data:/data
     networks:
       - db-network
 
@@ -43,6 +57,10 @@ services:
       - "8081:8080"
     env_file:
       - ./backend/user-service/.env
+    depends_on:
+      - postgres
+      - kafka
+      - redis   
     networks:
       - db-network
 
@@ -93,6 +111,8 @@ services:
 volumes:
   jenkins_home:
   gradle_cache:
+  postgres_data:   
+  redis_data:      
 
 networks:
   db-network:
