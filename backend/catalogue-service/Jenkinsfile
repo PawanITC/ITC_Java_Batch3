@@ -8,7 +8,7 @@ spec:
   serviceAccountName: jenkins
 
   nodeSelector:
-    eks.amazonaws.com/nodegroup: jenkins-node-group
+    eks.amazonaws.com/nodegroup: ci-node-group
 
   containers:
     - name: jnlp
