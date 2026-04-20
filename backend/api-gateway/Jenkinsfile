@@ -62,7 +62,7 @@ pipeline {
                     inclusionPattern: '**/*.class',
                     minimumLineCoverage: '70',
                     maximumLineCoverage: '80',
-                    buildOverBuild: false
+                    buildOverBuild: true
                 )
             }
         }
