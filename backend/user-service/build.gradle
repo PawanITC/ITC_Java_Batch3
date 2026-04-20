@@ -73,14 +73,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.11.0'
     testImplementation 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-// =====================
-// Jacoco
-// =====================
 jacocoTestReport {
     dependsOn test
     reports {
@@ -94,9 +91,6 @@ tasks.named('test') {
     finalizedBy jacocoTestReport
 }
 
-// =====================
-// Packaging
-// =====================
 tasks.named('jar') {
     enabled = false
 }

@@ -28,17 +28,6 @@ dependencyManagement {
     }
 }
 
-configurations.configureEach {
-    resolutionStrategy.eachDependency { details ->
-        if (details.requested.group == 'com.fasterxml.jackson.core' ||
-                details.requested.group == 'com.fasterxml.jackson.datatype' ||
-                details.requested.group == 'com.fasterxml.jackson.module') {
-
-            details.useVersion '2.21.2'
-        }
-    }
-}
-
 dependencies {
 
     // =====================
@@ -82,11 +71,10 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'io.projectreactor:reactor-test'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.11.0'
     testImplementation 'org.springframework.cloud:spring-cloud-contract-wiremock:4.3.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
-
 
 jacocoTestReport {
     dependsOn test
@@ -107,13 +95,4 @@ tasks.named('jar') {
 
 tasks.named('bootJar') {
     archiveFileName = "api-gateway.jar"
-}
-
-tasks.named('bootRun') {
-    jvmArgs = [
-            '-XX:+UseG1GC',
-            '-XX:+UseStringDeduplication',
-            '-Xms512m',
-            '-Xmx1024m'
-    ]
 }
