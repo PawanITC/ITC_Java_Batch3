@@ -36,6 +36,26 @@ pipeline {
             }
         }
 
+        stage('Security Scan (Snyk)') {
+            options {
+                // Hard stop for Jenkins to reclaim the agent
+                timeout(time: 2, unit: 'MINUTES')
+            }
+            steps {
+                dir('backend/user-service') {
+                    script {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                            // Internal retry for transient network flips
+                            retry(3) {
+                                sh 'snyk test --severity-threshold=high'
+                            }
+                            sh 'snyk monitor'
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Quality Gate') {
             steps {
                 // Modern replacement for the deprecated Jacoco plugin
@@ -52,18 +72,6 @@ pipeline {
             }
         }
 
-        stage('Security Scan (Snyk)') {
-            steps {
-                dir('backend/user-service') {
-                    script {
-                        sh 'chmod +x gradlew'
-                        sh "snyk auth ${SNYK_TOKEN}"
-                        // Now that we've aligned Jackson, Snyk should be much happier!
-                        sh 'snyk test --severity-threshold=high || echo "Snyk found high-severity vulnerabilities"'
-                    }
-                }
-            }
-        }
 
         stage('Build Docker Image') {
             steps {

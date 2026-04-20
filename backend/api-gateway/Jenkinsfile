@@ -68,7 +68,10 @@ pipeline {
                     classPattern: '**/build/classes/java/main',
                     sourcePattern: '**/src/main/java',
                     inclusionPattern: '**/*.class',
+                    // Jacoco plugin uses these for the health report (Quality Gates)
                     minimumLineCoverage: '70',
+                    maximumLineCoverage: '80',
+                    buildOverBuild: true
                 )
             }
         }
