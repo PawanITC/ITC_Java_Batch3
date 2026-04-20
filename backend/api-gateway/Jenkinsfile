@@ -44,7 +44,7 @@ pipeline {
                         sh "snyk auth ${SNYK_TOKEN}"
 
                         catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            sh 'snyk test --severity-threshold=high'
+                            sh 'snyk test --severity-threshold=critical --fail-on=all'
                         }
 
                         sh 'snyk monitor'
