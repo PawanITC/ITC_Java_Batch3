@@ -92,6 +92,11 @@ class GithubOAuthControllerTest {
         });
     }
 
+    @BeforeEach
+    void resetMocks() {
+        reset(oAuthGatewayService);
+    }
+
     // -------------------------------------------------------------------------
     // GET /oauth/github/login
     // -------------------------------------------------------------------------

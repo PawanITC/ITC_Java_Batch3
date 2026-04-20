@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -55,8 +56,8 @@ class RelayUserHeaderFilterTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(chain.filter(any())).thenReturn(Mono.empty());
         filter = new RelayUserHeaderFilter();
-        when(chain.filter(any())).thenReturn(Mono.empty());
     }
 
     // -------------------------------------------------------------------------
@@ -66,6 +67,7 @@ class RelayUserHeaderFilterTest {
     @Nested
     @DisplayName("Authenticated principal in context")
     class AuthenticatedTests {
+
 
         /**
          * Builds a reactive security context containing a {@link JwtUserDto} principal
@@ -131,7 +133,13 @@ class RelayUserHeaderFilterTest {
 
             runFilterWithUser(user);
 
-            verify(chain, times(1)).filter(any());
+            ArgumentCaptor<ServerWebExchange> captor =
+                    ArgumentCaptor.forClass(ServerWebExchange.class);
+
+            verify(chain, atLeastOnce()).filter(captor.capture());
+
+            ServerWebExchange passed = captor.getValue();
+            assertEquals("5", passed.getRequest().getHeaders().getFirst("X-User-Id"));
         }
     }
 
@@ -215,9 +223,20 @@ class RelayUserHeaderFilterTest {
     // Filter ordering
     // -------------------------------------------------------------------------
 
-    @Test
-    @DisplayName("Filter order is -1 (runs before routing, after security)")
-    void filterOrder_isMinusOne() {
-        assertEquals(-1, filter.getOrder());
+    @Nested
+    class OrderTests {
+
+        private RelayUserHeaderFilter filter;
+
+        @BeforeEach
+        void setUp() {
+            filter = new RelayUserHeaderFilter();
+        }
+
+        @Test
+        @DisplayName("Filter order is -1 (runs before routing, after security)")
+        void filterOrder_isMinusOne() {
+            assertEquals(-1, filter.getOrder());
+        }
     }
 }

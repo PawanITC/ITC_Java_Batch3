@@ -42,7 +42,7 @@ class TokenBlacklistServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(redis.opsForValue()).thenReturn(valueOps);
+        lenient().when(redis.opsForValue()).thenReturn(valueOps);
         service = new TokenBlacklistService(redis);
     }
 

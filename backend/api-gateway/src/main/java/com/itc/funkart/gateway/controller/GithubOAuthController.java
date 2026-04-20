@@ -76,7 +76,7 @@ public class GithubOAuthController {
             ServerWebExchange exchange) {
 
         return oAuthGatewayService.handleCallback(code, exchange)
-                .then(Mono.just(
+                .then(Mono.fromSupplier(() ->
                         ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
                                 .location(URI.create(oAuthGatewayService.frontendRedirect()))
                                 .build()

@@ -23,20 +23,20 @@ pipeline {
         }
 
 
-        stage('Build & Test') {
-            steps {
-                dir('backend/api-gateway') {
-                    script {
-                        sh "chmod +x gradlew"
+              stage('Build & Test') {
+                    steps {
+                        dir('backend/api-gateway') {
+                            script {
+                                // Grant execute permission to the wrapper
+                                sh "chmod +x gradlew"
 
-                        sh "./gradlew clean build jacocoTestReport \
-                            -x test \
-                            -Dspring.profiles.active=test \
-                            --no-daemon --stacktrace"
+                                sh "./gradlew clean build jacocoTestReport \
+                                    -Dspring.profiles.active=test \
+                                    --no-daemon --stacktrace"
+                            }
+                        }
                     }
                 }
-            }
-        }
 
 
         stage('Security Scan (Snyk)') {
@@ -70,7 +70,6 @@ pipeline {
                     inclusionPattern: '**/*.class',
                     // Jacoco plugin uses these for the health report (Quality Gates)
                     minimumLineCoverage: '70',
-                    maximumLineCoverage: '80',
                     buildOverBuild: true
                 )
             }

@@ -56,7 +56,7 @@ class RefreshTokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(redis.opsForValue()).thenReturn(valueOps);
+        lenient().when(redis.opsForValue()).thenReturn(valueOps);
         service = new RefreshTokenService(redis);
     }
 
@@ -72,6 +72,7 @@ class RefreshTokenServiceTest {
         @DisplayName("Persists userId:deviceId under the refresh: key prefix")
         void store_writesCorrectKeyAndValue() {
             Duration ttl = Duration.ofDays(7);
+
             when(valueOps.set(eq(KEY), eq(USER_ID + ":" + DEVICE), eq(ttl)))
                     .thenReturn(Mono.just(true));
 
@@ -89,52 +90,6 @@ class RefreshTokenServiceTest {
 
             StepVerifier.create(service.store(TOKEN, USER_ID, DEVICE, Duration.ofDays(1)))
                     .verifyComplete();
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // validateAndConsume — happy path
-    // -------------------------------------------------------------------------
-
-    @Nested
-    @DisplayName("validateAndConsume — happy path")
-    class ValidateAndConsumeHappyPathTests {
-
-        @BeforeEach
-        void setUpHappyPath() {
-            // Token exists in Redis
-            when(valueOps.get(KEY)).thenReturn(Mono.just(USER_ID + ":" + DEVICE));
-            // Not previously used
-            when(redis.hasKey(USED_KEY)).thenReturn(Mono.just(false));
-            // Mark as used
-            when(valueOps.set(eq(USED_KEY), eq("1"), any(Duration.class)))
-                    .thenReturn(Mono.just(true));
-            // Delete original key
-            when(redis.delete(KEY)).thenReturn(Mono.just(1L));
-        }
-
-        @Test
-        @DisplayName("Returns the correct userId on success")
-        void returnsUserId() {
-            StepVerifier.create(service.validateAndConsume(TOKEN, DEVICE))
-                    .expectNext(USER_ID)
-                    .verifyComplete();
-        }
-
-        @Test
-        @DisplayName("Deletes the original refresh key (token rotation)")
-        void deletesOriginalKey() {
-            service.validateAndConsume(TOKEN, DEVICE).block();
-
-            verify(redis).delete(KEY);
-        }
-
-        @Test
-        @DisplayName("Marks the token as used to prevent replay")
-        void marksTokenAsUsed() {
-            service.validateAndConsume(TOKEN, DEVICE).block();
-
-            verify(valueOps).set(eq(USED_KEY), eq("1"), any(Duration.class));
         }
     }
 
@@ -159,8 +114,8 @@ class RefreshTokenServiceTest {
         @Test
         @DisplayName("Throws JwtAuthenticationException when device ID does not match stored value")
         void deviceMismatch_throwsException() {
-            when(valueOps.get(KEY)).thenReturn(Mono.just(USER_ID + ":other-device"));
-            when(redis.hasKey(USED_KEY)).thenReturn(Mono.just(false));
+            when(valueOps.get(KEY))
+                    .thenReturn(Mono.just(USER_ID + ":other-device"));
 
             StepVerifier.create(service.validateAndConsume(TOKEN, DEVICE))
                     .expectError(JwtAuthenticationException.class)
@@ -170,8 +125,11 @@ class RefreshTokenServiceTest {
         @Test
         @DisplayName("Throws JwtAuthenticationException on replay (token already consumed)")
         void replayDetected_throwsException() {
-            when(valueOps.get(KEY)).thenReturn(Mono.just(USER_ID + ":" + DEVICE));
-            when(redis.hasKey(USED_KEY)).thenReturn(Mono.just(true));
+            when(valueOps.get(KEY))
+                    .thenReturn(Mono.just(USER_ID + ":" + DEVICE));
+
+            when(redis.hasKey(USED_KEY))
+                    .thenReturn(Mono.just(true));
 
             StepVerifier.create(service.validateAndConsume(TOKEN, DEVICE))
                     .expectError(JwtAuthenticationException.class)
@@ -181,13 +139,58 @@ class RefreshTokenServiceTest {
         @Test
         @DisplayName("Throws JwtAuthenticationException when stored value is corrupted (wrong format)")
         void corruptedValue_throwsException() {
-            // Value missing the colon separator
-            when(valueOps.get(KEY)).thenReturn(Mono.just("corruptedvalue"));
-            when(redis.hasKey(USED_KEY)).thenReturn(Mono.just(false));
+            when(valueOps.get(KEY))
+                    .thenReturn(Mono.just("corruptedvalue"));
 
             StepVerifier.create(service.validateAndConsume(TOKEN, DEVICE))
                     .expectError(JwtAuthenticationException.class)
                     .verify();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // validateAndConsume — happy path
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("validateAndConsume — happy path")
+    class ValidateAndConsumeHappyPathTests {
+
+        @BeforeEach
+        void setUpHappyPath() {
+            when(valueOps.get(KEY))
+                    .thenReturn(Mono.just(USER_ID + ":" + DEVICE));
+
+            when(redis.hasKey(USED_KEY))
+                    .thenReturn(Mono.just(false));
+
+            when(valueOps.set(eq(USED_KEY), eq("1"), any(Duration.class)))
+                    .thenReturn(Mono.just(true));
+
+            when(redis.delete(KEY))
+                    .thenReturn(Mono.just(1L));
+        }
+
+        @Test
+        @DisplayName("Returns the correct userId on success")
+        void returnsUserId() {
+            StepVerifier.create(service.validateAndConsume(TOKEN, DEVICE))
+                    .expectNext(USER_ID)
+                    .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("Deletes the original refresh key (token rotation)")
+        void deletesOriginalKey() {
+            service.validateAndConsume(TOKEN, DEVICE).block();
+            verify(redis).delete(KEY);
+        }
+
+        @Test
+        @DisplayName("Marks the token as used to prevent replay")
+        void marksTokenAsUsed() {
+            service.validateAndConsume(TOKEN, DEVICE).block();
+            verify(valueOps).set(eq(USED_KEY), eq("1"), any(Duration.class));
         }
     }
 

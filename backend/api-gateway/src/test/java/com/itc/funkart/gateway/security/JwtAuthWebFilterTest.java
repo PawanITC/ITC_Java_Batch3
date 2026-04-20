@@ -22,6 +22,8 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -189,14 +191,19 @@ class JwtAuthWebFilterTest {
             when(jwtService.parseClaims(token)).thenReturn(claims);
             doNothing().when(jwtService).validateClaims(claims);
 
-            Mono<Void> result = filter.filter(exchange, filterChain);
+            AtomicReference<Authentication> captured = new AtomicReference<>();
 
-            StepVerifier.create(result.then(
-                            ReactiveSecurityContextHolder.getContext()
-                                    .map(SecurityContext::getAuthentication)
-                    ))
-                    .expectNextMatches(auth -> auth != null && auth.isAuthenticated())
+            when(filterChain.filter(any())).thenAnswer(inv ->
+                    ReactiveSecurityContextHolder.getContext()
+                            .doOnNext(ctx -> captured.set(ctx.getAuthentication()))
+                            .then()
+            );
+
+            StepVerifier.create(filter.filter(exchange, filterChain))
                     .verifyComplete();
+
+            assertNotNull(captured.get());
+            assertTrue(captured.get().isAuthenticated());
         }
 
         @Test
