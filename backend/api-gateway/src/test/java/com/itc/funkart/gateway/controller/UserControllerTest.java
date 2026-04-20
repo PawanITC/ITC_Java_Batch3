@@ -16,11 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.server.ServerWebExchange;
@@ -47,7 +46,7 @@ import static org.mockito.Mockito.*;
  * verified through service interaction assertions, not response header inspection.
  */
 @WebFluxTest(controllers = UserController.class)
-@Import(UserControllerTest.MockSecurityConfig.class)
+@ActiveProfiles("test")
 class UserControllerTest {
 
     @Autowired
@@ -67,12 +66,18 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
+        // Robust stubbing to prevent the NPE occuring
         lenient().when(jwtAuthWebFilter.filter(any(), any())).thenAnswer(inv -> {
             ServerWebExchange exchange = inv.getArgument(0);
             WebFilterChain chain = inv.getArgument(1);
-            return chain != null ? chain.filter(exchange) : Mono.empty();
+            return (chain != null) ? chain.filter(exchange) : Mono.empty();
         });
     }
+
+
+    // -------------------------------------------------------------------------
+    // Shared helpers
+    // -------------------------------------------------------------------------
 
     private ApiResponse<SuccessfulLoginResponse> successfulResponse(String name, String email, String token) {
         UserDto user = new UserDto(1L, name, email, "ROLE_USER");
@@ -80,16 +85,14 @@ class UserControllerTest {
         return new ApiResponse<>(body, "Success");
     }
 
-    // -------------------------------------------------------------------------
-    // Shared helpers
-    // -------------------------------------------------------------------------
-
+    /**
+     * Minimal Security Config for this test slice.
+     * Prevents the real SecurityConfig from loading and demanding real dependencies.
+     */
     @TestConfiguration
-    static class MockSecurityConfig {
-
+    static class TestSecurity {
         @Bean
-        @Primary
-        public SecurityWebFilterChain testSecurityChain(ServerHttpSecurity http) {
+        public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
             return http
                     .csrf(ServerHttpSecurity.CsrfSpec::disable)
                     .authorizeExchange(ex -> ex.anyExchange().permitAll())
@@ -98,21 +101,21 @@ class UserControllerTest {
     }
 
     // -------------------------------------------------------------------------
-    // POST /users/login
+    // POST /api/v1/users/login
     // -------------------------------------------------------------------------
 
     @Nested
-    @DisplayName("POST /users/login")
+    @DisplayName("POST /api/v1/users/login")
     class LoginTests {
 
         @Test
         @DisplayName("Returns 200 OK with user data on successful login")
         void login_returns200() {
-            when(userGatewayService.login(any(LoginRequest.class), any()))
+            when(userGatewayService.login(any(), any()))
                     .thenReturn(Mono.just(successfulResponse("Alice", "alice@example.com", "jwt")));
 
             webTestClient.post()
-                    .uri("/users/login")
+                    .uri("/api/v1/users/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(new LoginRequest("alice@example.com", "password123"))
                     .exchange()
@@ -120,32 +123,18 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("Response body contains user name from downstream")
-        void login_responseContainsUserName() {
-            when(userGatewayService.login(any(LoginRequest.class), any()))
-                    .thenReturn(Mono.just(successfulResponse("Alice", "alice@example.com", "jwt")));
-
-            webTestClient.post()
-                    .uri("/users/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(new LoginRequest("alice@example.com", "password123"))
-                    .exchange()
-                    .expectBody()
-                    .jsonPath("$.data.user.name").isEqualTo("Alice");
-        }
-
-        @Test
-        @DisplayName("Response body contains token from downstream")
-        void login_responseContainsToken() {
-            when(userGatewayService.login(any(LoginRequest.class), any()))
+        @DisplayName("Response body contains user name and token")
+        void login_verifiesResponseBody() {
+            when(userGatewayService.login(any(), any()))
                     .thenReturn(Mono.just(successfulResponse("Alice", "alice@example.com", "my-jwt-token")));
 
             webTestClient.post()
-                    .uri("/users/login")
+                    .uri("/api/v1/users/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(new LoginRequest("alice@example.com", "password123"))
                     .exchange()
                     .expectBody()
+                    .jsonPath("$.data.user.name").isEqualTo("Alice")
                     .jsonPath("$.data.token").isEqualTo("my-jwt-token");
         }
 
@@ -156,7 +145,7 @@ class UserControllerTest {
                     .thenReturn(Mono.just(successfulResponse("Alice", "alice@example.com", "jwt")));
 
             webTestClient.post()
-                    .uri("/users/login")
+                    .uri("/api/v1/users/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(new LoginRequest("alice@example.com", "pass"))
                     .exchange();
@@ -171,7 +160,7 @@ class UserControllerTest {
                     .thenReturn(Mono.error(new OAuthException("Invalid credentials")));
 
             webTestClient.post()
-                    .uri("/users/login")
+                    .uri("/api/v1/users/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(new LoginRequest("bad@example.com", "wrong"))
                     .exchange()
@@ -182,21 +171,21 @@ class UserControllerTest {
     }
 
     // -------------------------------------------------------------------------
-    // POST /users/signup
+    // POST /api/v1/users/signup
     // -------------------------------------------------------------------------
 
     @Nested
-    @DisplayName("POST /users/signup")
+    @DisplayName("POST /api/v1/users/signup")
     class SignupTests {
 
         @Test
         @DisplayName("Returns 200 OK with user data on successful signup")
         void signup_returns200() {
-            when(userGatewayService.signup(any(SignupRequest.class), any()))
+            when(userGatewayService.signup(any(), any()))
                     .thenReturn(Mono.just(successfulResponse("Bob", "bob@example.com", "jwt")));
 
             webTestClient.post()
-                    .uri("/users/signup")
+                    .uri("/api/v1/users/signup")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(new SignupRequest("Bob", "bob@example.com", "password123"))
                     .exchange()
@@ -204,32 +193,18 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("Response body contains newly registered user's name")
-        void signup_responseContainsName() {
-            when(userGatewayService.signup(any(SignupRequest.class), any()))
-                    .thenReturn(Mono.just(successfulResponse("Bob", "bob@example.com", "jwt")));
-
-            webTestClient.post()
-                    .uri("/users/signup")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(new SignupRequest("Bob", "bob@example.com", "password123"))
-                    .exchange()
-                    .expectBody()
-                    .jsonPath("$.data.user.name").isEqualTo("Bob");
-        }
-
-        @Test
-        @DisplayName("Response body contains issued token")
-        void signup_responseContainsToken() {
-            when(userGatewayService.signup(any(SignupRequest.class), any()))
+        @DisplayName("Response body contains newly registered user details")
+        void signup_verifiesResponseBody() {
+            when(userGatewayService.signup(any(), any()))
                     .thenReturn(Mono.just(successfulResponse("Bob", "bob@example.com", "signup-jwt")));
 
             webTestClient.post()
-                    .uri("/users/signup")
+                    .uri("/api/v1/users/signup")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(new SignupRequest("Bob", "bob@example.com", "password123"))
                     .exchange()
                     .expectBody()
+                    .jsonPath("$.data.user.name").isEqualTo("Bob")
                     .jsonPath("$.data.token").isEqualTo("signup-jwt");
         }
 
@@ -240,7 +215,7 @@ class UserControllerTest {
                     .thenReturn(Mono.just(successfulResponse("Bob", "bob@example.com", "jwt")));
 
             webTestClient.post()
-                    .uri("/users/signup")
+                    .uri("/api/v1/users/signup")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(new SignupRequest("Bob", "bob@example.com", "password123"))
                     .exchange();

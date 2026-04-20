@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
  * </ul>
  */
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/v1/users")
 public class UserController {
 
     private final UserGatewayService userGatewayService;

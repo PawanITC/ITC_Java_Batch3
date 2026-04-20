@@ -31,7 +31,7 @@ import java.net.URI;
  */
 @NoApiPrefix
 @RestController
-@RequestMapping("/oauth/github")
+@RequestMapping("/api/v1/oauth/github")
 public class GithubOAuthController {
 
     private final OAuthGatewayService oAuthGatewayService;

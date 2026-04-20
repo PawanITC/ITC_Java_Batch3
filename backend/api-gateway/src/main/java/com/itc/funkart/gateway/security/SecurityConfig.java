@@ -35,6 +35,9 @@ public class SecurityConfig {
                 // 1. Stateless gateway (no sessions, no CSRF)
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
 
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+
                 // 2. CORS config (frontend access)
                 .cors(cors -> cors.configurationSource(corsSource))
 
@@ -43,22 +46,22 @@ public class SecurityConfig {
 
                 // 4. Authorization rules
                 .authorizeExchange(auth -> auth
+                        .pathMatchers(HttpMethod.OPTIONS).permitAll()
+                        // ONLY these specific endpoints are public
+                        .pathMatchers(
+                                "/api/v1/users/login",
+                                "/api/v1/users/signup",
+                                "/api/v1/users/refresh",
+                                "/api/v1/oauth/github/login",    // Initial redirect trigger
+                                "/api/v1/oauth/github/callback", // GitHub's return journey
+                                "/api/v1/oauth/github/refresh",
+                                "/payments/webhook/**"          // OAuth token rotation
+                        ).permitAll()
 
-                        // Public auth endpoints
-                        .pathMatchers("/users/login").permitAll()
-                        .pathMatchers("/users/signup").permitAll()
-                        .pathMatchers("/users/oauth/**").permitAll()
-
-                        // Health / infra endpoints (recommended addition)
+                        // Health / infra endpoints
                         .pathMatchers("/actuator/**").permitAll()
 
-                        // Webhooks (external systems)
-                        .pathMatchers("/payments/webhook/**").permitAll()
-
-                        // Preflight
-                        .pathMatchers(HttpMethod.OPTIONS).permitAll()
-
-                        // Everything else secured
+                        // Everything else (including /api/v1/users/profile) requires a token
                         .anyExchange().authenticated()
                 )
 

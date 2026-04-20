@@ -53,11 +53,20 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // 1. Public Auth Endpoints (Ensure these match what the Gateway sends)
                         .requestMatchers(
-                                "/users/signup",
                                 "/users/login",
-                                "/users/oauth/**"
+                                "/api/v1/users/login", // Add this just in case
+                                "/users/signup"
                         ).permitAll()
+
+                        // 2. Health & Monitoring (So Gateway/Docker can check status)
+                        .requestMatchers(
+                                "/users/health",
+                                "/actuator/**"
+                        ).permitAll()
+
+                        // 3. Everything else is locked
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtWebFilter(), UsernamePasswordAuthenticationFilter.class)

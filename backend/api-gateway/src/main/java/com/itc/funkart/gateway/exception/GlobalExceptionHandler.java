@@ -132,4 +132,15 @@ public class GlobalExceptionHandler {
                 ex
         );
     }
+
+    @ExceptionHandler(JwtAuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJwtAuthenticationException(JwtAuthenticationException ex) {
+        return buildErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                "AUTH_ERROR", // This is the code the test should check for
+                ex.getMessage(),
+                null,
+                ex
+        );
+    }
 }

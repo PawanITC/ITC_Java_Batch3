@@ -50,9 +50,22 @@ services:
     networks:
       - db-network
 
+  
+  payment-service:
+    container_name: payment-service
+    build:
+      context: ./backend/payment-service # Path to where your Payment Service Dockerfile is
+    ports:
+      - "8082:8080"
+    env_file:
+      - ./backend/payment-service/.env
+    networks:
+      - db-network
+
   user-service:
     container_name: user-service
-    image: abbasgureitc/user-service:latest
+    build:
+      context: ./backend/user-service
     ports:
       - "8081:8080"
     env_file:
@@ -64,23 +77,18 @@ services:
     networks:
       - db-network
 
-  payment-service:
-    container_name: payment-service
-    image: abbasgureitc/payment-service:latest
-    ports:
-      - "8082:8080"
-    env_file:
-      - ./backend/payment-service/.env
-    networks:
-      - db-network
-
   api-gateway:
     container_name: api-gateway
-    image: abbasgureitc/api-gateway:latest
+    build:
+      context: ./backend/api-gateway
     ports:
-      - "8080:8060"
+      - "8060:8060" 
     env_file:
       - ./backend/api-gateway/.env
+    # ADD THESE:
+    depends_on:
+      - redis
+      - user-service
     networks:
       - db-network
 

@@ -2,52 +2,54 @@ spring:
   application:
     name: api-gateway
 
-  # Essential: Prevents the gateway from trying to connect to a DB it doesn't have
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
 
   cloud:
     gateway:
-      routes:
-        - id: user-service
-          uri: ${app.services.user-service}
-          predicates:
-            - Path=/api/v1/users/**
+      server:
+        webflux:
+          routes:
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://user-service:8081}
+              predicates:
+                - Path=/api/v1/users/**
+              filters:
+                - StripPrefix=2
 
-        - id: payment-service
-          uri: ${app.services.payment-service}
-          predicates:
-            - Path=/api/v1/payments/**
+            - id: payment-service
+              uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+              predicates:
+                - Path=/api/v1/payments/**
 
-        - id: product-service
-          uri: ${app.services.product-service}
-          predicates:
-            - Path=/api/v1/products/**
+            - id: product-service
+              uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
+              predicates:
+                - Path=/api/v1/products/**
 
-        - id: order-service
-          uri: ${app.services.order-service}
-          predicates:
-            - Path=/api/v1/orders/**
+            - id: order-service
+              uri: ${ORDER_SERVICE_URL:http://order-service:8080}
+              predicates:
+                - Path=/api/v1/orders/**
+
 
 server:
-  # Internal process port: Moved to 8060 to avoid Jenkins (8080) collisions
   port: ${PORT:8060}
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
-
-  # Service URLs: Gateway uses internal Docker DNS names when in Compose
   services:
-    user-service: ${USER_SERVICE_URL:http://localhost:8081}
-    payment-service: ${PAYMENT_SERVICE_URL:http://localhost:8082}
-    product-service: ${PRODUCT_SERVICE_URL:http://localhost:8083}
-    order-service: ${ORDER_SERVICE_URL:http://localhost:8084}
-    catalogue-service: ${CATALOGUE_SERVICE_URL:http://localhost:8085}
-    notification-service: ${NOTIFICATION_SERVICE_URL:http://localhost:8086}
-    reviewrating-service: ${REVIEWRATING_SERVICE_URL:http://localhost:8087}
+    user-service: ${USER_SERVICE_URL:http://user-service:8081}
+    product-service: ${PRODUCT_SERVICE_URL:http://product-service:8082}
+    order-service: ${ORDER_SERVICE_URL:http://order-service:8080}
+    payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+    catalogue-service: ${CATALOGUE_SERVICE_URL:http://catalogue-service:8080}
+    notification-service: ${NOTIFICATION_SERVICE_URL:http://notification-service:8080}
+    reviewrating-service: ${REVIEWRATING_SERVICE_URL:http://reviewrating-service:8080}
 
   jwt:
     secret: ${JWT_SECRET}
@@ -59,17 +61,13 @@ app:
   github:
     client-id: ${GITHUB_CLIENT_ID}
     client-secret: ${GITHUB_CLIENT_SECRET}
-    # Matches the new internal port 8060 for local testing
     redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8060/oauth/github/callback}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,mappings # Added prometheus
-  metrics:
-    tags:
-      application: ${spring.application.name}
+        include: health,info,metrics,prometheus,mappings
   endpoint:
     health:
       show-details: always
