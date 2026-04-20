@@ -57,7 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/users/login",
                                 "/api/v1/users/login", // Add this just in case
-                                "/users/signup"
+                                "/users/signup",
+                                "/users/me"
                         ).permitAll()
 
                         // 2. Health & Monitoring (So Gateway/Docker can check status)

@@ -4,8 +4,6 @@ services:
     image: confluentinc/cp-zookeeper:7.5.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_SYNC_LIMIT: 2
-      ZOOKEEPER_INIT_LIMIT: 5
     networks:
       - db-network
 
@@ -44,9 +42,6 @@ services:
     restart: always
     ports:
       - "6379:6379"
-    command: ["redis-server", "--save", ""]
-    volumes:
-      - redis_data:/data
     networks:
       - db-network
 
@@ -67,9 +62,13 @@ services:
     build:
       context: ./backend/user-service
     ports:
-      - "8081:8080"
+      - "8081:8080" # Host 8081 -> Container 8080
     env_file:
       - ./backend/user-service/.env
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - REDIS_HOST=redis
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     depends_on:
       - postgres
       - kafka
@@ -85,10 +84,14 @@ services:
       - "8060:8060" 
     env_file:
       - ./backend/api-gateway/.env
-    # ADD THESE:
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - REDIS_HOST=redis
+      # CRITICAL: Point to the INTERNAL port 8080, not 8081
+      - USER_SERVICE_URL=http://user-service:8080 
     depends_on:
-      - redis
       - user-service
+      - redis
     networks:
       - db-network
 
@@ -115,13 +118,13 @@ services:
       - gradle_cache:/root/.gradle
     networks:
       - db-network
-
+    
+networks:
+  db-network:
+    driver: bridge
+    
 volumes:
   jenkins_home:
   gradle_cache:
   postgres_data:   
-  redis_data:      
-
-networks:
-  db-network:
-    driver: bridge
+  redis_data:

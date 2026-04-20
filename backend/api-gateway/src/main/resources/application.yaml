@@ -15,7 +15,7 @@ spring:
         webflux:
           routes:
             - id: user-service
-              uri: ${USER_SERVICE_URL:http://user-service:8081}
+              uri: ${USER_SERVICE_URL:http://user-service:8080}
               predicates:
                 - Path=/api/v1/users/**
               filters:
@@ -61,7 +61,7 @@ app:
   github:
     client-id: ${GITHUB_CLIENT_ID}
     client-secret: ${GITHUB_CLIENT_SECRET}
-    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8060/oauth/github/callback}
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8060/api/v1/oauth/github/callback}
 
 management:
   endpoints:
