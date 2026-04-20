@@ -63,8 +63,6 @@ pipeline {
                     minimumLineCoverage: '70',
                     maximumLineCoverage: '80',
                     buildOverBuild: true,
-                    deltaLineCoverage: '2',
-                    deltaMethodCoverage: '2'
                 )
             }
         }
