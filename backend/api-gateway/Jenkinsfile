@@ -28,9 +28,9 @@ pipeline {
                 dir('backend/api-gateway') {
                     script {
                         sh "chmod +x gradlew"
-                        sh "./gradlew clean test jacocoTestReport \
-                            -Dspring.profiles.active=test \
-                            --no-daemon --stacktrace"
+                        sh "./gradlew clean build jacocoTestReport \
+                                -Dspring.profiles.active=test \
+                                --no-daemon --stacktrace"
                     }
                 }
             }

@@ -47,7 +47,7 @@ public class JwtAuthWebFilter implements WebFilter {
         String token = cookieUtil.extractToken(exchange);
 
         if (token == null || token.isBlank()) {
-            return unauthorized(exchange);
+            return chain.filter(exchange);
         }
 
         return tokenBlacklistService.isBlacklisted(token)

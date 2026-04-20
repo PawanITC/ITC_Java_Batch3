@@ -98,15 +98,16 @@ class JwtAuthWebFilterTest {
     class NoTokenTests {
 
         @Test
-        @DisplayName("Returns 401 when no token is found in cookie or header")
-        void noToken_returns401() {
+        @DisplayName("Continues filter chain when no token is present")
+        void noToken_continuesChain() {
             var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/test"));
             when(cookieUtil.extractToken(exchange)).thenReturn(null);
 
             StepVerifier.create(filter.filter(exchange, filterChain))
                     .verifyComplete();
 
-            assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+            verify(filterChain).filter(exchange);
+            assertNull(exchange.getResponse().getStatusCode());
         }
 
         @Test
@@ -121,15 +122,16 @@ class JwtAuthWebFilterTest {
         }
 
         @Test
-        @DisplayName("Returns 401 when token is blank string")
-        void blankToken_returns401() {
+        @DisplayName("Continues filter chain when token is blank")
+        void blankToken_continuesChain() {
             var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/test"));
             when(cookieUtil.extractToken(exchange)).thenReturn("   ");
 
             StepVerifier.create(filter.filter(exchange, filterChain))
                     .verifyComplete();
 
-            assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+            verify(filterChain).filter(exchange);
+            assertNull(exchange.getResponse().getStatusCode());
         }
     }
 
