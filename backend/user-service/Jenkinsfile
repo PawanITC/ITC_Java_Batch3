@@ -23,7 +23,7 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                dir('backend/api-gateway') {
+                dir('backend/user-service') {
                     script {
                         sh "chmod +x gradlew"
 
