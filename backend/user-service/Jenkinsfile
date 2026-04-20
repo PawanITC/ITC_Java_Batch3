@@ -56,13 +56,15 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 jacoco(
-                    execPattern:      '**/build/jacoco/*.exec',
-                    classPattern:     '**/build/classes/java/main',
-                    sourcePattern:    '**/src/main/java',
+                    execPattern: '**/build/jacoco/*.exec',
+                    classPattern: '**/build/classes/java/main',
+                    sourcePattern: '**/src/main/java',
                     inclusionPattern: '**/*.class',
                     minimumLineCoverage: '70',
                     maximumLineCoverage: '80',
-                    buildOverBuild: true
+                    buildOverBuild: true,
+                    deltaLineCoverage: '2',
+                    deltaMethodCoverage: '2'
                 )
             }
         }
