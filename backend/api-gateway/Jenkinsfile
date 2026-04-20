@@ -37,18 +37,17 @@ pipeline {
         }
 
         stage('Security Scan (Snyk)') {
-            options {
-                timeout(time: 2, unit: 'MINUTES')
-            }
             steps {
                 dir('backend/api-gateway') {
                     script {
+                        sh 'chmod +x gradlew'
+                        sh "snyk auth ${SNYK_TOKEN}"
+
                         catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            retry(3) {
-                                sh 'snyk test --severity-threshold=high'
-                            }
-                            sh 'snyk monitor'
+                            sh 'snyk test --severity-threshold=high'
                         }
+
+                        sh 'snyk monitor'
                     }
                 }
             }
