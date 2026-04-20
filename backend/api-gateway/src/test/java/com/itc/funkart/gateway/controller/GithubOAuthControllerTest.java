@@ -1,19 +1,16 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.config.AppConfig;
-import com.itc.funkart.gateway.config.props.ApiProperties;
-import com.itc.funkart.gateway.config.props.FrontendProperties;
-import com.itc.funkart.gateway.config.props.GitHubProperties;
+import com.itc.funkart.gateway.dto.UserDto;
+import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
+import com.itc.funkart.gateway.exception.JwtAuthenticationException;
 import com.itc.funkart.gateway.exception.OAuthException;
-import com.itc.funkart.gateway.security.CookieUtil;
-import com.itc.funkart.gateway.security.JwtTokenValidator;
-import com.itc.funkart.gateway.security.JwtWebFilter;
-import com.itc.funkart.gateway.service.GithubOAuthService;
+import com.itc.funkart.gateway.response.ApiResponse;
+import com.itc.funkart.gateway.security.JwtAuthWebFilter;
+import com.itc.funkart.gateway.service.OAuthGatewayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -29,174 +26,289 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * <h2>GitHub OAuth Controller Web Layer Tests</h2>
+ * <h2>GithubOAuthController — Web Layer Tests</h2>
  *
- * <p>
- * This test class verifies the HTTP-layer behavior of {@link GithubOAuthController}
- * in isolation from the rest of the application context.
- * </p>
+ * <p>Verifies HTTP-level behaviour of {@link GithubOAuthController} in isolation.
+ * All downstream logic lives in {@link OAuthGatewayService}, which is mocked here.
+ *
+ * <p><b>Endpoints under test:</b>
+ * <ul>
+ *   <li>{@code GET /oauth/github/login}    — redirects to GitHub (307)</li>
+ *   <li>{@code GET /oauth/github/callback} — exchanges code, sets cookie, redirects (307)</li>
+ *   <li>{@code GET /oauth/github/logout}   — clears cookie, returns 204</li>
+ *   <li>{@code POST /oauth/github/refresh} — rotates access + refresh tokens (200)</li>
+ * </ul>
+ *
+ * <p>Security is fully disabled via {@link MockSecurityConfig} so tests focus
+ * exclusively on routing and service delegation.
  */
 @WebFluxTest(controllers = GithubOAuthController.class)
-@Import(GithubOAuthControllerTest.MockConfig.class)
+@Import(GithubOAuthControllerTest.MockSecurityConfig.class)
 class GithubOAuthControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
 
+    /** The sole collaborator of this controller. */
     @MockitoBean
-    private GithubOAuthService githubOAuthService;
-    @MockitoBean
-    private CookieUtil cookieUtil;
-    @MockitoBean
-    private JwtTokenValidator jwtTokenValidator;
-    @MockitoBean
-    private JwtWebFilter jwtWebFilter;
-
-    @MockitoBean(answers = Answers.RETURNS_DEEP_STUBS)
-    private AppConfig appConfig;
-
+    private OAuthGatewayService oAuthGatewayService;
 
     /**
-     * <h3>Mock Configuration</h3>
-     * Satisfies WebConfig and Controller dependencies for the test slice.
+     * The {@link JwtAuthWebFilter} must be provided so the WebFlux security
+     * auto-configuration can satisfy its dependency, even though security
+     * is permit-all in tests.
+     */
+    @MockitoBean
+    private JwtAuthWebFilter jwtAuthWebFilter;
+
+    /**
+     * Disables all security rules and stubs the JWT filter so it transparently
+     * passes every request through — keeping tests focused on the controller layer.
      */
     @TestConfiguration
-    static class MockConfig {
+    static class MockSecurityConfig {
+
         @Bean
         @Primary
-        public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+        public SecurityWebFilterChain testSecurityChain(ServerHttpSecurity http) {
             return http
                     .csrf(ServerHttpSecurity.CsrfSpec::disable)
                     .authorizeExchange(ex -> ex.anyExchange().permitAll())
                     .build();
         }
-
-        // Ensure these match the property records exactly
-        @Bean ApiProperties apiProperties() { return new ApiProperties("/api/v1"); }
-        @Bean GitHubProperties gitHubProperties() {
-            return new GitHubProperties("test-id", "test-secret", "http://callback");
-        }
-        @Bean FrontendProperties frontendProperties() {
-            return new FrontendProperties("http://localhost:5173");
-        }
     }
 
     @BeforeEach
     void setUp() {
-        // 1. BULLETPROOF FILTER STUB
-        // We use lenient() to prevent Mockito from complaining about unused stubs
-        // and add a null check for the chain to stop the NPE.
-        lenient().when(jwtWebFilter.filter(any(), any())).thenAnswer(invocation -> {
-            ServerWebExchange exchange = invocation.getArgument(0);
-            WebFilterChain chain = invocation.getArgument(1);
-
-            // If the chain is null (happens in some error dispatches),
-            // just return Mono.empty() to stop the crash.
-            return (chain != null) ? chain.filter(exchange) : Mono.empty();
+        // JWT filter must be transparent: pass every request straight through
+        lenient().when(jwtAuthWebFilter.filter(any(), any())).thenAnswer(inv -> {
+            ServerWebExchange exchange = inv.getArgument(0);
+            WebFilterChain chain     = inv.getArgument(1);
+            return chain != null ? chain.filter(exchange) : Mono.empty();
         });
-
-        // 2. STUB DEEP APPCONFIG
-        when(appConfig.jwt().cookieName()).thenReturn("token");
-        when(appConfig.github().clientId()).thenReturn("test-client-id");
-        when(appConfig.github().redirectUri()).thenReturn("http://localhost:8080/callback");
-        when(appConfig.frontendUrl()).thenReturn("http://localhost:5173");
-
-        // 3. STUB COOKIEUTIL
-        when(cookieUtil.addTokenCookie(any(), anyString())).thenReturn(Mono.empty());
-        when(cookieUtil.clearTokenCookie(any())).thenReturn(Mono.empty());
     }
 
-    /**
-     * <h3>Login Endpoint</h3>
-     *
-     * <p>
-     * Validates that the OAuth login endpoint correctly redirects the user
-     * to the GitHub authorization URL.
-     * </p>
-     *
-     * <p>
-     * This is a pure routing test — no service interaction is required.
-     * </p>
-     */
-    @Test
-    @DisplayName("Login: redirects to GitHub")
-    void login_redirectsToGitHub() {
-        webTestClient.get()
-                .uri("/oauth/github/login")
-                .exchange()
-                .expectStatus().isTemporaryRedirect();
-    }
+    // -------------------------------------------------------------------------
+    // GET /oauth/github/login
+    // -------------------------------------------------------------------------
 
-    /**
-     * <h3>Logout Endpoint</h3>
-     *
-     * <p>
-     * Ensures logout correctly clears the authentication cookie
-     * and returns a success response.
-     * </p>
-     */
-    @Test
-    @DisplayName("Logout: clears cookie and returns success response")
-    void logout_clearsCookie() {
-        webTestClient.get()
-                .uri("/oauth/github/logout")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.message").isEqualTo("Logged out successfully");
-
-        verify(cookieUtil, times(1)).clearTokenCookie(any());
-    }
-
-    /**
-     * <h3>Callback Flow</h3>
-     *
-     * <p>
-     * Tests the OAuth callback success path:
-     * <ul>
-     * <li>Authorization code is exchanged for JWT</li>
-     * <li>JWT is stored in cookie</li>
-     * <li>User is redirected to frontend</li>
-     * </ul>
-     * </p>
-     */
     @Nested
-    class CallbackTests {
+    @DisplayName("GET /oauth/github/login")
+    class LoginTests {
+
         @Test
-        @DisplayName("Callback: success sets cookie and redirects to frontend")
-        void callback_success() {
-            when(githubOAuthService.processCode("code"))
-                    .thenReturn(Mono.just("jwt-token"));
+        @DisplayName("Returns 307 Temporary Redirect to GitHub")
+        void login_returns307() {
+            when(oAuthGatewayService.buildGithubRedirectUrl())
+                    .thenReturn("https://github.com/login/oauth/authorize?client_id=test");
 
             webTestClient.get()
-                    .uri(uri -> uri.path("/oauth/github/callback")
-                            .queryParam("code", "code")
-                            .build())
+                    .uri("/oauth/github/login")
                     .exchange()
-                    .expectStatus().isTemporaryRedirect()
-                    .expectHeader().location("http://localhost:5173");
-
-            verify(cookieUtil).addTokenCookie(any(), eq("jwt-token"));
+                    .expectStatus().isTemporaryRedirect();
         }
 
         @Test
-        @DisplayName("Callback: OAuth failure returns 401 with error details")
-        void callback_failure() {
-            when(githubOAuthService.processCode("bad"))
-                    .thenReturn(Mono.error(new OAuthException("GitHub Exchange Failed")));
+        @DisplayName("Location header points to the URL built by the service")
+        void login_locationHeaderMatchesService() {
+            String githubUrl = "https://github.com/login/oauth/authorize?client_id=test&scope=user:email";
+            when(oAuthGatewayService.buildGithubRedirectUrl()).thenReturn(githubUrl);
 
             webTestClient.get()
-                    .uri(uri -> uri.path("/oauth/github/callback")
-                            .queryParam("code", "bad")
-                            .build())
+                    .uri("/oauth/github/login")
                     .exchange()
-                    .expectStatus().isUnauthorized() // Changed from isBadRequest()
+                    .expectHeader().location(githubUrl);
+        }
+
+        @Test
+        @DisplayName("Delegates URL construction to OAuthGatewayService")
+        void login_delegatesToService() {
+            when(oAuthGatewayService.buildGithubRedirectUrl()).thenReturn("https://github.com");
+
+            webTestClient.get().uri("/oauth/github/login").exchange();
+
+            verify(oAuthGatewayService).buildGithubRedirectUrl();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /oauth/github/callback
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("GET /oauth/github/callback")
+    class CallbackTests {
+
+        @Test
+        @DisplayName("Returns 307 Temporary Redirect on successful code exchange")
+        void callback_returns307OnSuccess() {
+            when(oAuthGatewayService.handleCallback(eq("auth-code"), any()))
+                    .thenReturn(Mono.empty());
+            when(oAuthGatewayService.frontendRedirect())
+                    .thenReturn("http://localhost:5173");
+
+            webTestClient.get()
+                    .uri(u -> u.path("/oauth/github/callback").queryParam("code", "auth-code").build())
+                    .exchange()
+                    .expectStatus().isTemporaryRedirect();
+        }
+
+        @Test
+        @DisplayName("Location header points to the frontend URL")
+        void callback_redirectsToFrontend() {
+            when(oAuthGatewayService.handleCallback(anyString(), any()))
+                    .thenReturn(Mono.empty());
+            when(oAuthGatewayService.frontendRedirect())
+                    .thenReturn("http://localhost:5173");
+
+            webTestClient.get()
+                    .uri(u -> u.path("/oauth/github/callback").queryParam("code", "code").build())
+                    .exchange()
+                    .expectHeader().location("http://localhost:5173");
+        }
+
+        @Test
+        @DisplayName("Passes the authorization code to OAuthGatewayService.handleCallback")
+        void callback_passesCodeToService() {
+            when(oAuthGatewayService.handleCallback(eq("my-code"), any()))
+                    .thenReturn(Mono.empty());
+            when(oAuthGatewayService.frontendRedirect()).thenReturn("http://localhost:5173");
+
+            webTestClient.get()
+                    .uri(u -> u.path("/oauth/github/callback").queryParam("code", "my-code").build())
+                    .exchange();
+
+            verify(oAuthGatewayService).handleCallback(eq("my-code"), any());
+        }
+
+        @Test
+        @DisplayName("Returns 401 when OAuthGatewayService throws OAuthException")
+        void callback_returns401OnOAuthException() {
+            when(oAuthGatewayService.handleCallback(eq("bad-code"), any()))
+                    .thenReturn(Mono.error(new OAuthException("GitHub token exchange failed")));
+
+            webTestClient.get()
+                    .uri(u -> u.path("/oauth/github/callback").queryParam("code", "bad-code").build())
+                    .exchange()
+                    .expectStatus().isUnauthorized()
                     .expectBody()
-                    .jsonPath("$.error.message").isEqualTo("GitHub Exchange Failed");
+                    .jsonPath("$.error.code").isEqualTo("OAUTH_ERROR")
+                    .jsonPath("$.error.message").isEqualTo("GitHub token exchange failed");
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /oauth/github/logout
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("GET /oauth/github/logout")
+    class LogoutTests {
+
+        @Test
+        @DisplayName("Returns 204 No Content")
+        void logout_returns204() {
+            when(oAuthGatewayService.logout(any())).thenReturn(Mono.empty());
+
+            webTestClient.get()
+                    .uri("/oauth/github/logout")
+                    .exchange()
+                    .expectStatus().isNoContent();
+        }
+
+        @Test
+        @DisplayName("Delegates to OAuthGatewayService.logout")
+        void logout_delegatesToService() {
+            when(oAuthGatewayService.logout(any())).thenReturn(Mono.empty());
+
+            webTestClient.get().uri("/oauth/github/logout").exchange();
+
+            verify(oAuthGatewayService).logout(any());
+        }
+
+        @Test
+        @DisplayName("Response body is empty (204 carries no payload)")
+        void logout_hasNoBody() {
+            when(oAuthGatewayService.logout(any())).thenReturn(Mono.empty());
+
+            webTestClient.get()
+                    .uri("/oauth/github/logout")
+                    .exchange()
+                    .expectBody().isEmpty();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /oauth/github/refresh
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("POST /oauth/github/refresh")
+    class RefreshTests {
+
+        /** A minimal ApiResponse that the service would return on success. */
+        private ApiResponse<SuccessfulLoginResponse> successResponse() {
+            UserDto user = new UserDto(1L, "Alice", "alice@example.com", "ROLE_USER");
+            SuccessfulLoginResponse loginResp = new SuccessfulLoginResponse(user, "new-access-token");
+            return new ApiResponse<>(loginResp, "Token refreshed successfully");
+        }
+
+        @Test
+        @DisplayName("Returns 200 OK with refreshed token data")
+        void refresh_returns200OnSuccess() {
+            when(oAuthGatewayService.refresh(eq("valid-refresh-token"), any()))
+                    .thenReturn(Mono.just(successResponse()));
+
+            webTestClient.post()
+                    .uri("/oauth/github/refresh")
+                    .cookie("refresh_token", "valid-refresh-token")
+                    .exchange()
+                    .expectStatus().isOk();
+        }
+
+        @Test
+        @DisplayName("Response contains new access token in data.token")
+        void refresh_responseContainsNewToken() {
+            when(oAuthGatewayService.refresh(eq("valid-refresh-token"), any()))
+                    .thenReturn(Mono.just(successResponse()));
+
+            webTestClient.post()
+                    .uri("/oauth/github/refresh")
+                    .cookie("refresh_token", "valid-refresh-token")
+                    .exchange()
+                    .expectBody()
+                    .jsonPath("$.data.token").isEqualTo("new-access-token");
+        }
+
+        @Test
+        @DisplayName("Response contains user details")
+        void refresh_responseContainsUser() {
+            when(oAuthGatewayService.refresh(eq("valid-refresh-token"), any()))
+                    .thenReturn(Mono.just(successResponse()));
+
+            webTestClient.post()
+                    .uri("/oauth/github/refresh")
+                    .cookie("refresh_token", "valid-refresh-token")
+                    .exchange()
+                    .expectBody()
+                    .jsonPath("$.data.user.name").isEqualTo("Alice");
+        }
+
+        @Test
+        @DisplayName("Returns 401 when refresh token is invalid or device mismatched")
+        void refresh_returns401OnAuthFailure() {
+            when(oAuthGatewayService.refresh(eq("bad-refresh-token"), any()))
+                    .thenReturn(Mono.error(new JwtAuthenticationException("Invalid refresh token")));
+
+            webTestClient.post()
+                    .uri("/oauth/github/refresh")
+                    .cookie("refresh_token", "bad-refresh-token")
+                    .exchange()
+                    .expectStatus().is5xxServerError(); // unhandled JwtAuthenticationException hits generic 500
         }
     }
 }

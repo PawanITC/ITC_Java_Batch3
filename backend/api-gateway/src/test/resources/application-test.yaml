@@ -5,47 +5,71 @@ spring:
   main:
     allow-bean-definition-overriding: true
 
-  # Prevents Spring from looking for a DB during Gateway tests
+  # Prevents Spring from trying to connect to a DB during gateway tests
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 
+  # Redis: use an embedded or test-double; integration tests mock the template directly
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   cloud:
     gateway:
       routes:
         - id: user-service
-          uri: http://localhost:${wiremock.server.port}
+          uri: http://localhost:9999   # dummy — WebClient beans are mocked in slice tests
           predicates:
             - Path=/api/v1/users/**
         - id: payment-service
-          uri: http://localhost:${wiremock.server.port}
+          uri: http://localhost:9999
           predicates:
             - Path=/api/v1/payments/**
+        - id: order-service
+          uri: http://localhost:9999
+          predicates:
+            - Path=/api/v1/orders/**
 
 server:
-  port: 0
+  port: 0   # Random port — avoids clashes with local services
 
-# Matches your AppConfig / apiProperties records
-api:
-  version: /api/v1
-
+# ---------------------------------------------------------------------------
+# App configuration — must satisfy the @Validated AppConfig record exactly.
+# All fields marked @NotBlank / @NotNull must have a non-blank value here.
+# ---------------------------------------------------------------------------
 app:
   frontend-url: http://localhost:5173
+
   services:
-    user-service: http://localhost:${wiremock.server.port}
+    user-service:    http://localhost:9999
+    payment-service: http://localhost:9999
+    order-service:   http://localhost:9999
 
   jwt:
-    # This is a valid Base64 string for a 256-bit key
-    secret: "dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci10ZXN0aW5nLWJhc2U2NA=="
+    # A valid HS256 key — must be at least 32 characters before Base64 encoding
+    secret: "super-secret-key-must-be-at-least-32-bytes!!xyz"
     expiration-ms: 3600000
     cookie-max-age-seconds: 3600
     cookie-name: token
-    secure-cookie: false # MUST be false for localhost testing
+    secure-cookie: false   # Must be false for localhost (no HTTPS in tests)
 
   github:
-    client-id: test-id
-    client-secret: test-secret
-    # Path must match @RequestMapping in GithubOAuthController
+    client-id: test-client-id
+    client-secret: test-client-secret
     redirect-uri: http://localhost:8060/oauth/github/callback
+
+# ---------------------------------------------------------------------------
+# Actuator — expose health so SecurityConfigTest can hit /actuator/health
+# ---------------------------------------------------------------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

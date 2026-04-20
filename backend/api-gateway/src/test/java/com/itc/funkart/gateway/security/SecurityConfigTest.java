@@ -1,10 +1,9 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.config.props.ApiProperties;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import com.itc.funkart.gateway.dto.UserDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,12 +25,22 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
- * <h2>Security Infrastructure Integration Tests</h2>
- * <p>
- * Validates the {@link SecurityConfig} rules by hitting the gateway's filter chain.
- * Uses a "Senior" status assertion strategy: if a request passes security but fails
- * with 404/500, it confirms the security gate is open for that route.
- * </p>
+ * <h2>Security Configuration — Integration Tests</h2>
+ *
+ * <p>Boots the full Spring application context (test profile) and drives
+ * requests through the real security filter chain to verify authorization rules.
+ *
+ * <p><b>Strategy:</b> a mocked {@link JwtAuthWebFilter} lets individual tests
+ * decide whether a request carries a valid identity or not, while keeping Redis,
+ * downstream services, and real JWT signing out of the picture.
+ *
+ * <p><b>Rules verified:</b>
+ * <ul>
+ *   <li>Public endpoints ({@code /users/login}, {@code /users/signup},
+ *       {@code /actuator/**}, {@code /payments/webhook/**}) must <em>not</em> return 401/403</li>
+ *   <li>All other paths must return 401 without a valid token</li>
+ *   <li>A synthetic authenticated token allows access past the security layer</li>
+ * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -42,118 +51,150 @@ class SecurityConfigTest {
     @Autowired
     private ApplicationContext context;
 
-    @Autowired
-    private ApiProperties apiProperties;
-
-    @MockitoBean
-    private JwtWebFilter jwtWebFilter;
-
-    // These don't affect path matching, so keeping them as mocks is fine
-    @MockitoBean
-    private CookieUtil cookieUtil;
-    @MockitoBean
-    private JwtTokenValidator jwtTokenValidator;
-
     /**
-     * Rebinds the WebTestClient to the application context to ensure the full
-     * security filter chain is engaged during tests.
+     * We mock the filter so tests can inject or withhold authentication at will.
+     * The real filter would need Redis and a valid JWT.
      */
+    @MockitoBean
+    private JwtAuthWebFilter jwtAuthWebFilter;
+
     @BeforeEach
     void setUp() {
         this.webTestClient = WebTestClient.bindToApplicationContext(context)
                 .configureClient()
                 .build();
 
-        // 1. Transparent & Authenticating Filter Mock
-        when(jwtWebFilter.filter(any(), any())).thenAnswer(invocation -> {
+        // Default behaviour: if the request carries a Bearer token, inject authentication;
+        // otherwise pass through transparently (let the security rules do their job).
+        when(jwtAuthWebFilter.filter(any(), any())).thenAnswer(invocation -> {
             ServerWebExchange exchange = invocation.getArgument(0);
             WebFilterChain chain = invocation.getArgument(1);
 
             String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
-            // Check if the test is sending a token
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                // Create a fake authentication object
                 var auth = new UsernamePasswordAuthenticationToken(
-                        "123",
+                        new UserDto(1L, "Test", "test@test.com", "ROLE_USER"),
                         null,
                         List.of(new SimpleGrantedAuthority("ROLE_USER"))
                 );
-
-                // IMPORTANT: Pass the request forward AND inject the security context
                 return chain.filter(exchange)
                         .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth));
             }
 
-            // If no token, just pass through (for public endpoints)
             return chain.filter(exchange);
         });
     }
 
-    /**
-     * Ensures that a valid JWT token allows the request to proceed beyond the security layer.
-     */
-    @Test
-    @DisplayName("Authenticated Request: Should allow access with valid token")
-    void validToken_shouldAllowAccess() {
-        String token = "valid-token";
-        Claims claims = Jwts.claims()
-                .subject("123")
-                .add("role", "ROLE_USER")
-                .build();
+    // -------------------------------------------------------------------------
+    // Public endpoints — must NOT return 401 or 403
+    // -------------------------------------------------------------------------
 
-        when(jwtTokenValidator.validateAndParseClaims(token)).thenReturn(claims);
+    @Nested
+    @DisplayName("Public endpoints")
+    class PublicEndpointTests {
 
-        webTestClient.get()
-                .uri("/api/v1/users/me")
-                .header("Authorization", "Bearer " + token)
-                .exchange()
-                .expectStatus().value(status ->
-                        assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status));
+        @Test
+        @DisplayName("/users/login is accessible without a token")
+        void usersLogin_isPublic() {
+            webTestClient.post()
+                    .uri("/users/login")
+                    .exchange()
+                    .expectStatus().value(status ->
+                            assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status,
+                                    "/users/login should not be 401"));
+        }
+
+        @Test
+        @DisplayName("/users/signup is accessible without a token")
+        void usersSignup_isPublic() {
+            webTestClient.post()
+                    .uri("/users/signup")
+                    .exchange()
+                    .expectStatus().value(status ->
+                            assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status,
+                                    "/users/signup should not be 401"));
+        }
+
+        @Test
+        @DisplayName("/actuator/health is accessible without a token")
+        void actuatorHealth_isPublic() {
+            webTestClient.get()
+                    .uri("/actuator/health")
+                    .exchange()
+                    .expectStatus().value(status ->
+                            assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status,
+                                    "/actuator/health should not be 401"));
+        }
+
+        @Test
+        @DisplayName("/payments/webhook/** is accessible without a token")
+        void paymentWebhook_isPublic() {
+            webTestClient.post()
+                    .uri("/payments/webhook/stripe")
+                    .exchange()
+                    .expectStatus().value(status ->
+                            assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status,
+                                    "Payment webhook should not be 401"));
+        }
+
+        @Test
+        @DisplayName("OPTIONS preflight requests are permitted")
+        void optionsPreflight_isPermitted() {
+            webTestClient.options()
+                    .uri("/api/v1/orders/1")
+                    .exchange()
+                    .expectStatus().value(status ->
+                            assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status,
+                                    "OPTIONS should not be 401"));
+        }
     }
 
-    /**
-     * Validates that payment webhooks are excluded from authentication requirements.
-     */
-    @Test
-    @DisplayName("Public endpoint (Webhook): Should pass security layer")
-    void publicWebhook_shouldPassSecurity() {
-        String version = apiProperties.version(); // Get real version (e.g. /api/v1)
+    // -------------------------------------------------------------------------
+    // Protected endpoints — must return 401 without credentials
+    // -------------------------------------------------------------------------
 
-        webTestClient.post()
-                .uri(version + "/payments/webhook/test")
-                .exchange()
-                .expectStatus().value(status -> {
-                    // We expect 404/500/200, but NOT 401/403
-                    assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status, "Should not be 401");
-                });
+    @Nested
+    @DisplayName("Protected endpoints")
+    class ProtectedEndpointTests {
+
+        @Test
+        @DisplayName("GET /api/v1/users/profile returns 401 without a token")
+        void usersProfile_requires401WithoutToken() {
+            webTestClient.get()
+                    .uri("/api/v1/users/profile")
+                    .exchange()
+                    .expectStatus().isUnauthorized();
+        }
+
+        @Test
+        @DisplayName("GET /api/v1/orders returns 401 without a token")
+        void orders_requires401WithoutToken() {
+            webTestClient.get()
+                    .uri("/api/v1/orders")
+                    .exchange()
+                    .expectStatus().isUnauthorized();
+        }
     }
 
-    /**
-     * Validates that login endpoints are accessible to unauthenticated users.
-     */
-    @Test
-    @DisplayName("Auth endpoints: Should be public")
-    void publicAuth_shouldPassSecurity() {
-        String version = apiProperties.version();
+    // -------------------------------------------------------------------------
+    // Authenticated access — must NOT return 401
+    // -------------------------------------------------------------------------
 
-        webTestClient.post()
-                .uri(version + "/users/login")
-                .exchange()
-                .expectStatus().value(status ->
-                        assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status, "Should not be 401"));
-    }
+    @Nested
+    @DisplayName("Authenticated access")
+    class AuthenticatedAccessTests {
 
-    /**
-     * Confirms that requests to protected resources without credentials are rejected with 401.
-     */
-    @Test
-    @DisplayName("Protected endpoint: Must be blocked without JWT")
-    void protectedEndpoint_shouldBeUnauthorized() {
-        webTestClient.get()
-                .uri("/api/v1/users/profile")
-                .exchange()
-                .expectStatus()
-                .isUnauthorized();
+        @Test
+        @DisplayName("Authenticated request passes security layer (may 404 but not 401)")
+        void authenticatedRequest_passesSecurityGate() {
+            webTestClient.get()
+                    .uri("/api/v1/users/me")
+                    .header("Authorization", "Bearer synthetic-token")
+                    .exchange()
+                    .expectStatus().value(status ->
+                            assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status,
+                                    "Authenticated request should not be 401"));
+        }
     }
 }
