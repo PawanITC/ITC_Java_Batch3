@@ -50,6 +50,12 @@ public class JwtAuthWebFilter implements WebFilter {
             return chain.filter(exchange);
         }
 
+        String path = exchange.getRequest().getURI().getPath();
+
+        if (path.startsWith("/actuator")) {
+            return chain.filter(exchange);
+        }
+
         return tokenBlacklistService.isBlacklisted(token)
                 .flatMap(isBlacklisted -> {
 
