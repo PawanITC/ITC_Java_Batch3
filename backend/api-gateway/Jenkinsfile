@@ -6,11 +6,11 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USER = 'abbasgureitc'
-        IMAGE_NAME = 'api-gateway'
-        REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
-        SNYK_TOKEN = credentials('snyk-token')
-        dockerImage = ''
+        DOCKER_HUB_USER          = 'abbasgureitc'
+        IMAGE_NAME               = 'api-gateway'
+        REGISTRY_CREDENTIALS_ID  = 'docker-hub-credentials'
+        SNYK_TOKEN               = credentials('snyk-token')
+        dockerImage              = ''
     }
 
     stages {
@@ -23,32 +23,27 @@ pipeline {
         }
 
 
-              stage('Build & Test') {
-                    steps {
-                        dir('backend/api-gateway') {
-                            script {
-                                // Grant execute permission to the wrapper
-                                sh "chmod +x gradlew"
-
-                                sh "./gradlew clean build jacocoTestReport \
-                                    -Dspring.profiles.active=test \
-                                    --no-daemon --stacktrace"
-                            }
-                        }
+        stage('Build & Test') {
+            steps {
+                dir('backend/api-gateway') {
+                    script {
+                        sh "chmod +x gradlew"
+                        sh "./gradlew clean test jacocoTestReport \
+                            -Dspring.profiles.active=test \
+                            --no-daemon --stacktrace"
                     }
                 }
-
+            }
+        }
 
         stage('Security Scan (Snyk)') {
             options {
-                // Hard stop for Jenkins to reclaim the agent
                 timeout(time: 2, unit: 'MINUTES')
             }
             steps {
                 dir('backend/api-gateway') {
                     script {
                         catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            // Internal retry for transient network flips
                             retry(3) {
                                 sh 'snyk test --severity-threshold=high'
                             }
@@ -59,22 +54,19 @@ pipeline {
             }
         }
 
-
         stage('Quality Gate') {
             steps {
-                // Modern replacement for the deprecated Jacoco plugin
                 jacoco(
-                    execPattern: '**/build/jacoco/*.exec',
-                    classPattern: '**/build/classes/java/main',
-                    sourcePattern: '**/src/main/java',
+                    execPattern:      '**/build/jacoco/*.exec',
+                    classPattern:     '**/build/classes/java/main',
+                    sourcePattern:    '**/src/main/java',
                     inclusionPattern: '**/*.class',
-                    // Jacoco plugin uses these for the health report (Quality Gates)
                     minimumLineCoverage: '70',
+                    maximumLineCoverage: '80',
                     buildOverBuild: true
                 )
             }
         }
-
 
         stage('Build Docker Image') {
             steps {
@@ -82,7 +74,8 @@ pipeline {
                     script {
                         sh 'ls -R build/libs/'
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
+                        dockerImage = docker.build(
+                            "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
             }
@@ -101,10 +94,8 @@ pipeline {
     }
 
     post {
-        success { echo "SUCCESS: ${IMAGE_NAME} is deployed to Docker Hub." }
-        failure { echo "FAILURE: Build failed. Check routing tests, security filter logs, or Snyk reports." }
-        always {
-            cleanWs()
-        }
+        success { echo "SUCCESS: ${IMAGE_NAME} deployed to Docker Hub." }
+        failure { echo "FAILURE: Check test reports, security filter logs, or Snyk output." }
+        always  { cleanWs() }
     }
 }

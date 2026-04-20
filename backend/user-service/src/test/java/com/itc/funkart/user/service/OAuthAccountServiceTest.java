@@ -1,7 +1,10 @@
 package com.itc.funkart.user.service;
 
 import com.itc.funkart.user.entity.OAuthAccount;
+import com.itc.funkart.user.entity.Role;
+import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.repository.OAuthAccountRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,14 +20,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for {@link OAuthAccountService}.
- * <p>
- * This suite verifies the business logic for external identity mappings using Mockito
- * to isolate the service from the underlying persistence layer.
- * </p>
+ * <h2>OAuthAccountService — Unit Tests</h2>
  *
- * @author Gemini
- * @version 1.0
+ * <p>Verifies the identity linking contract between local {@link User} entities
+ * and external OAuth provider records.
+ *
+ * <p><b>Key corrections from old tests:</b>
+ * <ul>
+ *   <li>{@code createAccount} takes a {@link User} entity — NOT a {@code Long userId}.
+ *       The entity has a {@code User user} relation, not a {@code userId} field.</li>
+ *   <li>{@code findOrCreate} takes a {@link User} entity — same reason.</li>
+ *   <li>{@link OAuthAccount#getUser()} returns the {@code User} object, so assertions
+ *       must navigate through it (e.g. {@code account.getUser().getId()}).</li>
+ * </ul>
  */
 @ExtendWith(MockitoExtension.class)
 class OAuthAccountServiceTest {
@@ -35,114 +43,159 @@ class OAuthAccountServiceTest {
     @InjectMocks
     private OAuthAccountService oauthAccountService;
 
-    private static final String PROVIDER = "github";
-    private static final String PROVIDER_ID = "git_12345";
-    private static final Long USER_ID = 99L;
+    private static final String PROVIDER    = "github";
+    private static final String PROVIDER_ID = "gh_12345";
 
-    /**
-     * Helper to build a standard OAuthAccount entity.
-     */
-    private OAuthAccount createMockAccount() {
+    /** Shared user entity — note we use the full object, not just an ID. */
+    private User testUser;
+
+    @BeforeEach
+    void setUp() {
+        testUser = User.builder()
+                .id(99L)
+                .email("alice@example.com")
+                .name("Alice")
+                .role(Role.ROLE_USER)
+                .build();
+    }
+
+    /** Builds a realistic OAuthAccount entity backed by the shared user. */
+    private OAuthAccount buildAccount() {
         return OAuthAccount.builder()
                 .id(1L)
-                .userId(USER_ID)
+                .user(testUser)           // entity relation, NOT a userId field
                 .provider(PROVIDER)
                 .providerId(PROVIDER_ID)
                 .build();
     }
 
+    // -------------------------------------------------------------------------
+    // findByProviderAndProviderId
+    // -------------------------------------------------------------------------
+
     @Nested
-    @DisplayName("Lookup Operations")
+    @DisplayName("findByProviderAndProviderId")
     class LookupTests {
 
         @Test
-        @DisplayName("Should return Optional with account when it exists")
-        void findByProviderAndProviderId_Found() {
-            // Arrange
-            OAuthAccount mockAccount = createMockAccount();
+        @DisplayName("Returns Optional containing the account when found")
+        void returnsAccountWhenFound() {
+            OAuthAccount account = buildAccount();
             when(oauthAccountRepository.findByProviderAndProviderId(PROVIDER, PROVIDER_ID))
-                    .thenReturn(Optional.of(mockAccount));
+                    .thenReturn(Optional.of(account));
 
-            // Act
-            Optional<OAuthAccount> result = oauthAccountService.findByProviderAndProviderId(PROVIDER, PROVIDER_ID);
+            Optional<OAuthAccount> result =
+                    oauthAccountService.findByProviderAndProviderId(PROVIDER, PROVIDER_ID);
 
-            // Assert
             assertThat(result).isPresent();
             assertThat(result.get().getProviderId()).isEqualTo(PROVIDER_ID);
         }
 
         @Test
-        @DisplayName("Should return empty Optional when account does not exist")
-        void findByProviderAndProviderId_NotFound() {
-            // Arrange
+        @DisplayName("Returns empty Optional when account does not exist")
+        void returnsEmptyWhenNotFound() {
             when(oauthAccountRepository.findByProviderAndProviderId(any(), any()))
                     .thenReturn(Optional.empty());
 
-            // Act
-            Optional<OAuthAccount> result = oauthAccountService.findByProviderAndProviderId("none", "none");
+            Optional<OAuthAccount> result =
+                    oauthAccountService.findByProviderAndProviderId("none", "none");
 
-            // Assert
             assertThat(result).isEmpty();
         }
     }
 
+    // -------------------------------------------------------------------------
+    // createAccount
+    // -------------------------------------------------------------------------
+
     @Nested
-    @DisplayName("Creation Operations")
+    @DisplayName("createAccount(User, provider, providerId)")
     class CreationTests {
 
         @Test
-        @DisplayName("Should correctly map and save a new OAuth account")
-        void createAccount_Success() {
-            // Arrange
-            OAuthAccount mockAccount = createMockAccount();
-            when(oauthAccountRepository.save(any(OAuthAccount.class))).thenReturn(mockAccount);
+        @DisplayName("Saves a new OAuthAccount and returns it")
+        void savesAndReturnsAccount() {
+            OAuthAccount saved = buildAccount();
+            when(oauthAccountRepository.save(any(OAuthAccount.class))).thenReturn(saved);
 
-            // Act
-            OAuthAccount result = oauthAccountService.createAccount(USER_ID, PROVIDER, PROVIDER_ID);
+            OAuthAccount result = oauthAccountService.createAccount(testUser, PROVIDER, PROVIDER_ID);
 
-            // Assert
             assertThat(result).isNotNull();
-            assertThat(result.getUserId()).isEqualTo(USER_ID);
             verify(oauthAccountRepository, times(1)).save(any(OAuthAccount.class));
+        }
+
+        @Test
+        @DisplayName("Saved account is linked to the correct User entity")
+        void savedAccountLinkedToUser() {
+            OAuthAccount saved = buildAccount();
+            when(oauthAccountRepository.save(any(OAuthAccount.class))).thenReturn(saved);
+
+            OAuthAccount result = oauthAccountService.createAccount(testUser, PROVIDER, PROVIDER_ID);
+
+            // Navigate through the User relation — there is no userId field on OAuthAccount
+            assertThat(result.getUser().getId()).isEqualTo(99L);
+        }
+
+        @Test
+        @DisplayName("Saved account has the correct provider and providerId")
+        void savedAccountHasCorrectProviderData() {
+            OAuthAccount saved = buildAccount();
+            when(oauthAccountRepository.save(any(OAuthAccount.class))).thenReturn(saved);
+
+            OAuthAccount result = oauthAccountService.createAccount(testUser, PROVIDER, PROVIDER_ID);
+
+            assertThat(result.getProvider()).isEqualTo(PROVIDER);
+            assertThat(result.getProviderId()).isEqualTo(PROVIDER_ID);
         }
     }
 
+    // -------------------------------------------------------------------------
+    // findOrCreate
+    // -------------------------------------------------------------------------
+
     @Nested
-    @DisplayName("Logic: findOrCreate")
+    @DisplayName("findOrCreate(User, provider, providerId)")
     class FindOrCreateTests {
 
         @Test
-        @DisplayName("Should return existing account without calling save")
-        void findOrCreate_ReturnsExisting() {
-            // Arrange
-            OAuthAccount existingAccount = createMockAccount();
+        @DisplayName("Returns existing account without calling save")
+        void returnsExistingWithoutSave() {
+            OAuthAccount existing = buildAccount();
             when(oauthAccountRepository.findByProviderAndProviderId(PROVIDER, PROVIDER_ID))
-                    .thenReturn(Optional.of(existingAccount));
+                    .thenReturn(Optional.of(existing));
 
-            // Act
-            OAuthAccount result = oauthAccountService.findOrCreate(USER_ID, PROVIDER, PROVIDER_ID);
+            OAuthAccount result =
+                    oauthAccountService.findOrCreate(testUser, PROVIDER, PROVIDER_ID);
 
-            // Assert
-            assertThat(result).isEqualTo(existingAccount);
+            assertThat(result).isEqualTo(existing);
             verify(oauthAccountRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Should create and return new account if none found")
-        void findOrCreate_CreatesNew() {
-            // Arrange
+        @DisplayName("Creates and returns a new account when none exists")
+        void createsNewAccountWhenAbsent() {
             when(oauthAccountRepository.findByProviderAndProviderId(PROVIDER, PROVIDER_ID))
                     .thenReturn(Optional.empty());
-
-            OAuthAccount newAccount = createMockAccount();
+            OAuthAccount newAccount = buildAccount();
             when(oauthAccountRepository.save(any(OAuthAccount.class))).thenReturn(newAccount);
 
-            // Act
-            OAuthAccount result = oauthAccountService.findOrCreate(USER_ID, PROVIDER, PROVIDER_ID);
+            OAuthAccount result =
+                    oauthAccountService.findOrCreate(testUser, PROVIDER, PROVIDER_ID);
 
-            // Assert
             assertThat(result).isEqualTo(newAccount);
             verify(oauthAccountRepository).save(any(OAuthAccount.class));
+        }
+
+        @Test
+        @DisplayName("Does not save when account already exists (idempotent)")
+        void idempotentWhenAccountExists() {
+            when(oauthAccountRepository.findByProviderAndProviderId(PROVIDER, PROVIDER_ID))
+                    .thenReturn(Optional.of(buildAccount()));
+
+            oauthAccountService.findOrCreate(testUser, PROVIDER, PROVIDER_ID);
+            oauthAccountService.findOrCreate(testUser, PROVIDER, PROVIDER_ID);
+
+            verify(oauthAccountRepository, never()).save(any());
         }
     }
 }

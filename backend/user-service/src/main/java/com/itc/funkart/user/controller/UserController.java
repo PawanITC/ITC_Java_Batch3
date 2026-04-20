@@ -30,7 +30,7 @@ public class UserController {
 
     @PostMapping("/oauth/github")
     public ResponseEntity<ApiResponse<OAuthResponse>> oauthGithub(
-            @RequestBody OAuthRequest request
+           @Valid @RequestBody OAuthRequest request
     ) {
         return ResponseEntity.ok(
                 new ApiResponse<>(
