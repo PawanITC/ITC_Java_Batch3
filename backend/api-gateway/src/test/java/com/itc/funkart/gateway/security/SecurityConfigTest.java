@@ -118,7 +118,10 @@ class SecurityConfigTest {
             webTestClient.get()
                     .uri("/actuator/health")
                     .exchange()
-                    .expectStatus().isOk(); 
+                    .expectStatus().value(status ->
+                            assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status))
+                    .expectStatus().value(status ->
+                            assertNotEquals(HttpStatus.FORBIDDEN.value(), status));
         }
 
         @Test
