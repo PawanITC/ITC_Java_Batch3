@@ -54,6 +54,7 @@ public class SecurityConfig {
                                 "/api/v1/users/refresh",
                                 "/api/v1/oauth/github/login",    // Initial redirect trigger
                                 "/api/v1/oauth/github/callback", // GitHub's return journey
+                                "/api/v1/users/health",
                                 "/api/v1/oauth/github/refresh",
                                 "/payments/webhook/**"          // OAuth token rotation
                         ).permitAll()

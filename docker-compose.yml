@@ -45,30 +45,18 @@ services:
     networks:
       - db-network
 
-  
-  payment-service:
-    container_name: payment-service
-    build:
-      context: ./backend/payment-service # Path to where your Payment Service Dockerfile is
-    ports:
-      - "8082:8080"
-    env_file:
-      - ./backend/payment-service/.env
-    networks:
-      - db-network
-
   user-service:
     container_name: user-service
-    build:
+    build: 
       context: ./backend/user-service
     ports:
-      - "8081:8080" # Host 8081 -> Container 8080
+      - "8081:8080"
     env_file:
       - ./backend/user-service/.env
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - REDIS_HOST=redis
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     depends_on:
       - postgres
       - kafka
@@ -78,7 +66,7 @@ services:
 
   api-gateway:
     container_name: api-gateway
-    build:
+    build: 
       context: ./backend/api-gateway
     ports:
       - "8060:8060" 
@@ -86,45 +74,30 @@ services:
       - ./backend/api-gateway/.env
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - REDIS_HOST=redis
-      # CRITICAL: Point to the INTERNAL port 8080, not 8081
-      - USER_SERVICE_URL=http://user-service:8080 
+      - SPRING_DATA_REDIS_HOST=redis
     depends_on:
       - user-service
       - redis
     networks:
       - db-network
 
-  kafka-ui:
-    container_name: kafka-ui
-    image: provectuslabs/kafka-ui:latest
+  payment-service:
+    container_name: payment-service
+    build:
+      context: ./backend/payment-service
     ports:
-      - "8085:8080"
+      - "8082:8080"
+    env_file:
+      - ./backend/payment-service/.env
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
     networks:
       - db-network
 
-  jenkins:
-    user: root
-    container_name: funkart-jenkins
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8090:8080"
-      - "50000:50000"
-    volumes:
-      - jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-      - gradle_cache:/root/.gradle
-    networks:
-      - db-network
-    
 networks:
   db-network:
     driver: bridge
-    
+
 volumes:
-  jenkins_home:
-  gradle_cache:
   postgres_data:   
   redis_data:

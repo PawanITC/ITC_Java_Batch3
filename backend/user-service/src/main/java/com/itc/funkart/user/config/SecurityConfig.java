@@ -1,13 +1,14 @@
 package com.itc.funkart.user.config;
 
+import com.itc.funkart.user.auth.JwtService;
 import com.itc.funkart.user.auth.JwtWebFilter;
 import com.itc.funkart.user.auth.PrincipalFactory;
-import com.itc.funkart.user.auth.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -34,16 +35,25 @@ public class SecurityConfig {
     private final JwtService jwtService;
     private final PrincipalFactory principalFactory;
 
-    /**
-     * Creates JWT authentication filter.
-     */
     @Bean
     public JwtWebFilter jwtWebFilter() {
         return new JwtWebFilter(jwtService, principalFactory);
     }
 
     /**
-     * Defines stateless security rules.
+     * STAGE 1: Bypasses the filter chain entirely.
+     * Use this for infra/health check endpoints.
+     */
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .requestMatchers("/users/health")
+                .requestMatchers("/actuator/**");
+    }
+
+    /**
+     * STAGE 2: The actual security rules.
+     * Only requests NOT ignored by Stage 1 reach here.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -53,21 +63,13 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Public Auth Endpoints (Ensure these match what the Gateway sends)
+                        // Public Auth Endpoints
                         .requestMatchers(
                                 "/users/login",
-                                "/api/v1/users/login", // Add this just in case
-                                "/users/signup",
-                                "/users/me"
+                                "/users/signup"
                         ).permitAll()
 
-                        // 2. Health & Monitoring (So Gateway/Docker can check status)
-                        .requestMatchers(
-                                "/users/health",
-                                "/actuator/**"
-                        ).permitAll()
-
-                        // 3. Everything else is locked
+                        // Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtWebFilter(), UsernamePasswordAuthenticationFilter.class)
