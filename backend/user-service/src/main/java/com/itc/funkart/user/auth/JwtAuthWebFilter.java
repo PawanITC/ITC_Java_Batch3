@@ -38,12 +38,12 @@ import java.util.List;
  * </p>
  */
 @Slf4j
-public class JwtWebFilter extends OncePerRequestFilter {
+public class JwtAuthWebFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final PrincipalFactory principalFactory;
 
-    public JwtWebFilter(JwtService jwtService, PrincipalFactory principalFactory) {
+    public JwtAuthWebFilter(JwtService jwtService, PrincipalFactory principalFactory) {
         this.jwtService = jwtService;
         this.principalFactory = principalFactory;
     }

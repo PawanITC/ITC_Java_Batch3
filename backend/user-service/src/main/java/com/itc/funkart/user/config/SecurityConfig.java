@@ -1,7 +1,7 @@
 package com.itc.funkart.user.config;
 
 import com.itc.funkart.user.auth.JwtService;
-import com.itc.funkart.user.auth.JwtWebFilter;
+import com.itc.funkart.user.auth.JwtAuthWebFilter;
 import com.itc.funkart.user.auth.PrincipalFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -33,11 +33,11 @@ public class SecurityConfig {
 
     /**
      * Configures the custom JWT filter to intercept and validate tokens in the request header/cookies.
-     * @return an instance of {@link JwtWebFilter}
+     * @return an instance of {@link JwtAuthWebFilter}
      */
     @Bean
-    public JwtWebFilter jwtWebFilter() {
-        return new JwtWebFilter(jwtService, principalFactory);
+    public JwtAuthWebFilter jwtWebFilter() {
+        return new JwtAuthWebFilter(jwtService, principalFactory);
     }
 
     /**

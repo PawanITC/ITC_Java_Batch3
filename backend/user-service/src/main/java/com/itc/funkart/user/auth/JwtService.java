@@ -34,8 +34,6 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private static final String ISSUER = "funkart-user-service";
-
     private final JwtConfig jwtConfig;
     private final SecretKey key;
 
@@ -69,7 +67,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(user.userId().toString())
-                .issuer(ISSUER)
+                .issuer(JwtClaims.ISSUER)
                 .claim(JwtClaims.NAME, user.name())
                 .claim(JwtClaims.EMAIL, user.email())
                 .claim(JwtClaims.ROLE, user.role())
@@ -93,7 +91,7 @@ public class JwtService {
     public Claims parseJwtToken(String token) {
         return Jwts.parser()
                 .verifyWith(key)
-                .requireIssuer(ISSUER)
+                .requireIssuer(JwtClaims.ISSUER)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -124,7 +122,4 @@ public class JwtService {
         return Long.parseLong(parseJwtToken(token).getSubject());
     }
 
-    private String safe(String value) {
-        return value == null ? "" : value;
-    }
 }

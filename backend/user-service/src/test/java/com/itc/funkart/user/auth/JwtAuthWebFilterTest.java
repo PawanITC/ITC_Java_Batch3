@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 /**
  * <h2>JwtWebFilter — Unit Tests</h2>
  *
- * <p>Validates the three-stage pipeline inside {@link JwtWebFilter}:
+ * <p>Validates the three-stage pipeline inside {@link JwtAuthWebFilter}:
  * <ol>
  *   <li>Token extraction from Authorization header or cookie</li>
  *   <li>Claim parsing via {@link JwtService}</li>
@@ -42,7 +42,7 @@ import static org.mockito.Mockito.*;
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
-class JwtWebFilterTest {
+class JwtAuthWebFilterTest {
 
     @Mock private JwtService       jwtService;
     @Mock private PrincipalFactory principalFactory;
@@ -50,11 +50,11 @@ class JwtWebFilterTest {
     @Mock private HttpServletResponse response;
     @Mock private FilterChain         filterChain;
 
-    private JwtWebFilter filter;
+    private JwtAuthWebFilter filter;
 
     @BeforeEach
     void setUp() {
-        filter = new JwtWebFilter(jwtService, principalFactory);
+        filter = new JwtAuthWebFilter(jwtService, principalFactory);
     }
 
     @BeforeEach
