@@ -43,6 +43,7 @@ server:
 # ---------------------------------------------------------------------------
 app:
   frontend-url: http://localhost:5173
+  oauth-success-path: /oauth-success
 
   services:
     user-service:    http://localhost:9999
@@ -51,7 +52,7 @@ app:
 
   jwt:
     # A valid HS256 key — must be at least 32 characters before Base64 encoding
-    secret: "super-secret-key-must-be-at-least-32-bytes!!xyz"
+    secret: "YmFzZTY0LWVuY29kZWQtc2VjcmV0LWtleS1tdXN0LWJlLTMyLWJ5dGVzLWxvbmc="
     expiration-ms: 3600000
     cookie-max-age-seconds: 3600
     cookie-name: token

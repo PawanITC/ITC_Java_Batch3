@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * <ul>
  *   <li>{@code generateJwtToken} — signs a token from a {@link UserPrincipalDto}</li>
  *   <li>{@code parseJwtToken}    — verifies signature and returns raw claims</li>
- *   <li>{@code validateToken}   — boolean guard used by {@link JwtWebFilter}</li>
+ *   <li>{@code validateToken}   — boolean guard used by {@link JwtAuthWebFilter}</li>
  *   <li>{@code getUserIdFromToken} — subject extraction shortcut</li>
  * </ul>
  *
@@ -50,7 +50,9 @@ class JwtServiceTest {
         jwtService = new JwtService(config);
     }
 
-    /** Convenience factory to keep test bodies concise. */
+    /**
+     * Convenience factory to keep test bodies concise.
+     */
     private UserPrincipalDto principal(Long id, String name, String email, String role) {
         return UserPrincipalDto.builder()
                 .userId(id)
@@ -122,11 +124,11 @@ class JwtServiceTest {
         }
 
         @Test
-        @DisplayName("Issuer is funkart-user-service")
+        @DisplayName("Issuer is funkart-auth-authority")
         void issuerIsCorrect() {
             String token = jwtService.generateJwtToken(
                     principal(1L, "Alice", "alice@example.com", "ROLE_USER"));
-            assertEquals("funkart-user-service",
+            assertEquals("funkart-auth-authority",
                     jwtService.parseJwtToken(token).getIssuer());
         }
     }

@@ -1,5 +1,6 @@
 package com.itc.funkart.gateway.service;
 
+import com.itc.funkart.gateway.auth.jwt.JwtClaims;
 import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.exception.JwtAuthenticationException;
 import io.jsonwebtoken.Claims;
@@ -10,25 +11,23 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Service
 public class JwtService {
 
     private final SecretKey key;
-    private static final String ISSUER = "funkart-gateway";
 
     public JwtService(AppConfig appConfig) {
-        this.key = Keys.hmacShaKeyFor(
-                appConfig.jwt().secret().getBytes(StandardCharsets.UTF_8)
-        );
+        byte[] keyBytes = java.util.Base64.getDecoder().decode(appConfig.jwt().secret());
+        this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
     public Claims parseClaims(String token) {
         try {
             return Jwts.parser()
                     .verifyWith(key)
+                    .requireIssuer(JwtClaims.ISSUER)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
@@ -57,9 +56,9 @@ public class JwtService {
 
     public String generateAccessToken(Long userId, String role) {
         return Jwts.builder()
-                .issuer(ISSUER)
+                .issuer(JwtClaims.ISSUER)
                 .subject(String.valueOf(userId))
-                .claim("role", role)
+                .claim(JwtClaims.ROLE, role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15))
                 .signWith(key)

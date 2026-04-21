@@ -38,6 +38,11 @@ export default function Login() {
         }
     };
 
+    const handleGithubLogin = () => {
+        // assign() mimics a URL bar entry, which helps bypass some "Unsafe attempt" flags
+        window.location.assign("http://localhost:8060/api/v1/oauth/github/login");
+    };
+
     return (
         <div className="auth-page">
             <div className="auth-card">
@@ -68,10 +73,9 @@ export default function Login() {
                 <div className="oauth-divider">or</div>
 
                 <button
+                    type="button"
+                    onClick={handleGithubLogin}
                     className="github-button"
-                    onClick={() =>
-                        (window.location.href = "http://localhost:8080/oauth/github/login")
-                    }
                 >
                     Login with GitHub
                 </button>

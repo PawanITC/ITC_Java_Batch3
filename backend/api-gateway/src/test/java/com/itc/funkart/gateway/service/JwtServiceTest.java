@@ -1,5 +1,6 @@
 package com.itc.funkart.gateway.service;
 
+import com.itc.funkart.gateway.auth.jwt.JwtClaims;
 import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.exception.JwtAuthenticationException;
 import io.jsonwebtoken.Claims;
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
 
@@ -37,11 +37,12 @@ class JwtServiceTest {
      * A 256-bit (32-byte) secret long enough for HS256.
      * Must be at least 32 characters to satisfy JJWT's key length requirement.
      */
-    private static final String SECRET =
-            "super-secret-key-must-be-at-least-32-bytes!!xyz";
+    // This is a Base64 encoded string representing 32 bytes of data
+    private static final String SECRET = "YmFzZTY0LWVuY29kZWQtc2VjcmV0LWtleS1tdXN0LWJlLTMyLWJ5dGVzLWxvbmc=";
 
     private JwtService jwtService;
     private SecretKey secretKey;
+
 
     /**
      * Builds a minimal {@link AppConfig} record and constructs a fresh
@@ -59,6 +60,7 @@ class JwtServiceTest {
 
         AppConfig appConfig = new AppConfig(
                 "http://localhost:5173",
+                "/oauth-success",
                 jwtConfig,
                 new AppConfig.Github("id", "secret", "http://callback"),
                 Map.of(
@@ -69,7 +71,10 @@ class JwtServiceTest {
         );
 
         jwtService = new JwtService(appConfig);
-        secretKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+
+        // Decode the Base64 secret just like the JwtService does
+        byte[] keyBytes = java.util.Base64.getDecoder().decode(SECRET);
+        secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     // -------------------------------------------------------------------------
@@ -85,6 +90,7 @@ class JwtServiceTest {
         void validToken_returnsCorrectSubject() {
             String token = Jwts.builder()
                     .subject("42")
+                    .issuer(JwtClaims.ISSUER)
                     .signWith(secretKey)
                     .compact();
 
@@ -98,6 +104,7 @@ class JwtServiceTest {
         void validToken_returnsCustomClaims() {
             String token = Jwts.builder()
                     .subject("1")
+                    .issuer(JwtClaims.ISSUER)
                     .claim("role", "ROLE_ADMIN")
                     .signWith(secretKey)
                     .compact();
@@ -153,6 +160,7 @@ class JwtServiceTest {
         void futureExpiry_doesNotThrow() {
             String token = Jwts.builder()
                     .subject("1")
+                    .issuer(JwtClaims.ISSUER)
                     .expiration(new Date(System.currentTimeMillis() + 60_000))
                     .signWith(secretKey)
                     .compact();
@@ -169,6 +177,7 @@ class JwtServiceTest {
             // but validateClaims must detect the missing field
             String token = Jwts.builder()
                     .subject("1")
+                    .issuer(JwtClaims.ISSUER)
                     .signWith(secretKey)
                     .compact();
 

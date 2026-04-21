@@ -59,10 +59,11 @@ public class SecurityConfig {
                         .pathMatchers(
                                 "/api/v1/users/login",
                                 "/api/v1/users/signup",
-                                "/api/v1/users/oauth/**",       // New GitHub OAuth endpoints
-                                "/api/v1/oauth/github/**",      // Legacy/Secondary OAuth paths
+                                "/api/v1/users/oauth/**",   // For your internal user service oauth paths
+                                "/api/v1/oauth/**",         // For the direct gateway oauth paths
                                 "/api/v1/users/health",
-                                "/actuator/**"
+                                "/actuator/",             // Allow health checks
+                                "/payments/webhook/**"
                         ).permitAll()
 
                         // PROTECTED ENDPOINTS: Requires valid JWT (e.g., /api/v1/users/me)

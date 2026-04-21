@@ -7,23 +7,13 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
+      // Standard proxy for all your fetch() calls
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8060',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path
-      },
-      '/oauth': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path
+        // No need for bypass if we call the Gateway directly for login
       },
     },
   },
-  build: {
-    outDir: "dist",
-  },
-  base: "/",
 });
-

@@ -29,6 +29,7 @@ class AppConfigTest {
     private AppConfig buildConfig(Map<String, String> services) {
         return new AppConfig(
                 "http://localhost:5173",
+                "/oauth-success",
                 new AppConfig.Jwt(
                         "super-secret-key-must-be-at-least-32-bytes!!xyz",
                         3_600_000L,
