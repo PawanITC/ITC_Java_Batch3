@@ -27,7 +27,7 @@ public class CatalogueService {
         this.redisTemplate = redisTemplate;
     }
 
-    public CompletableFuture<List<ProductDTO>> getProducts(
+    public CompletableFuture<List<ProductDTO>> getProducts(String q,
             Integer page, Integer size, String category,
             BigDecimal minPrice, BigDecimal maxPrice, Double rating) {
 
@@ -110,6 +110,19 @@ public class CatalogueService {
         redisTemplate.opsForHash().put(key, "rating", String.valueOf(product.getRating()));
         redisTemplate.opsForHash().put(key, "quantity", String.valueOf(product.getQuantity()));
         redisTemplate.opsForHash().put(key, "category", product.getCategory());
+    }
+
+    //Method to delete productDTO from Redis cache
+    public void deleteProductFromCache(String productId, String category) {
+        String key = "product:" + productId;
+        redisTemplate.delete(key);
+        // remove from global ranking
+        redisTemplate.opsForZSet().remove("top_selling:global", productId);
+        // remove from category ranking
+        if (category != null && !category.isBlank()) {
+            String categoryKey = "top_selling:category:" + category.toLowerCase();
+            redisTemplate.opsForZSet().remove(categoryKey, productId);
+        }
     }
 
     //Method to initially load into Redis cache by calling saveProductToCache
