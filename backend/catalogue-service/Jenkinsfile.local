@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)   // 🔥 FIX: stop Jenkins auto checkout
+    }
+
     stages {
 
         stage('Clean Workspace') {
@@ -11,7 +15,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                deleteDir()
+                deleteDir()         // 🔥 FIX: remove stale git refs
                 checkout scm
             }
         }
