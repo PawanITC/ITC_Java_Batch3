@@ -11,21 +11,17 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * <h2>Security Configuration</h2>
- *
- * <p>
- * Stateless JWT-based security configuration for the User Service.
- * </p>
- *
- * <p>
- * <b>Architecture Rule:</b>
- * Authentication is fully handled inside user-service.
- * Gateway does not participate in token validation or identity resolution.
- * </p>
+ * * <p>Stateless JWT-based security configuration for the User Service.</p>
+ * * <p>This configuration enforces that all requests are authenticated via a JSON Web Token (JWT)
+ * except for specified public endpoints. It ensures no HTTP Session is created or used
+ * for authentication.</p>
  */
 @Configuration
 @EnableWebSecurity
@@ -35,14 +31,19 @@ public class SecurityConfig {
     private final JwtService jwtService;
     private final PrincipalFactory principalFactory;
 
+    /**
+     * Configures the custom JWT filter to intercept and validate tokens in the request header/cookies.
+     * @return an instance of {@link JwtWebFilter}
+     */
     @Bean
     public JwtWebFilter jwtWebFilter() {
         return new JwtWebFilter(jwtService, principalFactory);
     }
 
     /**
-     * STAGE 1: Bypasses the filter chain entirely.
-     * Use this for infra/health check endpoints.
+     * Bypasses the Spring Security Filter Chain for infrastructure and health endpoints.
+     * This improves performance for high-frequency monitoring requests.
+     * @return a {@link WebSecurityCustomizer} with ignoring rules.
      */
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
@@ -52,8 +53,10 @@ public class SecurityConfig {
     }
 
     /**
-     * STAGE 2: The actual security rules.
-     * Only requests NOT ignored by Stage 1 reach here.
+     * Defines the security constraints for HTTP requests.
+     * * @param http the {@link HttpSecurity} to modify
+     * @return the built {@link SecurityFilterChain}
+     * @throws Exception if an error occurs during configuration
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -63,16 +66,30 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // Public Auth Endpoints
+                        // Public Auth & OAuth Endpoints
                         .requestMatchers(
                                 "/users/login",
-                                "/users/signup"
+                                "/users/signup",
+                                "/users/oauth/**"
                         ).permitAll()
 
-                        // Everything else requires a valid JWT
+                        // All other resources (including /users/me) require JWT
                         .anyRequest().authenticated()
                 )
+                // Intercept requests before they reach the controller
                 .addFilterBefore(jwtWebFilter(), UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    /**
+     * Prevents Spring Boot from generating a default security password in the logs.
+     * Notifies Spring that identity management is handled via JWT.
+     * @return a no-op {@link UserDetailsService}
+     */
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> {
+            throw new UsernameNotFoundException("Authentication is JWT-based, not database-based.");
+        };
     }
 }

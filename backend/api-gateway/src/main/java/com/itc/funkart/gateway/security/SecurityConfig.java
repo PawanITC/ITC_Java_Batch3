@@ -1,5 +1,6 @@
 package com.itc.funkart.gateway.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -10,19 +11,26 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 /**
- * Central Security Policy for API Gateway.
- * Acts as the gatekeeper for routing-level authorization only.
+ * <h2>Central Security Policy for API Gateway</h2>
+ *
+ * <p>Acts as the primary gatekeeper for the microservices ecosystem.
+ * This configuration operates in a Reactive (WebFlux) environment.</p>
+ *
+ * <p><b>Architecture Rule:</b> The Gateway enforces routing-level authorization.
+ * It permits public authentication traffic and validates JWTs for protected
+ * resources via the {@link JwtAuthWebFilter}.</p>
  */
 @Configuration
 @EnableWebFluxSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     /**
      * Defines security rules for gateway routes.
-     * Gateway responsibilities:
-     * - Allow public authentication endpoints
-     * - Enforce authentication for all other routes
-     * - Delegate actual identity verification to JWT filter layer
+     * * @param http The {@link ServerHttpSecurity} builder.
+     * @param corsSource Configured CORS policy for frontend access.
+     * @param jwtAuthWebFilter Custom filter to validate JWTs in the request flow.
+     * @return The configured {@link SecurityWebFilterChain}.
      */
     @Bean
     public SecurityWebFilterChain apiGatewaySecurityFilterChain(
@@ -34,38 +42,32 @@ public class SecurityConfig {
         return http
                 // 1. Stateless gateway (no sessions, no CSRF)
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
 
-                // 2. CORS config (frontend access)
+                // 2. CORS config (Enables frontend to talk to Gateway)
                 .cors(cors -> cors.configurationSource(corsSource))
 
-                // 3. JWT authentication filter (IMPORTANT)
+                // 3. JWT authentication filter
                 .addFilterAt(jwtAuthWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
 
                 // 4. Authorization rules
                 .authorizeExchange(auth -> auth
-                        .pathMatchers(HttpMethod.OPTIONS).permitAll()
-                        // ONLY these specific endpoints are public
+                        .pathMatchers(HttpMethod.OPTIONS).permitAll() // Allow pre-flight requests
+
+                        // PUBLIC ENDPOINTS: No JWT required
                         .pathMatchers(
                                 "/api/v1/users/login",
                                 "/api/v1/users/signup",
-                                "/api/v1/users/refresh",
-                                "/api/v1/oauth/github/login",    // Initial redirect trigger
-                                "/api/v1/oauth/github/callback", // GitHub's return journey
+                                "/api/v1/users/oauth/**",       // New GitHub OAuth endpoints
+                                "/api/v1/oauth/github/**",      // Legacy/Secondary OAuth paths
                                 "/api/v1/users/health",
-                                "/api/v1/oauth/github/refresh",
-                                "/payments/webhook/**"          // OAuth token rotation
+                                "/actuator/**"
                         ).permitAll()
 
-                        // Health / infra endpoints
-                        .pathMatchers("/actuator/**").permitAll()
-
-                        // Everything else (including /api/v1/users/profile) requires a token
+                        // PROTECTED ENDPOINTS: Requires valid JWT (e.g., /api/v1/users/me)
                         .anyExchange().authenticated()
                 )
-
                 .build();
     }
 }

@@ -16,7 +16,6 @@ spring:
 
   cloud:
     gateway:
-      # We move these under 'server.webflux' to stop the warnings
       server:
         webflux:
           routes:
@@ -26,59 +25,40 @@ spring:
                 - Path=/api/v1/users/**
               filters:
                 - StripPrefix=2
+
             - id: payment-service
               uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
               predicates:
                 - Path=/api/v1/payments/**
               filters:
                 - StripPrefix=2
+
             - id: product-service
               uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
               predicates:
                 - Path=/api/v1/products/**
               filters:
                 - StripPrefix=2
-            - id: order-service
-              uri: ${ORDER_SERVICE_URL:http://order-service:8080}
-              predicates:
-                - Path=/api/v1/orders/**
-              filters:
-                - StripPrefix=2
 
 server:
   port: ${PORT:8060}
 
-# THIS SECTION FIXES THE CRASH (Binding to AppConfig failed)
+# Custom Application Properties
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
-
-  # Satisfies @NotEmpty Map<String, String> services
+  oauth-success-path: ${OAUTH_SUCCESS_PATH:/oauth-success}
   services:
     user-service: ${USER_SERVICE_URL:http://user-service:8080}
     payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
     product-service: ${PRODUCT_SERVICE_URL:http://product-service:8080}
     order-service: ${ORDER_SERVICE_URL:http://order-service:8080}
-
-  # Satisfies @NotNull GitHub gitHub
   github:
-    client-id: ${GITHUB_CLIENT_ID:dummy_id}
-    client-secret: ${GITHUB_CLIENT_SECRET:dummy_secret}
-    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8060/login/oauth2/code/github}
-
+    client-id: ${GITHUB_CLIENT_ID}
+    client-secret: ${GITHUB_CLIENT_SECRET}
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8060/api/v1/oauth/github/callback}
   jwt:
-    secret: ${JWT_SECRET:dGhpcy1pcy1hLXZlcnktc2VjdXJlLWRlZmF1bHQtc2VjcmV0LWZvci1sb2NhbC1kZXY=}
+    secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
     cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
     cookie-name: ${APP_COOKIE_NAME:token}
     secure-cookie: ${APP_SECURE_COOKIE:false}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus,mappings,gateway
-  endpoint:
-    gateway:
-      access: unrestricted # Changed from enabled: true
-    health:
-      show-details: always

@@ -1,6 +1,5 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.config.NoApiPrefix;
 import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
 import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.service.OAuthGatewayService;
@@ -29,7 +28,6 @@ import java.net.URI;
  *   <li>Redirect user back to frontend after authentication</li>
  * </ul>
  */
-@NoApiPrefix
 @RestController
 @RequestMapping("/api/v1/oauth/github")
 public class GithubOAuthController {

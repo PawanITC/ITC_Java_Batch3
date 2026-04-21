@@ -52,8 +52,11 @@ public class OAuthGatewayService {
     }
 
     public Mono<Void> handleCallback(String code, ServerWebExchange exchange) {
+        String userServiceUrl = appConfig.getServiceUrl("user-service");
+
         return webClient.post()
-                .uri("/api/v1/users/oauth/github")
+                // Direct call to User Service: port 8080 doesn't know about /api/v1
+                .uri(userServiceUrl + "/users/oauth/github")
                 .bodyValue(new CodeRequest(code))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<ApiResponse<OAuthResponse>>() {
@@ -141,6 +144,7 @@ public class OAuthGatewayService {
     }
 
     public String frontendRedirect() {
-        return appConfig.frontendUrl();
+        // Result: http://localhost:5173/oauth-success
+        return appConfig.frontendUrl() + appConfig.oauthSuccessPath();
     }
 }

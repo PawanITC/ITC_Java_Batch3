@@ -3,7 +3,6 @@ package com.itc.funkart.gateway.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
@@ -22,14 +21,15 @@ public class CorsConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource(AppConfig appConfig) {
         CorsConfiguration config = new CorsConfiguration();
 
-        String frontend = appConfig.frontendUrl();
-        if (frontend != null && !frontend.isBlank()) {
-            config.addAllowedOrigin(frontend);
-        }
-        config.addAllowedOrigin("http://localhost:5173");
+        // Ensure we allow the frontend
+        config.setAllowedOrigins(List.of(
+                appConfig.frontendUrl(),
+                "http://localhost:5173"
+        ));
 
         config.setAllowCredentials(true);
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+        // Using "*" for headers during testing helps rule out header-mismatch 403s
+        config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
         config.setMaxAge(3600L);
@@ -39,9 +39,4 @@ public class CorsConfig {
         return source;
     }
 
-    // 2. Wrap it in a filter so the rest of the app still uses it
-    @Bean
-    public CorsWebFilter corsWebFilter(UrlBasedCorsConfigurationSource source) {
-        return new CorsWebFilter(source);
-    }
 }

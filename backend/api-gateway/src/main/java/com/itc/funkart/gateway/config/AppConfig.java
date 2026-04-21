@@ -20,8 +20,11 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "app")
 public record AppConfig(
 
-        @NotBlank
+        @NotBlank(message = "Frontend URL must be configured (APP_FRONTEND_URL)")
         String frontendUrl,
+
+        @NotBlank(message = "OAuth success path must be configured")
+        String oauthSuccessPath,
 
         @NotNull
         Jwt jwt,
@@ -34,10 +37,15 @@ public record AppConfig(
 ) {
 
     /**
-     * Helper to ensure service URLs are present during load tests.
+     * Helper to resolve service URLs from the internal map.
+     * This is the bridge used by AppServiceRegistry.
      */
     public String getServiceUrl(String serviceName) {
         String url = services.get(serviceName);
+        // Supports relaxed binding (user-service vs userservice)
+        if (url == null || url.isBlank()) {
+            url = services.get(serviceName.replace("-", ""));
+        }
         if (url == null || url.isBlank()) {
             throw new IllegalStateException("Service URL missing for: " + serviceName);
         }
