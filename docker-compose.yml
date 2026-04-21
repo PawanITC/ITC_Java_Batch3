@@ -43,7 +43,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data   # Add this line!
+      - redis_data:/data
     networks:
       - db-network
 
@@ -96,10 +96,36 @@ services:
     networks:
       - db-network
 
+  jenkins:
+    user: root
+    container_name: funkart-jenkins
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - gradle_cache:/root/.gradle
+    networks:
+      - db-network
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8085:8080"
+    networks:
+      - db-network
+
 networks:
   db-network:
     driver: bridge
 
 volumes:
+  jenkins_home:
+  gradle_cache:
   postgres_data:   
   redis_data:

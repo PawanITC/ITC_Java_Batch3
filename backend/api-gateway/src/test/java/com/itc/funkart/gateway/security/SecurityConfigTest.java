@@ -116,9 +116,9 @@ class SecurityConfigTest {
         @DisplayName("/actuator/health is accessible without a token")
         void actuatorHealth_isPublic() {
             webTestClient.get()
-                    .uri("/actuator/health") // Remove the /api/v1 prefix
+                    .uri("/actuator/health")
                     .exchange()
-                    .expectStatus().isUnauthorized(); // Usually returns 200 UP
+                    .expectStatus().isOk(); 
         }
 
         @Test

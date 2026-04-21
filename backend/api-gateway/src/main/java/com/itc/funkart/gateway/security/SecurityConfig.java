@@ -62,7 +62,7 @@ public class SecurityConfig {
                                 "/api/v1/users/oauth/**",   // For your internal user service oauth paths
                                 "/api/v1/oauth/**",         // For the direct gateway oauth paths
                                 "/api/v1/users/health",
-                                "/actuator/",             // Allow health checks
+                                "/actuator/**",             // Allow health checks
                                 "/payments/webhook/**"
                         ).permitAll()
 
