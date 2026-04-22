@@ -289,16 +289,324 @@
 
 
 
+//
+//
+//
+// pipeline {
+//     agent {
+//         kubernetes {
+// //                     serverUrl "https://81263F8D551849FB85B4609692993956.gr7.eu-west-2.eks.amazonaws.com"
+// //                     credentialsId "eks-sa-token"
+// //                     namespace 'jenkins'
+// //                     skipTlsVerify true
+//             yaml '''
+//                 apiVersion: v1
+//                 kind: Pod
+//                 spec:
+//                   serviceAccountName: jenkins-sa
+//                   containers:
+//                   - name: kaniko
+//                     image: gcr.io/kaniko-project/executor:debug
+//                     command:
+//                       - cat
+//                     tty: true
+//                     volumeMounts:
+//                     - name: kaniko-secret
+//                       mountPath: /kaniko/.docker
+//                   - name: kubectl
+//                     image: bitnami/kubectl:latest
+//                     command:
+//                       - cat
+//                     tty: true
+//                   volumes:
+//                   - name: kaniko-secret
+//                     secret:
+//                       secretName: ecr-registry-secret
+//                       items:
+//                       - key: .dockerconfigjson
+//                         path: config.json
+//             '''
+//         }
+//     }
+//
+//     options {
+//         buildDiscarder(logRotator(numToKeepStr: '10'))
+//         timeout(time: 30, unit: 'MINUTES')
+//     }
+//
+//     parameters {
+//         string(name: 'GIT_BRANCH', defaultValue: 'feature-anjali', description: 'Git branch to build')
+//         string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag')
+//     }
+//
+//     environment {
+//         // AWS ECR Details
+//         AWS_ACCOUNT_ID = '666127452756'
+//         AWS_REGION     = 'eu-west-2'
+//         ECR_REPO_NAME  = 'ecr-java'
+//         ECR_REGISTRY   = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+//         IMAGE_NAME     = "${ECR_REGISTRY}/${ECR_REPO_NAME}"
+//         IMAGE_TAG      = "${params.IMAGE_TAG ?: env.BUILD_NUMBER}"
+//
+//         // Kubernetes
+//         K8S_NAMESPACE   = 'order-service'
+//         K8S_DEPLOYMENT  = 'order-service'
+//         K8S_CLUSTER_NAME = 'tf-java-eks-jn7re'
+//
+//         // GitHub
+//         GITHUB_REPO  = 'https://github.com/PawanITC/ITC_Java_Batch3.git'
+//         SERVICE_PATH = 'backend/order-service'
+//
+//         // Database
+//         DB_HOST = '18.175.222.132'
+//         DB_PORT = '32680'
+//         DB_NAME = 'order-service'
+//         DB_USER = 'postgres'
+//         // DB_PASSWORD stored in Jenkins Secret
+//     }
+//
+//     stages {
+//
+//         // ─────────────────────────────────────────────
+//         stage('🔍 Checkout Code') {
+//         // ─────────────────────────────────────────────
+//             steps {
+//                 script {
+//                     echo "========================================="
+//                     echo "STAGE 1: Checkout Code"
+//                     echo "========================================="
+//                     checkout([
+//                         $class: 'GitSCM',
+//                         branches: [[name: "*/${params.GIT_BRANCH}"]],
+//                         userRemoteConfigs: [[url: "${GITHUB_REPO}"]]
+//                     ])
+//                     echo "✅ Code checked out from ${params.GIT_BRANCH}"
+//
+//                     sh """
+//                         echo "Verifying service files:"
+//                         ls -la ${SERVICE_PATH}/Dockerfile || echo "❌ Dockerfile not found"
+//                         ls -la ${SERVICE_PATH}/pom.xml    || echo "❌ pom.xml not found"
+//                     """
+//                 }
+//             }
+//         }
+//
+//         // ─────────────────────────────────────────────
+//         stage('📊 Build Information') {
+//         // ─────────────────────────────────────────────
+//             steps {
+//                 script {
+//                     echo "========================================="
+//                     echo "STAGE 2: Build Information"
+//                     echo "========================================="
+//                     echo "📦 Docker Image : ${IMAGE_NAME}:${IMAGE_TAG}"
+//                     echo "🏢 AWS Account  : ${AWS_ACCOUNT_ID}"
+//                     echo "🌍 AWS Region   : ${AWS_REGION}"
+//                     echo "☸️  K8S Cluster  : ${K8S_CLUSTER_NAME}"
+//                     echo "🗄️  Database     : ${DB_HOST}:${DB_PORT}"
+//                     echo "🔗 GitHub Repo  : ${GITHUB_REPO}"
+//                     echo "🌿 Branch       : ${params.GIT_BRANCH}"
+//                     echo "========================================="
+//                 }
+//             }
+//         }
+//
+//         // ─────────────────────────────────────────────
+//         stage('🐳 Build & Push Image (Kaniko)') {
+//         // ─────────────────────────────────────────────
+//         // Kaniko does NOT use docker daemon.
+//         // It reads ECR credentials from /kaniko/.docker/config.json
+//         // which is mounted from the ecr-registry-secret Kubernetes secret.
+//         // ─────────────────────────────────────────────
+//             steps {
+//                 script {
+//                     echo "========================================="
+//                     echo "STAGE 3: Build & Push with Kaniko"
+//                     echo "========================================="
+//                     container('kaniko') {
+//                         sh """
+//                             echo "Building and pushing image to ECR..."
+//                             /kaniko/executor \
+//                                 --context=${WORKSPACE}/${SERVICE_PATH} \
+//                                 --dockerfile=${WORKSPACE}/${SERVICE_PATH}/Dockerfile \
+//                                 --destination=${IMAGE_NAME}:${IMAGE_TAG} \
+//                                 --destination=${IMAGE_NAME}:latest \
+//                                 --cache=true \
+//                                 --cache-repo=${IMAGE_NAME}/cache \
+//                                 --verbosity=info
+//                             echo "✅ Image built and pushed to ECR successfully"
+//                         """
+//                     }
+//                 }
+//             }
+//         }
+//
+//         // ─────────────────────────────────────────────
+//         stage('📤 Verify ECR Push') {
+//         // ─────────────────────────────────────────────
+//             steps {
+//                 script {
+//                     echo "========================================="
+//                     echo "STAGE 4: Verify ECR Push"
+//                     echo "========================================="
+//                     container('kubectl') {
+//                         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+//                             sh """
+//                                 echo "Verifying image in ECR..."
+//                                 aws ecr describe-images \
+//                                     --repository-name ${ECR_REPO_NAME} \
+//                                     --region ${AWS_REGION} \
+//                                     --query 'imageDetails[0:5].[imageTags,imagePushedAt]' \
+//                                     --output table
+//                                 echo "✅ Image verified in ECR"
+//                             """
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//
+//         // ─────────────────────────────────────────────
+//         stage('☸️  Update K8S Deployment') {
+//         // ─────────────────────────────────────────────
+//             steps {
+//                 script {
+//                     echo "========================================="
+//                     echo "STAGE 5: Update Kubernetes Deployment"
+//                     echo "========================================="
+//                     container('kubectl') {
+//                         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+//                             sh """
+//                                 echo "Configuring kubectl for EKS..."
+//                                 aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
+//
+//                                 echo "Current deployment image:"
+//                                 kubectl get deployment ${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE} \
+//                                     -o jsonpath='{.spec.template.spec.containers[0].image}'
+//                                 echo ""
+//
+//                                 echo "Updating deployment with new image: ${IMAGE_NAME}:${IMAGE_TAG}"
+//                                 kubectl set image deployment/${K8S_DEPLOYMENT} \
+//                                     ${K8S_DEPLOYMENT}=${IMAGE_NAME}:${IMAGE_TAG} \
+//                                     -n ${K8S_NAMESPACE}
+//
+//                                 echo "Waiting for rollout to complete (timeout: 5m)..."
+//                                 kubectl rollout status deployment/${K8S_DEPLOYMENT} \
+//                                     -n ${K8S_NAMESPACE} --timeout=5m
+//
+//                                 echo "✅ Deployment updated successfully"
+//                             """
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//
+//         // ─────────────────────────────────────────────
+//         stage('✅ Verify Deployment') {
+//         // ─────────────────────────────────────────────
+//             steps {
+//                 script {
+//                     echo "========================================="
+//                     echo "STAGE 6: Verify Deployment"
+//                     echo "========================================="
+//                     container('kubectl') {
+//                         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+//                             sh """
+//                                 aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
+//
+//                                 echo "Pod Status:"
+//                                 kubectl get pods -n ${K8S_NAMESPACE} -l app=order-service -o wide
+//                                 echo ""
+//
+//                                 echo "Service Status:"
+//                                 kubectl get svc order-service -n ${K8S_NAMESPACE} -o wide
+//                                 echo ""
+//
+//                                 echo "Deployment Status:"
+//                                 kubectl get deployment order-service -n ${K8S_NAMESPACE} -o wide
+//                                 echo ""
+//
+//                                 echo "Recent Pod Logs (last 30 lines):"
+//                                 kubectl logs -n ${K8S_NAMESPACE} -l app=order-service --tail=30 || echo "⚠️  Logs not available yet"
+//
+//                                 echo "✅ Deployment verified"
+//                             """
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//
+//         // ─────────────────────────────────────────────
+//         stage('📊 Health Check') {
+//         // ─────────────────────────────────────────────
+//             steps {
+//                 script {
+//                     echo "========================================="
+//                     echo "STAGE 7: Health Check"
+//                     echo "========================================="
+//                     container('kubectl') {
+//                         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+//                             sh """
+//                                 aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
+//
+//                                 echo "Getting Service External IP/DNS..."
+//                                 SERVICE_IP=\$(kubectl get svc order-service -n ${K8S_NAMESPACE} \
+//                                     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+//                                 echo "Service DNS: \$SERVICE_IP"
+//
+//                                 if [ -z "\$SERVICE_IP" ]; then
+//                                     echo "⚠️  External IP not assigned yet — may take a few minutes"
+//                                 else
+//                                     echo "Attempting health check on http://\$SERVICE_IP/health ..."
+//                                     curl -f --max-time 10 http://\$SERVICE_IP/health \
+//                                         || echo "⚠️  Health endpoint not ready yet"
+//                                 fi
+//
+//                                 echo "✅ Health check stage completed"
+//                             """
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//
+//     // ─────────────────────────────────────────────
+//     post {
+//     // ─────────────────────────────────────────────
+//         success {
+//             echo "=========================================="
+//             echo "✅ PIPELINE SUCCESS"
+//             echo "=========================================="
+//             echo "Image    : ${IMAGE_NAME}:${IMAGE_TAG}"
+//             echo "Deployed : ${K8S_NAMESPACE}/${K8S_DEPLOYMENT}"
+//             echo "Region   : ${AWS_REGION}"
+//             echo "Branch   : ${params.GIT_BRANCH}"
+//             echo "=========================================="
+//         }
+//         failure {
+//             echo "=========================================="
+//             echo "❌ PIPELINE FAILED"
+//             echo "=========================================="
+//             echo "Stage       : ${env.STAGE_NAME}"
+//             echo "Build Number: ${env.BUILD_NUMBER}"
+//             echo "Check logs above for details"
+//             echo "=========================================="
+//         }
+//         always {
+//             echo "Build Duration: ${currentBuild.durationString}"
+//         }
+//     }
+// }
+
 
 
 
 pipeline {
     agent {
         kubernetes {
-//                     serverUrl "https://81263F8D551849FB85B4609692993956.gr7.eu-west-2.eks.amazonaws.com"
-//                     credentialsId "eks-sa-token"
-//                     namespace 'jenkins'
-//                     skipTlsVerify true
             yaml '''
                 apiVersion: v1
                 kind: Pod
@@ -306,26 +614,42 @@ pipeline {
                   serviceAccountName: jenkins-sa
                   containers:
                   - name: kaniko
-                    image: gcr.io/kaniko-project/executor:debug
+                    image: gcr.io/kaniko-project/executor:latest
                     command:
-                      - cat
+                    - cat
                     tty: true
-                    volumeMounts:
-                    - name: kaniko-secret
-                      mountPath: /kaniko/.docker
+                    resources:
+                      requests:
+                        cpu: 100m
+                        memory: 256Mi
+                      limits:
+                        cpu: 500m
+                        memory: 1Gi
                   - name: kubectl
                     image: bitnami/kubectl:latest
                     command:
-                      - cat
+                    - cat
                     tty: true
-                  volumes:
-                  - name: kaniko-secret
-                    secret:
-                      secretName: ecr-registry-secret
-                      items:
-                      - key: .dockerconfigjson
-                        path: config.json
+                    resources:
+                      requests:
+                        cpu: 50m
+                        memory: 128Mi
+                      limits:
+                        cpu: 200m
+                        memory: 512Mi
+                  - name: jnlp
+                    resources:
+                      requests:
+                        cpu: 50m
+                        memory: 128Mi
+                      limits:
+                        cpu: 200m
+                        memory: 512Mi
             '''
+            serverUrl: "https://81263F8D551849FB85B4609692993956.gr7.eu-west-2.eks.amazonaws.com"
+            credentialsId: "kubeconfig-credentials"
+            namespace: "jenkins"
+            skipTlsVerify: true
         }
     }
 
@@ -342,34 +666,31 @@ pipeline {
     environment {
         // AWS ECR Details
         AWS_ACCOUNT_ID = '666127452756'
-        AWS_REGION     = 'eu-west-2'
-        ECR_REPO_NAME  = 'ecr-java'
-        ECR_REGISTRY   = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-        IMAGE_NAME     = "${ECR_REGISTRY}/${ECR_REPO_NAME}"
-        IMAGE_TAG      = "${params.IMAGE_TAG ?: env.BUILD_NUMBER}"
+        AWS_REGION = 'eu-west-2'
+        ECR_REPO_NAME = 'ecr-java'
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        IMAGE_NAME = "${ECR_REGISTRY}/${ECR_REPO_NAME}"
+        IMAGE_TAG = "${params.IMAGE_TAG ?: env.BUILD_NUMBER}"
 
         // Kubernetes
-        K8S_NAMESPACE   = 'order-service'
-        K8S_DEPLOYMENT  = 'order-service'
+        K8S_NAMESPACE = 'order-service'
+        K8S_DEPLOYMENT = 'order-service'
         K8S_CLUSTER_NAME = 'tf-java-eks-jn7re'
 
         // GitHub
-        GITHUB_REPO  = 'https://github.com/PawanITC/ITC_Java_Batch3.git'
+        GITHUB_REPO = 'https://github.com/PawanITC/ITC_Java_Batch3.git'
         SERVICE_PATH = 'backend/order-service'
 
-        // Database
+        // Database Details
         DB_HOST = '18.175.222.132'
         DB_PORT = '32680'
         DB_NAME = 'order-service'
         DB_USER = 'postgres'
-        // DB_PASSWORD stored in Jenkins Secret
+        // DB_PASSWORD = stored in Jenkins Secret
     }
 
     stages {
-
-        // ─────────────────────────────────────────────
         stage('🔍 Checkout Code') {
-        // ─────────────────────────────────────────────
             steps {
                 script {
                     echo "========================================="
@@ -381,77 +702,91 @@ pipeline {
                         userRemoteConfigs: [[url: "${GITHUB_REPO}"]]
                     ])
                     echo "✅ Code checked out from ${params.GIT_BRANCH}"
+                    echo "📂 Service path: ${SERVICE_PATH}"
 
-                    sh """
-                        echo "Verifying service files:"
+                    // Verify files
+                    sh '''
+                        echo "Verifying files in ${SERVICE_PATH}:"
                         ls -la ${SERVICE_PATH}/Dockerfile || echo "❌ Dockerfile not found"
-                        ls -la ${SERVICE_PATH}/pom.xml    || echo "❌ pom.xml not found"
-                    """
+                        ls -la ${SERVICE_PATH}/pom.xml || echo "❌ pom.xml not found"
+                    '''
                 }
             }
         }
 
-        // ─────────────────────────────────────────────
         stage('📊 Build Information') {
-        // ─────────────────────────────────────────────
             steps {
                 script {
                     echo "========================================="
                     echo "STAGE 2: Build Information"
                     echo "========================================="
-                    echo "📦 Docker Image : ${IMAGE_NAME}:${IMAGE_TAG}"
-                    echo "🏢 AWS Account  : ${AWS_ACCOUNT_ID}"
-                    echo "🌍 AWS Region   : ${AWS_REGION}"
-                    echo "☸️  K8S Cluster  : ${K8S_CLUSTER_NAME}"
-                    echo "🗄️  Database     : ${DB_HOST}:${DB_PORT}"
-                    echo "🔗 GitHub Repo  : ${GITHUB_REPO}"
-                    echo "🌿 Branch       : ${params.GIT_BRANCH}"
+                    echo "📦 Docker Image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "🏢 AWS Account: ${AWS_ACCOUNT_ID}"
+                    echo "🌍 AWS Region: ${AWS_REGION}"
+                    echo "☸️  K8S Cluster: ${K8S_CLUSTER_NAME}"
+                    echo "🗄️  Database: ${DB_HOST}:${DB_PORT}"
+                    echo "🔗 GitHub Repo: ${GITHUB_REPO}"
+                    echo "🌿 Branch: ${params.GIT_BRANCH}"
                     echo "========================================="
                 }
             }
         }
 
-        // ─────────────────────────────────────────────
-        stage('🐳 Build & Push Image (Kaniko)') {
-        // ─────────────────────────────────────────────
-        // Kaniko does NOT use docker daemon.
-        // It reads ECR credentials from /kaniko/.docker/config.json
-        // which is mounted from the ecr-registry-secret Kubernetes secret.
-        // ─────────────────────────────────────────────
+        stage('🔐 AWS Authentication') {
             steps {
                 script {
                     echo "========================================="
-                    echo "STAGE 3: Build & Push with Kaniko"
+                    echo "STAGE 3: AWS Authentication"
                     echo "========================================="
                     container('kaniko') {
-                        sh """
-                            echo "Building and pushing image to ECR..."
-                            /kaniko/executor \
-                                --context=${WORKSPACE}/${SERVICE_PATH} \
-                                --dockerfile=${WORKSPACE}/${SERVICE_PATH}/Dockerfile \
-                                --destination=${IMAGE_NAME}:${IMAGE_TAG} \
-                                --destination=${IMAGE_NAME}:latest \
-                                --cache=true \
-                                --cache-repo=${IMAGE_NAME}/cache \
-                                --verbosity=info
-                            echo "✅ Image built and pushed to ECR successfully"
-                        """
+                        withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                            sh '''
+                                echo "Authenticating with AWS ECR..."
+                                aws ecr get-login-password --region ${AWS_REGION} | \
+                                docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                                echo "✅ AWS ECR authenticated successfully"
+                            '''
+                        }
                     }
                 }
             }
         }
 
-        // ─────────────────────────────────────────────
-        stage('📤 Verify ECR Push') {
-        // ─────────────────────────────────────────────
+        stage('🐳 Build Docker Image (Kaniko)') {
             steps {
                 script {
                     echo "========================================="
-                    echo "STAGE 4: Verify ECR Push"
+                    echo "STAGE 4: Build Docker Image with Kaniko"
                     echo "========================================="
-                    container('kubectl') {
+                    container('kaniko') {
+                        sh '''
+                            echo "Building Docker image..."
+                            cd ${SERVICE_PATH}
+
+                            /kaniko/executor \
+                                --context=. \
+                                --dockerfile=Dockerfile \
+                                --destination=${IMAGE_NAME}:${IMAGE_TAG} \
+                                --destination=${IMAGE_NAME}:latest \
+                                --cache=true \
+                                --cache-repo=${IMAGE_NAME}/cache
+
+                            echo "✅ Docker image built and pushed to ECR"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('📤 Verify ECR Push') {
+            steps {
+                script {
+                    echo "========================================="
+                    echo "STAGE 5: Verify ECR Push"
+                    echo "========================================="
+                    container('kaniko') {
                         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                            sh """
+                            sh '''
                                 echo "Verifying image in ECR..."
                                 aws ecr describe-images \
                                     --repository-name ${ECR_REPO_NAME} \
@@ -459,60 +794,59 @@ pipeline {
                                     --query 'imageDetails[0:5].[imageTags,imagePushedAt]' \
                                     --output table
                                 echo "✅ Image verified in ECR"
-                            """
+                            '''
                         }
                     }
                 }
             }
         }
 
-        // ─────────────────────────────────────────────
         stage('☸️  Update K8S Deployment') {
-        // ─────────────────────────────────────────────
             steps {
                 script {
                     echo "========================================="
-                    echo "STAGE 5: Update Kubernetes Deployment"
+                    echo "STAGE 6: Update Kubernetes Deployment"
                     echo "========================================="
                     container('kubectl') {
                         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                            sh """
-                                echo "Configuring kubectl for EKS..."
+                            sh '''
+                                # Configure kubectl
+                                echo "Configuring kubectl..."
                                 aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
 
+                                # Check current deployment
                                 echo "Current deployment image:"
-                                kubectl get deployment ${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE} \
-                                    -o jsonpath='{.spec.template.spec.containers[0].image}'
+                                kubectl get deployment ${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE} -o jsonpath='{.spec.template.spec.containers[0].image}'
+                                echo ""
                                 echo ""
 
+                                # Update image
                                 echo "Updating deployment with new image: ${IMAGE_NAME}:${IMAGE_TAG}"
                                 kubectl set image deployment/${K8S_DEPLOYMENT} \
                                     ${K8S_DEPLOYMENT}=${IMAGE_NAME}:${IMAGE_TAG} \
                                     -n ${K8S_NAMESPACE}
 
+                                # Wait for rollout
                                 echo "Waiting for rollout to complete (timeout: 5m)..."
-                                kubectl rollout status deployment/${K8S_DEPLOYMENT} \
-                                    -n ${K8S_NAMESPACE} --timeout=5m
+                                kubectl rollout status deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE} --timeout=5m
 
                                 echo "✅ Deployment updated successfully"
-                            """
+                            '''
                         }
                     }
                 }
             }
         }
 
-        // ─────────────────────────────────────────────
         stage('✅ Verify Deployment') {
-        // ─────────────────────────────────────────────
             steps {
                 script {
                     echo "========================================="
-                    echo "STAGE 6: Verify Deployment"
+                    echo "STAGE 7: Verify Deployment"
                     echo "========================================="
                     container('kubectl') {
                         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                            sh """
+                            sh '''
                                 aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
 
                                 echo "Pod Status:"
@@ -528,44 +862,43 @@ pipeline {
                                 echo ""
 
                                 echo "Recent Pod Logs (last 30 lines):"
-                                kubectl logs -n ${K8S_NAMESPACE} -l app=order-service --tail=30 || echo "⚠️  Logs not available yet"
+                                kubectl logs -n ${K8S_NAMESPACE} -l app=order-service --tail=30 || echo "Logs not available yet"
 
+                                echo ""
                                 echo "✅ Deployment verified"
-                            """
+                            '''
                         }
                     }
                 }
             }
         }
 
-        // ─────────────────────────────────────────────
         stage('📊 Health Check') {
-        // ─────────────────────────────────────────────
             steps {
                 script {
                     echo "========================================="
-                    echo "STAGE 7: Health Check"
+                    echo "STAGE 8: Health Check"
                     echo "========================================="
                     container('kubectl') {
                         withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                            sh """
+                            sh '''
                                 aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
 
                                 echo "Getting Service External IP/DNS..."
-                                SERVICE_IP=\$(kubectl get svc order-service -n ${K8S_NAMESPACE} \
-                                    -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-                                echo "Service DNS: \$SERVICE_IP"
+                                SERVICE_IP=$(kubectl get svc order-service -n ${K8S_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+                                echo "Service IP/DNS: $SERVICE_IP"
+                                echo ""
 
-                                if [ -z "\$SERVICE_IP" ]; then
-                                    echo "⚠️  External IP not assigned yet — may take a few minutes"
+                                if [ -z "$SERVICE_IP" ]; then
+                                    echo "⚠️  External IP not assigned yet (might take a moment)"
                                 else
-                                    echo "Attempting health check on http://\$SERVICE_IP/health ..."
-                                    curl -f --max-time 10 http://\$SERVICE_IP/health \
-                                        || echo "⚠️  Health endpoint not ready yet"
+                                    echo "Attempting health check..."
+                                    curl -f http://$SERVICE_IP/health || echo "⚠️  Health check endpoint not ready yet"
                                 fi
 
-                                echo "✅ Health check stage completed"
-                            """
+                                echo ""
+                                echo "✅ Health check completed"
+                            '''
                         }
                     }
                 }
@@ -573,30 +906,36 @@ pipeline {
         }
     }
 
-    // ─────────────────────────────────────────────
     post {
-    // ─────────────────────────────────────────────
         success {
-            echo "=========================================="
-            echo "✅ PIPELINE SUCCESS"
-            echo "=========================================="
-            echo "Image    : ${IMAGE_NAME}:${IMAGE_TAG}"
-            echo "Deployed : ${K8S_NAMESPACE}/${K8S_DEPLOYMENT}"
-            echo "Region   : ${AWS_REGION}"
-            echo "Branch   : ${params.GIT_BRANCH}"
-            echo "=========================================="
+            script {
+                echo "=========================================="
+                echo "✅ PIPELINE SUCCESS"
+                echo "=========================================="
+                echo "Docker Image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                echo "Deployed to: ${K8S_NAMESPACE}/${K8S_DEPLOYMENT}"
+                echo "Region: ${AWS_REGION}"
+                echo "Repository: ${GITHUB_REPO}"
+                echo "Branch: ${params.GIT_BRANCH}"
+                echo "Database: ${DB_HOST}:${DB_PORT}"
+                echo "=========================================="
+            }
         }
         failure {
-            echo "=========================================="
-            echo "❌ PIPELINE FAILED"
-            echo "=========================================="
-            echo "Stage       : ${env.STAGE_NAME}"
-            echo "Build Number: ${env.BUILD_NUMBER}"
-            echo "Check logs above for details"
-            echo "=========================================="
+            script {
+                echo "=========================================="
+                echo "❌ PIPELINE FAILED"
+                echo "=========================================="
+                echo "Stage: ${env.STAGE_NAME}"
+                echo "Build Number: ${env.BUILD_NUMBER}"
+                echo "Check logs above for details"
+                echo "=========================================="
+            }
         }
         always {
-            echo "Build Duration: ${currentBuild.durationString}"
+            script {
+                echo "Build Duration: ${currentBuild.durationString}"
+            }
         }
     }
 }
