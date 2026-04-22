@@ -6,14 +6,15 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USER = 'abbasgureitc'
-        IMAGE_NAME = 'user-service'
-        REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
-        SNYK_TOKEN = credentials('snyk-token')
-        dockerImage = ''
+        DOCKER_HUB_USER          = 'abbasgureitc'
+        IMAGE_NAME               = 'user-service'
+        REGISTRY_CREDENTIALS_ID  = 'docker-hub-credentials'
+        SNYK_TOKEN               = credentials('snyk-token')
+        dockerImage              = ''
     }
 
     stages {
+
         stage('Check Environment') {
             steps {
                 sh 'java -version'
@@ -21,34 +22,17 @@ pipeline {
             }
         }
 
+
         stage('Build & Test') {
             steps {
                 dir('backend/user-service') {
                     script {
-                        def jdkPath = tool name: 'jdk17', type: 'jdk'
-                        withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
-                            sh 'chmod +x gradlew'
-                            // Added --no-daemon to prevent Jenkins workspace locking
-                            sh "./gradlew clean build jacocoTestReport --no-daemon -Dorg.gradle.java.home=${jdkPath}"
-                        }
+                        sh "chmod +x gradlew"
+                        sh "./gradlew clean build jacocoTestReport \
+                                -Dspring.profiles.active=test \
+                                --no-daemon --refresh-dependencies --stacktrace"
                     }
                 }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                // Modern replacement for the deprecated Jacoco plugin
-                jacoco(
-                    execPattern: '**/build/jacoco/*.exec',
-                    classPattern: '**/build/classes/java/main',
-                    sourcePattern: '**/src/main/java',
-                    inclusionPattern: '**/*.class',
-                    // Jacoco plugin uses these for the health report (Quality Gates)
-                    minimumLineCoverage: '70',
-                    maximumLineCoverage: '80',
-                    buildOverBuild: true
-                )
             }
         }
 
@@ -58,10 +42,28 @@ pipeline {
                     script {
                         sh 'chmod +x gradlew'
                         sh "snyk auth ${SNYK_TOKEN}"
-                        // Now that we've aligned Jackson, Snyk should be much happier!
-                        sh 'snyk test --severity-threshold=high || echo "Snyk found high-severity vulnerabilities"'
+
+                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                            sh 'snyk test --severity-threshold=critical --fail-on=all'
+                        }
+
+                        sh 'snyk monitor'
                     }
                 }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                jacoco(
+                    execPattern: '**/build/jacoco/*.exec',
+                    classPattern: '**/build/classes/java/main',
+                    sourcePattern: '**/src/main/java',
+                    inclusionPattern: '**/*.class',
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '80',
+                    buildOverBuild: false,
+                )
             }
         }
 
@@ -70,8 +72,8 @@ pipeline {
                 dir('backend/user-service') {
                     script {
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                        // Ensure your Dockerfile is actually inside backend/user-service/
-                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
+                        dockerImage = docker.build(
+                            "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
             }
@@ -91,9 +93,7 @@ pipeline {
 
     post {
         success { echo "SUCCESS: ${IMAGE_NAME} is live on Docker Hub." }
-        failure { echo "FAILURE: Build failed. Check Jacoco reports or Snyk logs." }
-        always {
-            cleanWs()
-        }
+        failure { echo "FAILURE: Check Jacoco reports, test output, or Snyk logs." }
+        always  { cleanWs() }
     }
 }

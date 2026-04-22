@@ -22,76 +22,60 @@ repositories {
     mavenCentral()
 }
 
-// Move the version rules here - this is much more stable than the constraints block
 dependencyManagement {
-    dependencies {
-        // 1. Jackson Suite - 2.18.2 (Stable & Patched Version)
-        dependency 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
-        dependency 'com.fasterxml.jackson.core:jackson-core:2.18.2'
-        dependency 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
-        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.18.2'
-        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2'
-        dependency 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.18.2'
-
-        // 2. Netty & Reactor (Keep these as they were)
-        dependency 'io.netty:netty-codec-http:4.1.132.Final'
-        dependency 'io.netty:netty-codec-http2:4.1.132.Final'
-        dependency 'io.netty:netty-handler-proxy:4.1.132.Final'
-        dependency 'io.projectreactor.netty:reactor-netty-http:1.3.3'
-
-        // 3. Tomcat (Keep these as they were)
-        dependency 'org.apache.tomcat.embed:tomcat-embed-core:10.1.53'
-        dependency 'org.apache.tomcat.embed:tomcat-embed-websocket:10.1.53'
-        dependency 'org.apache.tomcat.embed:tomcat-embed-el:10.1.53'
-
-        // 4. Test Vulnerabilities
-        dependency 'net.minidev:json-smart:2.5.2'
+    imports {
+        mavenBom "org.springframework.boot:spring-boot-dependencies:3.5.12"
     }
 }
 
 dependencies {
-    // --- Core Framework & Web ---
+
+    // =====================
+    // Core Framework
+    // =====================
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    // --- Persistence & Database ---
+    // =====================
+    // Persistence
+    // =====================
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.postgresql:postgresql:42.7.7'
     runtimeOnly 'com.h2database:h2'
 
-    // --- Security & Identity ---
+    // =====================
+    // Security
+    // =====================
     implementation 'org.springframework.boot:spring-boot-starter-security'
+
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // --- Messaging ---
+    // =====================
+    // Messaging
+    // =====================
     implementation 'org.springframework.kafka:spring-kafka:3.3.2'
 
-    // --- Logic Generation (Lombok) ---
+    // =====================
+    // Lombok
+    // =====================
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
     testCompileOnly 'org.projectlombok:lombok:1.18.34'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
 
-    // --- Testing ---
+    // =====================
+    // Testing
+    // =====================
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.11.0'
     testImplementation 'com.h2database:h2'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-configurations.configureEach {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        if (details.requested.group == 'com.fasterxml.jackson.core' || details.requested.group == 'com.fasterxml.jackson.datatype' || details.requested.group == 'com.fasterxml.jackson.module') {
-            details.useVersion '2.18.2'
-            details.because 'Fixes Jackson version fragmentation causing NoClassDefFoundError'
-        }
-    }
 }
 
 jacocoTestReport {

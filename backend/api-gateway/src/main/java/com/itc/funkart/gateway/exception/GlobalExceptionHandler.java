@@ -7,58 +7,140 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+/**
+ * <h2>Global Exception Handler</h2>
+ * <p>
+ * Centralized error handling for the API Gateway. Ensures that all exceptions,
+ * whether originating in the Gateway or propagated from downstream microservices,
+ * are returned in the unified {@link ApiResponse} format.
+ * </p>
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    private ResponseEntity<ApiResponse<Void>> buildErrorResponse(HttpStatus status, String message, String field, Exception ex) {
-        // Log stack trace only for 500 errors
+    /**
+     * Internal helper to build consistent error envelopes.
+     *
+     * @param status  The HTTP status to return.
+     * @param message Human-readable error message.
+     * @param field   The specific request field that failed (optional).
+     * @param ex      The caught exception for logging.
+     * @return A formatted ResponseEntity containing the ApiResponse.
+     */
+    private ResponseEntity<ApiResponse<Void>> buildErrorResponse(
+            HttpStatus status,
+            String code,
+            String message,
+            String field,
+            Exception ex
+    ) {
         if (status.is5xxServerError()) {
-            log.error("Internal Server Error: ", ex);
+            log.error("Gateway Internal Error", ex);
         } else {
-            log.warn("{}: {}", status.value(), message);
+            log.warn("Request rejected [{}]: {}", status.value(), message);
         }
 
-        ErrorDetails errorDetails = new ErrorDetails(status.name(), message, field);
-        return ResponseEntity.status(status).body(new ApiResponse<>(errorDetails));
+        ErrorDetails error = new ErrorDetails(code, message, field);
+        return ResponseEntity.status(status).body(new ApiResponse<>(error));
     }
 
     /**
-     * Handles validation errors in Reactive WebFlux (WebExchangeBindException).
+     * Handles validation errors (e.g., @Valid or @Validated failures).
      */
     @ExceptionHandler(WebExchangeBindException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidation(WebExchangeBindException ex) {
+
         var fieldError = ex.getBindingResult().getFieldError();
+
         String field = (fieldError != null) ? fieldError.getField() : "unknown";
         String message = (fieldError != null) ? fieldError.getDefaultMessage() : "Validation failed";
 
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, message, field, ex);
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_ERROR",
+                message,
+                field,
+                ex
+        );
     }
 
+    /**
+     * Handles security and JWT-specific failures.
+     */
     @ExceptionHandler(OAuthException.class)
     public ResponseEntity<ApiResponse<Void>> handleOAuth(OAuthException ex) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null, ex);
+        return buildErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                "OAUTH_ERROR",
+                ex.getMessage(),
+                null,
+                ex
+        );
     }
 
+    /**
+     * Propagates errors from downstream services (User, Payment, Order) back to the client.
+     * Captures the status code from the microservice but maintains the Gateway's response format.
+     */
     @ExceptionHandler(WebClientResponseException.class)
     public ResponseEntity<ApiResponse<Void>> handleWebClientError(WebClientResponseException ex) {
-        return ResponseEntity.status(ex.getStatusCode())
-                .body(new ApiResponse<>(null, ex.getResponseBodyAsString()));
+
+        log.warn("Downstream Service failure: {} - {}", ex.getStatusCode(), ex.getStatusText());
+
+        String responseBody = ex.getResponseBodyAsString();
+
+        return buildErrorResponse(
+                HttpStatus.valueOf(ex.getStatusCode().value()),
+                "DOWNSTREAM_ERROR_" + ex.getStatusCode().value(),
+                responseBody,
+                null,
+                ex
+        );
     }
 
+    /**
+     * Handles Spring Security access denials (403).
+     */
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(Exception ex) {
-        return buildErrorResponse(HttpStatus.FORBIDDEN, "Access denied", null, ex);
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+        return buildErrorResponse(
+                HttpStatus.FORBIDDEN,
+                "ACCESS_DENIED",
+                "Access denied: Insufficient permissions",
+                null,
+                ex
+        );
     }
 
+    /**
+     * Catch-all handler for any unhandled runtime exceptions (500).
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", null, ex);
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "INTERNAL_ERROR",
+                "An unexpected system error occurred",
+                null,
+                ex
+        );
+    }
+
+    @ExceptionHandler(JwtAuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJwtAuthenticationException(JwtAuthenticationException ex) {
+        return buildErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                "AUTH_ERROR", // This is the code the test should check for
+                ex.getMessage(),
+                null,
+                ex
+        );
     }
 }

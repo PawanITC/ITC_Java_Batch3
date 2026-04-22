@@ -1,153 +1,226 @@
 package com.itc.funkart.gateway.controller;
 
+import com.itc.funkart.gateway.dto.UserDto;
 import com.itc.funkart.gateway.dto.request.LoginRequest;
 import com.itc.funkart.gateway.dto.request.SignupRequest;
-import com.itc.funkart.gateway.security.CookieUtil;
-import com.itc.funkart.gateway.security.JwtTokenValidator;
-import com.itc.funkart.gateway.service.GithubOAuthService;
+import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
+import com.itc.funkart.gateway.exception.OAuthException;
+import com.itc.funkart.gateway.response.ApiResponse;
+import com.itc.funkart.gateway.security.JwtAuthWebFilter;
+import com.itc.funkart.gateway.service.UserGatewayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilterChain;
+import reactor.core.publisher.Mono;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Integration tests for {@link UserController} using WireMock to simulate downstream microservices.
- * <p>
- * This suite validates the full reactive flow of the Gateway's local endpoints, ensuring that
- * incoming requests are correctly processed, forwarded to the User Service, and that
- * resulting JWTs are stored as secure cookies.
- * </p>
- * * @see UserController
+ * <h2>UserController — Web Layer Tests</h2>
+ *
+ * <p>Verifies HTTP routing and response shaping for {@link UserController}.
+ * The controller is intentionally thin — it delegates everything to
+ * {@link UserGatewayService}, which is mocked here.
+ *
+ * <p><b>Endpoints under test:</b>
+ * <ul>
+ *   <li>{@code POST /users/login}  — credential-based login</li>
+ *   <li>{@code POST /users/signup} — new account creation</li>
+ * </ul>
+ *
+ * <p>Cookie handling is the responsibility of the service layer and is
+ * verified through service interaction assertions, not response header inspection.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWebTestClient
-@AutoConfigureWireMock(port = 0)
+@WebFluxTest(controllers = UserController.class)
 @ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class UserControllerTest {
+class UserControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockitoBean
-    private GithubOAuthService githubOAuthService;
-
     /**
-     * Mocked utility to verify cookie placement without affecting actual browser state.
-     * Updated to {@link MockitoBean} for Spring Boot 3.5.x compatibility.
+     * Service is mocked so we control what the "downstream" returns.
      */
     @MockitoBean
-    private CookieUtil cookieUtil;
+    private UserGatewayService userGatewayService;
 
     /**
-     * Mocked validator to satisfy dependency requirements for the Gateway's security filters
-     * during the integration test context startup.
+     * Required by the security auto-config; passes all requests through transparently.
      */
     @MockitoBean
-    private JwtTokenValidator jwtTokenValidator;
+    private JwtAuthWebFilter jwtAuthWebFilter;
 
     @BeforeEach
     void setUp() {
-        reset(cookieUtil, jwtTokenValidator, githubOAuthService);
+        // Robust stubbing to prevent the NPE occuring
+        lenient().when(jwtAuthWebFilter.filter(any(), any())).thenAnswer(inv -> {
+            ServerWebExchange exchange = inv.getArgument(0);
+            WebFilterChain chain = inv.getArgument(1);
+            return (chain != null) ? chain.filter(exchange) : Mono.empty();
+        });
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Shared helpers
+    // -------------------------------------------------------------------------
+
+    private ApiResponse<SuccessfulLoginResponse> successfulResponse(String name, String email, String token) {
+        UserDto user = new UserDto(1L, name, email, "ROLE_USER");
+        SuccessfulLoginResponse body = new SuccessfulLoginResponse(user, token);
+        return new ApiResponse<>(body, "Success");
     }
 
     /**
-     * Reusable JSON response fragment representing a successful identity token
-     * returned by the downstream User Service.
+     * Minimal Security Config for this test slice.
+     * Prevents the real SecurityConfig from loading and demanding real dependencies.
      */
-    private final String SUCCESS_JSON = """
-    { 
-        "data": { 
-            "token": "fake-jwt-token",
-            "user": { "id": 1, "name": "Test User", "email": "test@example.com", "role": "ROLE_USER" }
-        } 
-    }
-    """;
-
-    /**
-     * Tests the login flow.
-     * <p>
-     * Verifies that:
-     * 1. The Gateway sends a request to {@code /api/v1/users/login} on the downstream service.
-     * 2. The {@link CookieUtil} is invoked to set the JWT cookie upon a successful response.
-     * 3. The Gateway returns a 200 OK status to the frontend.
-     * </p>
-     */
-    @Test
-    @DisplayName("Login: Success sets cookie and returns 200")
-    void login_Success() {
-        // Stub the downstream User Service (WireMock)
-        stubFor(post(urlEqualTo("/api/v1/users/login"))
-                .willReturn(okJson(SUCCESS_JSON)));
-
-        webTestClient.post()
-                .uri("/api/v1/users/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new LoginRequest("test@example.com", "password"))
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.data.token").isEqualTo("fake-jwt-token");
-
-        verify(cookieUtil).addTokenCookie(any(), eq("fake-jwt-token"), any());
+    @TestConfiguration
+    static class TestSecurity {
+        @Bean
+        public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+            return http
+                    .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                    .authorizeExchange(ex -> ex.anyExchange().permitAll())
+                    .build();
+        }
     }
 
-    @Test
-    @DisplayName("Login: Downstream 401 Unauthorized should propagate")
-    void login_DownstreamError() {
-        // Stub WireMock to return an error
-        stubFor(post(urlEqualTo("/api/v1/users/login"))
-                .willReturn(aResponse()
-                        .withStatus(401)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{\"message\": \"Invalid credentials\"}")));
+    // -------------------------------------------------------------------------
+    // POST /api/v1/users/login
+    // -------------------------------------------------------------------------
 
-        webTestClient.post()
-                .uri("/api/v1/users/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new LoginRequest("wrong@email.com", "wrong-pass"))
-                .exchange()
-                .expectStatus().isUnauthorized(); // Validates error propagation
+    @Nested
+    @DisplayName("POST /api/v1/users/login")
+    class LoginTests {
 
-        // Verify cookie was NEVER added because doOnNext shouldn't fire
-        verify(cookieUtil, times(0)).addTokenCookie(any(), any(), any());
+        @Test
+        @DisplayName("Returns 200 OK with user data on successful login")
+        void login_returns200() {
+            when(userGatewayService.login(any(), any()))
+                    .thenReturn(Mono.just(successfulResponse("Alice", "alice@example.com", "jwt")));
+
+            webTestClient.post()
+                    .uri("/api/v1/users/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(new LoginRequest("alice@example.com", "password123"))
+                    .exchange()
+                    .expectStatus().isOk();
+        }
+
+        @Test
+        @DisplayName("Response body contains user name and token")
+        void login_verifiesResponseBody() {
+            when(userGatewayService.login(any(), any()))
+                    .thenReturn(Mono.just(successfulResponse("Alice", "alice@example.com", "my-jwt-token")));
+
+            webTestClient.post()
+                    .uri("/api/v1/users/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(new LoginRequest("alice@example.com", "password123"))
+                    .exchange()
+                    .expectBody()
+                    .jsonPath("$.data.user.name").isEqualTo("Alice")
+                    .jsonPath("$.data.token").isEqualTo("my-jwt-token");
+        }
+
+        @Test
+        @DisplayName("Delegates to UserGatewayService.login")
+        void login_delegatesToService() {
+            when(userGatewayService.login(any(), any()))
+                    .thenReturn(Mono.just(successfulResponse("Alice", "alice@example.com", "jwt")));
+
+            webTestClient.post()
+                    .uri("/api/v1/users/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(new LoginRequest("alice@example.com", "pass"))
+                    .exchange();
+
+            verify(userGatewayService).login(any(LoginRequest.class), any());
+        }
+
+        @Test
+        @DisplayName("Returns 401 when downstream raises OAuthException")
+        void login_returns401OnAuthFailure() {
+            when(userGatewayService.login(any(), any()))
+                    .thenReturn(Mono.error(new OAuthException("Invalid credentials")));
+
+            webTestClient.post()
+                    .uri("/api/v1/users/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(new LoginRequest("bad@example.com", "wrong"))
+                    .exchange()
+                    .expectStatus().isUnauthorized()
+                    .expectBody()
+                    .jsonPath("$.error.code").isEqualTo("OAUTH_ERROR");
+        }
     }
 
-    /**
-     * Tests the signup flow.
-     * <p>
-     * Ensures that registration requests result in the same secure cookie behavior
-     * as the login process after successfully communicating with the User Service at
-     * {@code /api/v1/users/signup}.
-     * </p>
-     */
-    @Test
-    @DisplayName("Signup: Success sets cookie and returns 200")
-    void signup_Success() {
-        stubFor(post(urlEqualTo("/api/v1/users/signup"))
-                .willReturn(okJson(SUCCESS_JSON)));
+    // -------------------------------------------------------------------------
+    // POST /api/v1/users/signup
+    // -------------------------------------------------------------------------
 
-        // MUST use /api/v1
-        webTestClient.post()
-                .uri("/api/v1/users/signup")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new SignupRequest("Test User","test@example.com", "password"))
-                .exchange()
-                .expectStatus().isOk();
+    @Nested
+    @DisplayName("POST /api/v1/users/signup")
+    class SignupTests {
 
-        verify(cookieUtil).addTokenCookie(any(), eq("fake-jwt-token"), any());
+        @Test
+        @DisplayName("Returns 200 OK with user data on successful signup")
+        void signup_returns200() {
+            when(userGatewayService.signup(any(), any()))
+                    .thenReturn(Mono.just(successfulResponse("Bob", "bob@example.com", "jwt")));
+
+            webTestClient.post()
+                    .uri("/api/v1/users/signup")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(new SignupRequest("Bob", "bob@example.com", "password123"))
+                    .exchange()
+                    .expectStatus().isOk();
+        }
+
+        @Test
+        @DisplayName("Response body contains newly registered user details")
+        void signup_verifiesResponseBody() {
+            when(userGatewayService.signup(any(), any()))
+                    .thenReturn(Mono.just(successfulResponse("Bob", "bob@example.com", "signup-jwt")));
+
+            webTestClient.post()
+                    .uri("/api/v1/users/signup")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(new SignupRequest("Bob", "bob@example.com", "password123"))
+                    .exchange()
+                    .expectBody()
+                    .jsonPath("$.data.user.name").isEqualTo("Bob")
+                    .jsonPath("$.data.token").isEqualTo("signup-jwt");
+        }
+
+        @Test
+        @DisplayName("Delegates to UserGatewayService.signup")
+        void signup_delegatesToService() {
+            when(userGatewayService.signup(any(), any()))
+                    .thenReturn(Mono.just(successfulResponse("Bob", "bob@example.com", "jwt")));
+
+            webTestClient.post()
+                    .uri("/api/v1/users/signup")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(new SignupRequest("Bob", "bob@example.com", "password123"))
+                    .exchange();
+
+            verify(userGatewayService).signup(any(SignupRequest.class), any());
+        }
     }
 }

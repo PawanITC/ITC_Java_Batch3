@@ -18,12 +18,13 @@ LABEL maintainer="Abbas"
 LABEL service.name="payment-service"
 LABEL service.description="Payment Service - Handles payments via Stripe integration"
 
-# Jenkins built the JAR in: backend/payment-service/build/libs/
-# We copy it into the image here.
+# Copy the JAR built by Jenkins
+# Jenkins output: backend/payment-service/build/libs/
+# Ensure Gradle bootJar produces a single predictable artifact
 COPY build/libs/*.jar app.jar
 
-# Standard internal port for our microservices
+# Standard internal port for microservices
 EXPOSE 8080
 
-# Production-ready JVM flags for container environments
+# JVM container-friendly settings
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

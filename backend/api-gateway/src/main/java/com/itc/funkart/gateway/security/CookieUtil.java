@@ -1,65 +1,107 @@
 package com.itc.funkart.gateway.security;
 
 import com.itc.funkart.gateway.config.AppConfig;
-import lombok.Getter;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
 import java.time.Duration;
 
 /**
  * <h2>Cookie Management Utility</h2>
- * <p>Handles the lifecycle of the JWT Session Cookie. By using <b>HttpOnly</b> cookies,
- * we protect the JWT from being stolen by malicious JavaScript (XSS attacks).</p>
+ * <p>
+ * Centralized utility for managing JWT session cookies in a reactive gateway.
+ * Responsible only for transport-layer concerns (NOT authentication logic).
+ * </p>
  */
 @Component
 public class CookieUtil {
 
-    @Getter
-    private final String cookieName;
-    private final boolean secure;
-    private final int defaultMaxAgeSeconds;
+    private final AppConfig appConfig;
 
     public CookieUtil(AppConfig appConfig) {
-        this.cookieName = appConfig.jwt().cookieName();
-        this.secure = appConfig.jwt().secureCookie();
-        this.defaultMaxAgeSeconds = appConfig.jwt().cookieMaxAgeSeconds();
+        this.appConfig = appConfig;
     }
 
     /**
-     * Issues a secure JWT cookie.
-     * <p>Note: <b>SameSite=None</b> is required for cross-site requests (e.g., Frontend on Vercel
-     * talking to Backend on AWS), but it <i>must</i> be paired with the <b>Secure</b> flag.</p>
+     * Issues a secure HttpOnly JWT cookie.
      */
-    public void addTokenCookie(ServerWebExchange exchange, String token, Integer maxAgeSeconds) {
-        int age = (maxAgeSeconds != null) ? maxAgeSeconds : defaultMaxAgeSeconds;
+    public Mono<Void> addTokenCookie(ServerWebExchange exchange, String token) {
+        return Mono.fromRunnable(() -> {
 
-        ResponseCookie cookie = ResponseCookie
-                .from(cookieName, token)
-                .httpOnly(true) // Crucial: JS cannot touch this cookie
-                .secure(secure) // Only sent over HTTPS
-                .path("/")
-                .maxAge(Duration.ofSeconds(age))
-                // If secure (HTTPS), use 'None' for cross-domain. Otherwise, 'Lax' for local dev.
-                .sameSite(secure ? "None" : "Lax")
-                .build();
+            ResponseCookie cookie = ResponseCookie
+                    .from(appConfig.jwt().cookieName(), token)
+                    .httpOnly(true)
+                    .secure(appConfig.jwt().secureCookie())
+                    .path("/")
+                    .maxAge(Duration.ofSeconds(appConfig.jwt().cookieMaxAgeSeconds()))
+                    .sameSite(appConfig.jwt().secureCookie() ? "None" : "Lax")
+                    .build();
 
-        exchange.getResponse().addCookie(cookie);
+            exchange.getResponse().addCookie(cookie);
+        });
     }
 
     /**
-     * Instructs the browser to delete the session cookie immediately.
+     * Extracts JWT token from request (cookie-based primary source).
      */
-    public void clearTokenCookie(ServerWebExchange exchange) {
-        ResponseCookie cookie = ResponseCookie
-                .from(cookieName, "")
-                .httpOnly(true)
-                .secure(secure)
-                .path("/")
-                .maxAge(Duration.ZERO) // Expires the cookie instantly
-                .sameSite(secure ? "None" : "Lax")
-                .build();
+    public String extractToken(ServerWebExchange exchange) {
 
-        exchange.getResponse().addCookie(cookie);
+        HttpCookie cookie = exchange.getRequest()
+                .getCookies()
+                .getFirst(appConfig.jwt().cookieName());
+
+        if (cookie != null && !cookie.getValue().isBlank()) {
+            return cookie.getValue();
+        }
+
+        // Optional future support (safe fallback for mobile / external clients)
+        String authHeader = exchange.getRequest()
+                .getHeaders()
+                .getFirst("Authorization");
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+
+        return null;
+    }
+
+    /**
+     * Clears JWT session cookie (logout operation).
+     */
+    public Mono<Void> clearTokenCookie(ServerWebExchange exchange) {
+        return Mono.fromRunnable(() -> {
+
+            ResponseCookie cookie = ResponseCookie
+                    .from(appConfig.jwt().cookieName(), "")
+                    .httpOnly(true)
+                    .secure(appConfig.jwt().secureCookie())
+                    .path("/")
+                    .maxAge(Duration.ZERO)
+                    .sameSite(appConfig.jwt().secureCookie() ? "None" : "Lax")
+                    .build();
+
+            exchange.getResponse().addCookie(cookie);
+        });
+    }
+
+
+    public Mono<Void> addRefreshCookie(ServerWebExchange exchange, String token) {
+        return Mono.fromRunnable(() -> {
+
+            ResponseCookie cookie = ResponseCookie
+                    .from("refresh_token", token)
+                    .httpOnly(true)
+                    .secure(appConfig.jwt().secureCookie())
+                    .path("/")
+                    .maxAge(Duration.ofDays(7))
+                    .sameSite("Strict")
+                    .build();
+
+            exchange.getResponse().addCookie(cookie);
+        });
     }
 }

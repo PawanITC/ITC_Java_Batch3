@@ -1,80 +1,74 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.config.AppConfig;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 /**
- * <h2>Central Security Policy</h2>
- * <p>This class defines the "Rules of the Road" for every request hitting the Gateway.
- * It manages CSRF, Authentication filters, and URL-based authorization.</p>
+ * <h2>Central Security Policy for API Gateway</h2>
+ *
+ * <p>Acts as the primary gatekeeper for the microservices ecosystem.
+ * This configuration operates in a Reactive (WebFlux) environment.</p>
+ *
+ * <p><b>Architecture Rule:</b> The Gateway enforces routing-level authorization.
+ * It permits public authentication traffic and validates JWTs for protected
+ * resources via the {@link JwtAuthWebFilter}.</p>
  */
 @Configuration
 @EnableWebFluxSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtWebFilter jwtWebFilter;
-    private final AppConfig appConfig;
-
-
-    public SecurityConfig(JwtWebFilter jwtWebFilter, AppConfig appConfig) {
-        this.jwtWebFilter = jwtWebFilter;
-        this.appConfig = appConfig;
-    }
-
     /**
-     * Configures the Security Web Filter Chain for the reactive stack.
-     * * @param http The core security builder for WebFlux.
-     * @return The finalized security chain.
+     * Defines security rules for gateway routes.
+     * * @param http The {@link ServerHttpSecurity} builder.
+     * @param corsSource Configured CORS policy for frontend access.
+     * @param jwtAuthWebFilter Custom filter to validate JWTs in the request flow.
+     * @return The configured {@link SecurityWebFilterChain}.
      */
     @Bean
-    public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
-        String version = "/api/v1";
-        try {
-            if (appConfig.api() != null && appConfig.api().version() != null) {
-                version = appConfig.api().version();
-            }
-        } catch (Exception e) {
-            // Fallback for test context initialization
-        }
+    public SecurityWebFilterChain apiGatewaySecurityFilterChain(
+            ServerHttpSecurity http,
+            UrlBasedCorsConfigurationSource corsSource,
+            JwtAuthWebFilter jwtAuthWebFilter
+    ) {
 
-        String finalVersion = version;
         return http
-                // Disable CSRF because we use JWTs and our Gateway is stateless
+                // 1. Stateless gateway (no sessions, no CSRF)
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-
-                // Inject our custom JWT 'Re-hydration' logic before the standard Auth check
-                .addFilterBefore(jwtWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-
-                .authorizeExchange(auth -> auth
-                        // 1. PUBLIC: Infrastructure & OAuth (No Version Prefix)
-                        .pathMatchers(
-                                "/oauth/github/**",
-                                "/health"
-                        ).permitAll()
-
-                        // 2. PUBLIC: Auth & Webhooks (With Version Prefix)
-                        .pathMatchers(
-                                finalVersion + "/users/login",
-                                finalVersion + "/users/signup",
-                                finalVersion + "/payments/webhook"
-                        ).permitAll()
-
-                        // 3. SECURE: Admin-only sections (Example of RBAC)
-                        // Note: hasRole checks for "ROLE_ADMIN" if your filter provides "ROLE_ADMIN"
-                        .pathMatchers(finalVersion + "/admin/**").hasRole("ADMIN")
-
-                        // 4. SECURE: Everything else requires a valid JWT
-                        .anyExchange().authenticated()
-                )
-
-                // Disable traditional login forms; the Gateway is a headless API
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+
+                // 2. CORS config (Enables frontend to talk to Gateway)
+                .cors(cors -> cors.configurationSource(corsSource))
+
+                // 3. JWT authentication filter
+                .addFilterAt(jwtAuthWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+
+                // 4. Authorization rules
+                .authorizeExchange(auth -> auth
+                        .pathMatchers(HttpMethod.OPTIONS).permitAll() // Allow pre-flight requests
+
+                        // PUBLIC ENDPOINTS: No JWT required
+                        .pathMatchers(
+                                "/api/v1/users/login",
+                                "/api/v1/users/signup",
+                                "/api/v1/users/oauth/**",   // For your internal user service oauth paths
+                                "/api/v1/oauth/**",         // For the direct gateway oauth paths
+                                "/api/v1/users/health",
+                                "/actuator/**",             // Allow health checks
+                                "/payments/webhook/**"
+                        ).permitAll()
+
+                        // PROTECTED ENDPOINTS: Requires valid JWT (e.g., /api/v1/users/me)
+                        .anyExchange().authenticated()
+                )
                 .build();
     }
 }

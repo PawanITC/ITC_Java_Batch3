@@ -17,7 +17,7 @@ public record UserLoginEvent(
         @JsonProperty("user_id") Long userId,
         String email,
         @JsonProperty("login_method") String loginMethod,
-        String role, // Added this
+        String role,
         Long timestamp
 ) {
 }

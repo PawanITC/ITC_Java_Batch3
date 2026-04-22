@@ -3,8 +3,8 @@ package com.itc.funkart.gateway.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+
 import java.util.List;
 
 /**
@@ -16,29 +16,27 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
+    // 1. This is the bean SecurityConfig is looking for!
     @Bean
-    public CorsWebFilter corsWebFilter(AppConfig appConfig) {
+    public UrlBasedCorsConfigurationSource corsConfigurationSource(AppConfig appConfig) {
         CorsConfiguration config = new CorsConfiguration();
 
-        // 1. Trust the Frontend URL from config
-        if (appConfig.frontendUrl() != null) {
-            config.addAllowedOrigin(appConfig.frontendUrl());
-        }
+        // Ensure we allow the frontend
+        config.setAllowedOrigins(List.of(
+                appConfig.frontendUrl(),
+                "http://localhost:5173"
+        ));
 
-        // 2. Trust localhost for developer productivity
-        config.addAllowedOrigin("http://localhost:3000");
-
-        // 3. Essential for JWT cookies! Without this, the browser won't send the 'token' cookie.
         config.setAllowCredentials(true);
-
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
-        config.setExposedHeaders(List.of("Authorization", "Content-Type"));
+        // Using "*" for headers during testing helps rule out header-mismatch 403s
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
-        return new CorsWebFilter(source);
+        return source;
     }
+
 }

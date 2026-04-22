@@ -1,3 +1,11 @@
+# ==================================================
+# User Service Microservice
+# ==================================================
+# Author: Abbas
+# Description: Handles authentication, user profiles,
+#              and user-related operations for Funkart.
+# ==================================================
+
 # ---------------------------
 # Runtime Stage (Lean & Fast)
 # ---------------------------
@@ -8,11 +16,14 @@ WORKDIR /app
 # Metadata Labels
 LABEL maintainer="Abbas"
 LABEL service.name="user-service"
+LABEL service.description="User Service - Core identity and profile management"
 
-# We copy the JAR that Jenkins JUST built in the previous step
-# Jenkins workspace structure: backend/user-service/build/libs/
+# Copy the JAR built by Jenkins
+# IMPORTANT: Ensure bootJar is configured to produce consistent name if you switch away from wildcard
 COPY build/libs/*.jar app.jar
 
-EXPOSE 8081
+# Service runs on 8080 internally (mapped externally to 8081 in docker-compose)
+EXPOSE 8080
 
+# JVM container-friendly settings
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

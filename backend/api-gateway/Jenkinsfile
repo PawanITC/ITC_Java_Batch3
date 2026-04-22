@@ -6,14 +6,15 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USER = 'abbasgureitc'
-        IMAGE_NAME = 'api-gateway'
-        REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
-        SNYK_TOKEN = credentials('snyk-token')
-        dockerImage = ''
+        DOCKER_HUB_USER          = 'abbasgureitc'
+        IMAGE_NAME               = 'api-gateway'
+        REGISTRY_CREDENTIALS_ID  = 'docker-hub-credentials'
+        SNYK_TOKEN               = credentials('snyk-token')
+        dockerImage              = ''
     }
 
     stages {
+
         stage('Check Environment') {
             steps {
                 sh 'java -version'
@@ -21,34 +22,17 @@ pipeline {
             }
         }
 
+
         stage('Build & Test') {
             steps {
                 dir('backend/api-gateway') {
                     script {
-                        def jdkPath = tool name: 'jdk17', type: 'jdk'
-                        withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
-                            sh 'chmod +x gradlew'
-                            // FIX: Added --no-daemon to prevent worker node leaks and -D for JDK path
-                            sh "./gradlew clean build jacocoTestReport --no-daemon -Dorg.gradle.java.home=${jdkPath}"
-                        }
+                        sh "chmod +x gradlew"
+                        sh "./gradlew clean build jacocoTestReport \
+                                -Dspring.profiles.active=test \
+                                --no-daemon --stacktrace"
                     }
                 }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                // Modern replacement for the deprecated Jacoco plugin
-                jacoco(
-                    execPattern: '**/build/jacoco/*.exec',
-                    classPattern: '**/build/classes/java/main',
-                    sourcePattern: '**/src/main/java',
-                    inclusionPattern: '**/*.class',
-                    // Jacoco plugin uses these for the health report (Quality Gates)
-                    minimumLineCoverage: '70',
-                    maximumLineCoverage: '80',
-                    buildOverBuild: true
-                )
             }
         }
 
@@ -56,12 +40,30 @@ pipeline {
             steps {
                 dir('backend/api-gateway') {
                     script {
-                        // Added chmod +x gradlew here too as Snyk often needs to run Gradle locally to resolve dependencies
                         sh 'chmod +x gradlew'
                         sh "snyk auth ${SNYK_TOKEN}"
-                        sh 'snyk test --severity-threshold=high || echo "Snyk found vulnerabilities in API Gateway, review logs."'
+
+                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                            sh 'snyk test --severity-threshold=critical --fail-on=all'
+                        }
+
+                        sh 'snyk monitor'
                     }
                 }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                jacoco(
+                    execPattern:      '**/build/jacoco/*.exec',
+                    classPattern:     '**/build/classes/java/main',
+                    sourcePattern:    '**/src/main/java',
+                    inclusionPattern: '**/*.class',
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '80',
+                    buildOverBuild: false
+                )
             }
         }
 
@@ -71,7 +73,8 @@ pipeline {
                     script {
                         sh 'ls -R build/libs/'
                         currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
+                        dockerImage = docker.build(
+                            "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
                     }
                 }
             }
@@ -90,10 +93,8 @@ pipeline {
     }
 
     post {
-        success { echo "SUCCESS: ${IMAGE_NAME} is deployed to Docker Hub." }
-        failure { echo "FAILURE: Build failed. Check routing tests, security filter logs, or Snyk reports." }
-        always {
-            cleanWs()
-        }
+        success { echo "SUCCESS: ${IMAGE_NAME} deployed to Docker Hub." }
+        failure { echo "FAILURE: Check test reports, security filter logs, or Snyk output." }
+        always  { cleanWs() }
     }
 }

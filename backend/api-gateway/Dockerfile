@@ -20,13 +20,11 @@ LABEL service.name="api-gateway"
 LABEL service.description="API Gateway - Entry point for Funkart"
 
 # Copy the JAR built by Jenkins
-# We use a wildcard to catch the versioned jar (e.g., api-gateway-0.0.1-SNAPSHOT.jar)
-COPY build/libs/*.jar app.jar
+# IMPORTANT: Jenkins must produce this exact filename
+COPY build/libs/api-gateway.jar app.jar
 
 # Gateway runs on 8080
 EXPOSE 8080
 
-# Best practice for JVM in containers:
-# - Use MaxRAMPercentage so Java respects Docker memory limits
-# - Use ContainerSupport to see CPU quotas
+# JVM container-friendly settings
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
