@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataInitializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">product-service</a> &gt; <a href="index.source.html" class="el_package">com.itc.funkart.product_service.config</a> &gt; <span class="el_source">DataInitializer.java</span></div><h1>DataInitializer.java</h1><pre class="source lang-java linenums">package com.itc.funkart.product_service.config;
+
+import com.itc.funkart.product_service.entity.Category;
+import com.itc.funkart.product_service.entity.Product;
+import com.itc.funkart.product_service.entity.ProductImage;
+import com.itc.funkart.product_service.repository.CategoryRepository;
+import com.itc.funkart.product_service.repository.ProductRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+
+@Component
+<span class="fc" id="L19">@RequiredArgsConstructor</span>
+<span class="fc" id="L20">@Slf4j</span>
+public class DataInitializer implements CommandLineRunner {
+
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+
+    @Override
+    @Transactional
+    public void run(String... args) throws Exception {
+<span class="fc bfc" id="L29" title="All 2 branches covered.">        if (categoryRepository.count() &gt; 0) {</span>
+<span class="fc" id="L30">            log.info(&quot;Database already contains data. Skipping initialization.&quot;);</span>
+<span class="fc" id="L31">            return;</span>
+        }
+
+<span class="fc" id="L34">        log.info(&quot;Initializing sample data for Funkart...&quot;);</span>
+
+        // 1. Create Categories
+<span class="fc" id="L37">        Category electronics = Category.builder().name(&quot;Electronics&quot;).description(&quot;Gadgets and devices&quot;).build();</span>
+<span class="fc" id="L38">        Category fashion = Category.builder().name(&quot;Fashion&quot;).description(&quot;Clothing and accessories&quot;).build();</span>
+<span class="fc" id="L39">        categoryRepository.saveAll(Arrays.asList(electronics, fashion));</span>
+
+        // 2. Create 10 Products
+<span class="fc" id="L42">        createProduct(&quot;UltraBook Pro&quot;, &quot;High performance laptop&quot;, 1200.00, 15, electronics);</span>
+<span class="fc" id="L43">        createProduct(&quot;SmartWatch Series 5&quot;, &quot;Stay connected on the go&quot;, 250.00, 30, electronics);</span>
+<span class="fc" id="L44">        createProduct(&quot;Noise Cancelling Headphones&quot;, &quot;Pure sound experience&quot;, 180.00, 25, electronics);</span>
+<span class="fc" id="L45">        createProduct(&quot;4K Gaming Monitor&quot;, &quot;Stunning visuals for gamers&quot;, 450.00, 10, electronics);</span>
+<span class="fc" id="L46">        createProduct(&quot;Mechanical Keyboard&quot;, &quot;RGB backlit clicky keys&quot;, 90.00, 50, electronics);</span>
+
+<span class="fc" id="L48">        createProduct(&quot;Classic Leather Jacket&quot;, &quot;Timeless style for men&quot;, 120.00, 20, fashion);</span>
+<span class="fc" id="L49">        createProduct(&quot;Cotton Slim Fit T-Shirt&quot;, &quot;Breathable daily wear&quot;, 25.00, 100, fashion);</span>
+<span class="fc" id="L50">        createProduct(&quot;Running Sneakers&quot;, &quot;Lightweight and durable&quot;, 85.00, 45, fashion);</span>
+<span class="fc" id="L51">        createProduct(&quot;Designer Sunglasses&quot;, &quot;UV protection with style&quot;, 150.00, 15, fashion);</span>
+<span class="fc" id="L52">        createProduct(&quot;Canvas Backpack&quot;, &quot;Perfect for daily commute&quot;, 45.00, 60, fashion);</span>
+
+<span class="fc" id="L54">        log.info(&quot;Successfully pre-loaded 2 Categories and 10 Products.&quot;);</span>
+<span class="fc" id="L55">    }</span>
+
+    private void createProduct(String name, String desc, double price, int stock, Category cat) {
+<span class="fc" id="L58">        Product product = Product.builder()</span>
+<span class="fc" id="L59">                .name(name)</span>
+<span class="fc" id="L60">                .slug(name.toLowerCase().replace(&quot; &quot;, &quot;-&quot;))</span>
+<span class="fc" id="L61">                .description(desc)</span>
+<span class="fc" id="L62">                .price(BigDecimal.valueOf(price))</span>
+<span class="fc" id="L63">                .stockQuantity(stock)</span>
+<span class="fc" id="L64">                .active(true)</span>
+<span class="fc" id="L65">                .category(cat)</span>
+<span class="fc" id="L66">                .build();</span>
+
+        // Adding a dummy image for each product
+<span class="fc" id="L69">        ProductImage image = ProductImage.builder()</span>
+<span class="fc" id="L70">                .imageUrl(&quot;https://via.placeholder.com/400x400?text=&quot; + name.replace(&quot; &quot;, &quot;+&quot;))</span>
+<span class="fc" id="L71">                .isPrimary(true)</span>
+<span class="fc" id="L72">                .product(product)</span>
+<span class="fc" id="L73">                .build();</span>
+
+<span class="fc" id="L75">        product.setImages(List.of(image));</span>
+<span class="fc" id="L76">        productRepository.save(product);</span>
+<span class="fc" id="L77">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,72 +1,151 @@
 package com.itc.funkart.user.service;
 
 import com.itc.funkart.user.dto.user.LoginRequest;
+import com.itc.funkart.user.dto.user.OAuthUserResult;
 import com.itc.funkart.user.dto.user.SignupRequest;
+import com.itc.funkart.user.dto.user.UserProfileDto;
+import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.AlreadyExistsException;
 import com.itc.funkart.user.exceptions.BadRequestException;
 import com.itc.funkart.user.exceptions.UnauthorizedException;
 import com.itc.funkart.user.repository.UserRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+/**
+ * <h2>User Service</h2>
+ *
+ * <p>
+ * Core domain service responsible for user lifecycle operations:
+ * persistence, validation, and retrieval.
+ * </p>
+ *
+ * <p>
+ * IMPORTANT:
+ * This service does NOT generate JWTs or construct API response DTOs.
+ * It only returns domain objects or simple projections.
+ * </p>
+ */
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
-
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    // ------------------------
-    // Service Login/Signup Methods
-    // ------------------------
-
+    /**
+     * Creates a new user via email/password signup.
+     *
+     * @return persisted User entity
+     */
     public User signUp(SignupRequest request) {
-        String email = request.email();
-        String password = request.password();
-        String name = request.name();
 
-        validateSignupInput(email, password, name);
-        checkEmailExists(email);
+        validateSignupInput(request.email(), request.password(), request.name());
+        checkEmailExists(request.email());
 
-        String hashedPassword = hashPassword(password);
-        User newUser = new User(email, hashedPassword, name);
+        User user = userRepository.save(User.builder()
+                .name(request.name())
+                .email(request.email())
+                .password(hashPassword(request.password()))
+                .role(Role.ROLE_USER)
+                .build());
 
-        return userRepository.save(newUser);
+        kafkaEventPublisher.publishSignup(user);
+        return user;
     }
 
+    /**
+     * Authenticates a user and returns domain User if valid.
+     */
     public User login(LoginRequest request) {
-        String email = request.email();
-        String password = request.password();
 
-        validateLoginInput(email, password);
+        validateLoginInput(request.email(), request.password());
 
-        User user = fetchUserByEmail(email);
-        validatePassword(password, user.getPassword());
+        User user = fetchUserByEmail(request.email());
+        validatePassword(request.password(), user.getPassword());
 
         return user;
     }
 
+    /**
+     * Returns user profile projection.
+     *
+     * <p>
+     * NOTE: This method returns a DTO because profile is a read-model concern,
+     * not part of authentication/session handling.
+     * </p>
+     */
+    public UserProfileDto getUserProfile(Long userId) {
+        User user = findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    // ------------------------
-    // Validation Methods
-    // ------------------------
+        return new UserProfileDto(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole().name()
+        );
+    }
+
+    /**
+     * OAuth user creation (domain operation only).
+     */
+    public User createUser(String email, String password, String name) {
+        return userRepository.save(User.builder()
+                .name(name)
+                .email(email)
+                .password(password)
+                .role(Role.ROLE_USER)
+                .build());
+    }
+
+    public void recordLogin(User user, String method) {
+        kafkaEventPublisher.publishLogin(user, method);
+    }
+
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    // ---------------- Idempotent Method ----------------
+
+    @Transactional
+    public OAuthUserResult getOrCreateOAuthUser(String email, String name) {
+
+        Optional<User> existing = userRepository.findByEmail(email);
+
+        if (existing.isPresent()) {
+            return new OAuthUserResult(existing.get(), false);
+        }
+
+        User newUser = userRepository.save(User.builder()
+                .email(email)
+                .name(name)
+                .password("{OAUTH}")
+                .role(Role.ROLE_USER)
+                .build()
+        );
+
+        return new OAuthUserResult(newUser, true);
+    }
+
+    // ---------------- validation ----------------
 
     private void validateSignupInput(String email, String password, String name) {
-
         emailAndPasswordCheck(email, password);
-
         if (name == null || name.isBlank()) {
             throw new BadRequestException("Name is required");
         }
-
     }
 
     private void validateLoginInput(String email, String password) {
@@ -74,7 +153,6 @@ public class UserService {
     }
 
     private void emailAndPasswordCheck(String email, String password) {
-
         if (email == null || email.isBlank()) {
             throw new BadRequestException("Email is required");
         }
@@ -83,79 +161,24 @@ public class UserService {
         }
     }
 
-
-    // ------------------------
-    // Helper Methods
-    // ------------------------
-
-    /**
-     * Check database if email exists
-     *
-     * @param email email of the user
-     */
     private void checkEmailExists(String email) {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new AlreadyExistsException("Email already registered");
         }
     }
 
-    /**
-     * helper to compare password passed to password stored in db
-     *
-     * @param rawPassword    password passed
-     * @param storedPassword stored password
-     */
-    private void validatePassword(String rawPassword, String storedPassword) {
-        if (!passwordEncoder.matches(rawPassword, storedPassword)) {
+    private void validatePassword(String raw, String encoded) {
+        if (!passwordEncoder.matches(raw, encoded)) {
             throw new UnauthorizedException("Invalid email or password");
         }
     }
 
-    /**
-     * Method to hash the password
-     *
-     * @param rawPassword password
-     * @return successfully hashed password
-     */
     private String hashPassword(String rawPassword) {
-        //hashing the password
         return passwordEncoder.encode(rawPassword);
     }
 
-    /**
-     * Check db for email existing
-     *
-     * @param email users email
-     */
     private User fetchUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
-    }
-
-    /**
-     * Check db for user existing
-     *
-     * @param id users id
-     */
-    public Optional<User> findById(Long id) {
-        return userRepository.findById(id);
-    }
-
-    // -----------------------------
-    // Find by email (used for OAuth)
-    // -----------------------------
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
-
-    // -----------------------------
-    // Create user (used for OAuth)
-    // -----------------------------
-    public User createUser(String email, String password, String name) {
-        User user = new User();
-        user.setEmail(email);
-        user.setPassword(password); // null for OAuth users
-        user.setName(name);
-        return userRepository.save(user);
     }
 }

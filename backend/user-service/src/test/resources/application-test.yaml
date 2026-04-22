@@ -1,0 +1,58 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: user-service-test
+
+  datasource:
+    url: jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    listener:
+      auto-startup: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: false   # Must be false when acks != all in tests
+        max.block.ms: 500
+        delivery.timeout.ms: 1000
+        reconnect.backoff.ms: 100
+        reconnect.backoff.max.ms: 500
+
+# ---------------------------------------------------------------------------
+# Application custom config — must satisfy @ConfigurationProperties exactly
+# ---------------------------------------------------------------------------
+api:
+  version: v1
+
+jwt:
+  # Base64 of "this-is-a-very-long-and-secure-test-secret-key-for-jwt" (>= 32 bytes decoded)
+  secret: dGhpcy1pcy1hLXZlcnktbG9uZy1hbmQtc2VjdXJlLXRlc3Qtc2VjcmV0LWtleS1mb3Itand0
+  expiration-ms: 3600000
+  cookie-max-age-seconds: 3600
+
+github:
+  oauth:
+    client-id: "test-id"
+    client-secret: "test-secret"
+    redirect-uri: "http://localhost:8080/callback"
+
+frontend:
+  url: "http://localhost:3000"
+
+app:
+  secure-cookie: false

@@ -1,41 +1,64 @@
 spring:
   application:
     name: api-gateway
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      connect-timeout: 2000ms
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+
   cloud:
     gateway:
-      routes:
-        - id: user-service
-          uri: http://user-service:8080
-          predicates:
-            - Path=/api/v1/users/**
+      server:
+        webflux:
+          routes:
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://user-service:8080}
+              predicates:
+                - Path=/api/v1/users/**, /api/v1/oauth/**
+              filters:
+                - StripPrefix=2
+
+            - id: payment-service
+              uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+              predicates:
+                - Path=/api/v1/payments/**
+              filters:
+                - StripPrefix=2
+
+            - id: product-service
+              uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
+              predicates:
+                - Path=/api/v1/products/**
+              filters:
+                - StripPrefix=2
 
 server:
-  port: 8080
+  port: ${PORT:8060}
 
-api:
-  version: /api/v1
-
-user:
-  service:
-    url: ${USER_SERVICE_URL}
-
-jwt:
-  secret: ${JWT_SECRET}
-  expiration-ms: ${JWT_EXPIRATION_MS}
-  cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
-
-frontend:
-  url: ${FRONTEND_URL}
-
+# Custom Application Properties
 app:
-  secure-cookie: ${APP_SECURE_COOKIE}
-  cookie-name: ${APP_COOKIE_NAME}
-
-github:
-  client-id: ${GITHUB_CLIENT_ID}
-  client-secret: ${GITHUB_CLIENT_SECRET}
-  redirect-uri: ${GITHUB_REDIRECT_URI}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  oauth-success-path: ${OAUTH_SUCCESS_PATH:/oauth-success}
+  services:
+    user-service: ${USER_SERVICE_URL:http://user-service:8080}
+    payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+    product-service: ${PRODUCT_SERVICE_URL:http://product-service:8080}
+    order-service: ${ORDER_SERVICE_URL:http://order-service:8080}
+  github:
+    client-id: ${GITHUB_CLIENT_ID}
+    client-secret: ${GITHUB_CLIENT_SECRET}
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8060/api/v1/oauth/github/callback}
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
+    cookie-name: ${APP_COOKIE_NAME:token}
+    secure-cookie: ${APP_SECURE_COOKIE:false}

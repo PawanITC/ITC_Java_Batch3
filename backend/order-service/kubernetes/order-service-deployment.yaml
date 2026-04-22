@@ -1,0 +1,115 @@
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: order-service
+#  namespace: order-service
+#  labels:
+#    app: order-service
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: order-service
+#  template:
+#    metadata:
+#      labels:
+#        app: order-service
+#    spec:
+#      containers:
+#        - name: order-service
+#          image: anjali5412/order-service:latest
+#          imagePullPolicy: Always
+#          ports:
+#            - containerPort: 8081
+#          envFrom:
+#            - configMapRef:
+#                name: order-service-config
+#            - secretRef:
+#                name: order-service-secrets
+#
+#          # Gives the app up to 150s to start before liveness kicks in
+##          startupProbe:
+##            httpGet:
+##              path: /actuator/health
+##              port: 8081
+##            initialDelaySeconds: 30
+##            periodSeconds: 10
+##            failureThreshold: 15      # 30 + (10×15) = 180s max
+#
+#          livenessProbe:
+#            httpGet:
+#              path: /actuator/health
+#              port: 8081
+#            periodSeconds: 10
+#            failureThreshold: 3       # only runs AFTER startupProbe passes
+#
+#          readinessProbe:
+#            httpGet:
+#              path: /actuator/health
+#              port: 8081
+#            periodSeconds: 10
+#            failureThreshold: 3       # only runs AFTER startupProbe passes
+#
+#          resources:
+#            requests:
+#              cpu: 250m
+#              memory: 768Mi           # increased from 512Mi
+#            limits:
+#              cpu: 500m
+#              memory: 1Gi
+
+
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: order-service
+  labels:
+    app: order-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+        - name: order-service
+          image: anjali5412/order-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: order-service-config
+            - secretRef:
+                name: order-service-secrets
+          startupProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 15
+          livenessProbe:
+            tcpSocket:
+              port: 8081
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 8081
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi

@@ -12,7 +12,7 @@ export default function Signup() {
 
     const [error, setError] = useState("");
     const navigate = useNavigate();
-    const { setUser } = useContext(AuthContext);
+    const { refreshUser  } = useContext(AuthContext);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData(prev => ({
@@ -29,7 +29,8 @@ export default function Signup() {
             const res = await fetch("/api/v1/users/signup", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
                 },
                 credentials: "include",
                 body: JSON.stringify(formData)
@@ -38,13 +39,11 @@ export default function Signup() {
             const body = await res.json();
 
             if (!res.ok) {
-                setError(body.message || "Signup failed");
+                setError(body?.message ?? "Signup failed");
                 return;
             }
 
-            // Backend returns ApiResponse<SuccessfulLoginResponse>
-            setUser(body.data);
-
+            await refreshUser();
             navigate("/");
         } catch (err) {
             console.error("Signup error:", err);

@@ -1,80 +1,114 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.config.GithubOAuthConfig;
-import com.itc.funkart.gateway.security.CookieUtil;
-import com.itc.funkart.gateway.service.GithubOAuthService;
-import org.springframework.beans.factory.annotation.Value;
+import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
+import com.itc.funkart.gateway.response.ApiResponse;
+import com.itc.funkart.gateway.service.OAuthGatewayService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
-import java.util.Map;
 
+/**
+ * <h2>GitHub OAuth Gateway Controller</h2>
+ *
+ * <p>
+ * Handles the OAuth2 browser redirect flow for GitHub authentication.
+ * This controller acts as a thin orchestration layer and delegates all
+ * business logic to {@link OAuthGatewayService}.
+ * </p>
+ *
+ * <h3>Responsibilities</h3>
+ * <ul>
+ *   <li>Redirect user to GitHub OAuth authorization endpoint</li>
+ *   <li>Handle OAuth callback from GitHub</li>
+ *   <li>Delegate token exchange and session creation</li>
+ *   <li>Redirect user back to frontend after authentication</li>
+ * </ul>
+ */
 @RestController
-@RequestMapping("/oauth/github")
+@RequestMapping("/api/v1/oauth/github")
 public class GithubOAuthController {
 
-    private final CookieUtil cookieUtil;
-    private final GithubOAuthConfig githubOAuthConfig;
-    private final GithubOAuthService githubOAuthService;
+    private final OAuthGatewayService oAuthGatewayService;
 
-    @Value("${frontend.url}")
-    private String frontendUrl;
-
-    public GithubOAuthController(CookieUtil cookieUtil,
-                                 GithubOAuthConfig githubOAuthConfig,
-                                 GithubOAuthService githubOAuthService) {
-        this.cookieUtil = cookieUtil;
-        this.githubOAuthConfig = githubOAuthConfig;
-        this.githubOAuthService = githubOAuthService;
+    public GithubOAuthController(OAuthGatewayService oAuthGatewayService) {
+        this.oAuthGatewayService = oAuthGatewayService;
     }
 
     /**
-     * Initiates GitHub OAuth flow
+     * Initiates GitHub OAuth login by redirecting the user
+     * to the GitHub authorization endpoint.
+     *
+     * @return HTTP 307 redirect to GitHub login page
      */
     @GetMapping("/login")
     public Mono<ResponseEntity<Void>> login() {
-        String githubAuthUrl = UriComponentsBuilder
-                .fromHttpUrl("https://github.com/login/oauth/authorize")
-                .queryParam("client_id", githubOAuthConfig.getClientId())
-                .queryParam("redirect_uri", githubOAuthConfig.getRedirectUri())
-                .queryParam("scope", "user:email")
-                .toUriString();
+        String url = oAuthGatewayService.buildGithubRedirectUrl();
 
-        return Mono.just(ResponseEntity
-                .status(HttpStatus.TEMPORARY_REDIRECT)
-                .location(URI.create(githubAuthUrl))
-                .build());
+        return Mono.just(
+                ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
+                        .location(URI.create(url))
+                        .build()
+        );
     }
 
     /**
-     * GitHub OAuth Callback Handler
+     * Handles OAuth callback from GitHub.
+     *
+     * <p>
+     * Exchanges authorization code for JWT via User-Service,
+     * stores session token in secure cookie, and redirects
+     * user to frontend application.
+     * </p>
+     *
+     * @param code     GitHub authorization code
+     * @param exchange reactive server exchange context
+     * @return redirect response to frontend
      */
     @GetMapping("/callback")
-    public Mono<ResponseEntity<Void>> callback(@RequestParam String code, ServerWebExchange exchange) {
-        return githubOAuthService.processCode(code)
-                .doOnNext(jwt -> {
-                    // Set JWT cookie BEFORE building response
-                    cookieUtil.addTokenCookie(exchange, jwt, null);
-                })
-                .map(jwt -> ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
-                        .location(URI.create(frontendUrl))
-                        .build());
+    public Mono<ResponseEntity<Void>> callback(
+            @RequestParam String code,
+            ServerWebExchange exchange) {
+
+        return oAuthGatewayService.handleCallback(code, exchange)
+                .then(Mono.fromSupplier(() ->
+                        ResponseEntity.status(HttpStatus.TEMPORARY_REDIRECT)
+                                .location(URI.create(oAuthGatewayService.frontendRedirect()))
+                                .build()
+                ));
     }
 
     /**
-     * Logout Endpoint
+     * <h2>Session Logout Endpoint</h2>
+     *
+     * <p>
+     * Terminates the client-side authentication session by clearing the
+     * HttpOnly JWT cookie stored in the browser.
+     * </p>
+     *
+     * <h3>Important</h3>
+     * <ul>
+     *   <li>This does NOT invalidate server-side authentication state</li>
+     *   <li>It only removes the browser session token (gateway responsibility)</li>
+     *   <li>Actual token/session revocation (if applicable) is handled by User-Service</li>
+     * </ul>
+     *
+     * @param exchange reactive HTTP exchange used to manipulate cookies
+     * @return confirmation response indicating session termination
      */
     @GetMapping("/logout")
-    public Mono<ResponseEntity<Map<String, String>>> logout(ServerWebExchange exchange) {
-        cookieUtil.clearTokenCookie(exchange);
+    public Mono<ResponseEntity<Void>> logout(ServerWebExchange exchange) {
+        return oAuthGatewayService.logout(exchange)
+                .thenReturn(ResponseEntity.noContent().build());
+    }
 
-        return Mono.just(ResponseEntity.ok(
-                Map.of("message", "Logged out successfully")
-        ));
+
+    @PostMapping("/refresh")
+    public Mono<ResponseEntity<ApiResponse<SuccessfulLoginResponse>>> refresh(@CookieValue("refresh_token") String refreshToken, ServerWebExchange exchange) {
+        return oAuthGatewayService.refresh(refreshToken, exchange)
+                .map(ResponseEntity::ok);
     }
 }

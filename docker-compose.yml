@@ -4,10 +4,6 @@ services:
     image: confluentinc/cp-zookeeper:7.5.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_SYNC_LIMIT: 2
-      ZOOKEEPER_INIT_LIMIT: 5
-    ports:
-      - "2181:2181"
     networks:
       - db-network
 
@@ -19,11 +15,11 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,OUTSIDE://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,OUTSIDE://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    ports:
-      - "9092:9092"
     networks:
       - db-network
 
@@ -35,93 +31,101 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: mydb
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - db-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
-  pgAdmin:
-    container_name: pgadmin-ui
-    image: dpage/pgadmin4
+  redis:
+    container_name: redis
+    image: redis:7
     restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
     ports:
-      - "5050:80"
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     networks:
       - db-network
 
   user-service:
     container_name: user-service
-    build:
+    build: 
       context: ./backend/user-service
-      dockerfile: Dockerfile
-    env_file:
-      - ./backend/user-service/.env
     ports:
       - "8081:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
+    env_file:
+      - ./backend/user-service/.env
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
+      - kafka
+      - redis   
     networks:
       - db-network
-    restart: on-failure:3
+
+  api-gateway:
+    container_name: api-gateway
+    build: 
+      context: ./backend/api-gateway
+    ports:
+      - "8060:8060" 
+    env_file:
+      - ./backend/api-gateway/.env
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATA_REDIS_HOST=redis
+    depends_on:
+      - user-service
+      - redis
+    networks:
+      - db-network
 
   payment-service:
     container_name: payment-service
     build:
       context: ./backend/payment-service
-      dockerfile: Dockerfile
-    env_file:
-      - ./backend/payment-service/.env
     ports:
       - "8082:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    networks:
-      - db-network
-    restart: on-failure:3
-
-  api-gateway:
-    container_name: api-gateway
-    build:
-      context: ./backend/api-gateway
-      dockerfile: Dockerfile
     env_file:
-      - ./backend/api-gateway/.env
-    ports:
-      - "8080:8080"
-    depends_on:
-      user-service:
-        condition: service_started
+      - ./backend/payment-service/.env
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
     networks:
       - db-network
-    restart: on-failure:3
 
-volumes:
-  postgres_data:
+  jenkins:
+    user: root
+    container_name: funkart-jenkins
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - gradle_cache:/root/.gradle
+    networks:
+      - db-network
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8085:8080"
+    networks:
+      - db-network
 
 networks:
   db-network:
     driver: bridge
+
+volumes:
+  jenkins_home:
+  gradle_cache:
+  postgres_data:   
+  redis_data:

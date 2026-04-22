@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    # 'postgres' is the service name in docker-compose
+    url: jdbc:postgresql://18.132.197.27:31369/postgres
+    username: postgres
+    password: pYOXcbv2aV
+    driver-class-name: org.postgresql.Driver
+#
+#  data:
+#    redis:
+#      # 'redis' is the service name in docker-compose
+#      host: redis
+#      port: 6379
+#
+#  cache:
+#    redis:
+#      time-to-live: 3600000
+#
+#  kafka:
+#    # 'kafka' is the service name; 29092 is the internal docker port
+#    bootstrap-servers: kafka:29092
+#
+#management:
+#  otlp:
+#    tracing:
+#      # 'jaeger' is the service name in docker-compose
+#      endpoint: http://jaeger:4317/v1/traces

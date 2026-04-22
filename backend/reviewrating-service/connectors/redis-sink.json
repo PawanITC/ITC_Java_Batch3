@@ -1,0 +1,11 @@
+{
+  "name": "ratings-redis-sink",
+  "config": {
+    "connector.class": "com.github.jcustenborder.kafka.connect.redis.RedisSinkConnector",
+    "topics": "aggregated-ratings",
+    "redis.host": "redis",
+    "redis.port": "6379",
+    "redis.data.type": "hash"
+  }
+}
+
