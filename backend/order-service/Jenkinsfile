@@ -681,24 +681,28 @@ pipeline {
 
         stage('AWS Login') {
             steps {
-                echo "========== AWS Authentication =========="
-                sh '''
-                    aws ecr get-login-password --region ${AWS_REGION} | \
-                    docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                    echo "✓ AWS ECR authenticated"
-                '''
+                container('kaniko') {
+                    echo "========== AWS Authentication =========="
+                    sh '''
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        echo "✓ AWS ECR authenticated"
+                    '''
+                }
             }
         }
 
         stage('Build Image') {
             steps {
-                echo "========== Build Docker Image =========="
-                sh '''
-                    cd ${SERVICE_PATH}
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
-                    echo "✓ Image built locally"
-                '''
+                container('kaniko') {
+                    echo "========== Build Docker Image =========="
+                    sh '''
+                       cd ${SERVICE_PATH}
+                       docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                       docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                       echo "✓ Image built locally"
+                    '''
+                }
             }
         }
 
