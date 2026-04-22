@@ -605,7 +605,38 @@
 
 
 pipeline {
-    agent any
+    agent {
+            kubernetes {
+                namespace 'jenkins'
+                yaml '''
+                apiVersion: v1
+                kind: Pod
+                spec:
+                  serviceAccountName: jenkins-sa
+                  containers:
+                  - name: kaniko
+                    image: gcr.io/kaniko-project/executor:debug
+                    command:
+                    - cat
+                    tty: true
+                    volumeMounts:
+                    - name: kaniko-secret
+                      mountPath: /kaniko/.docker
+                  - name: kubectl
+                    image: bitnami/kubectl:latest
+                    command:
+                    - cat
+                    tty: true
+                  volumes:
+                  - name: kaniko-secret
+                    secret:
+                      secretName: ecr-registry-secret
+                      items:
+                      - key: .dockerconfigjson
+                        path: config.json
+                '''
+            }
+        }
 
     parameters {
         string(name: 'GIT_BRANCH', defaultValue: 'feature-anjali', description: 'Git branch')
