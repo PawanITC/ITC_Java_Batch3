@@ -651,13 +651,11 @@ pipeline {
         stage('AWS Login') {
             steps {
                 echo "========== AWS Authentication =========="
-                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                    sh '''
-                        aws ecr get-login-password --region ${AWS_REGION} | \
-                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                        echo "✓ AWS ECR authenticated"
-                    '''
-                }
+                sh '''
+                    aws ecr get-login-password --region ${AWS_REGION} | \
+                    docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                    echo "✓ AWS ECR authenticated"
+                '''
             }
         }
 
