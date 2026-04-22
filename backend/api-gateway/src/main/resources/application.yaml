@@ -43,6 +43,15 @@ spring:
 server:
   port: ${PORT:8060}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus  # minimal for prod
+  endpoint:
+    health:
+      show-details: always
+
 # Custom Application Properties
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
