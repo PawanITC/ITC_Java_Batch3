@@ -295,10 +295,10 @@
 pipeline {
     agent {
         kubernetes {
-                    serverUrl "https://81263F8D551849FB85B4609692993956.gr7.eu-west-2.eks.amazonaws.com"
-                    credentialsId "eks-sa-token"
-                    namespace 'jenkins'
-                    skipTlsVerify true
+//                     serverUrl "https://81263F8D551849FB85B4609692993956.gr7.eu-west-2.eks.amazonaws.com"
+//                     credentialsId "eks-sa-token"
+//                     namespace 'jenkins'
+//                     skipTlsVerify true
             yaml '''
                 apiVersion: v1
                 kind: Pod
