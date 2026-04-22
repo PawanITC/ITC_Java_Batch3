@@ -7,9 +7,6 @@ kind: Pod
 spec:
   serviceAccountName: jenkins
 
-  nodeSelector:
-    eks.amazonaws.com/nodegroup: ci-node-group
-
   containers:
     - name: jnlp
       image: jenkins/inbound-agent:jdk17
