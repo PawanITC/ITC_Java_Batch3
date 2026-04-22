@@ -303,16 +303,14 @@ pipeline {
                   containers:
                   - name: kaniko
                     image: gcr.io/kaniko-project/executor:debug
-                    command:
-                    - cat
+                    command:["cat"]
                     tty: true
                     volumeMounts:
                     - name: kaniko-secret
                       mountPath: /kaniko/.docker
                   - name: kubectl
                     image: bitnami/kubectl:latest
-                    command:
-                    - cat
+                    command:["cat"]
                     tty: true
                   volumes:
                   - name: kaniko-secret
@@ -324,7 +322,7 @@ pipeline {
             '''
             serverUrl: "https://81263F8D551849FB85B4609692993956.gr7.eu-west-2.eks.amazonaws.com"
             credentialsId: "eks-sa-token"
-            namespace: "jenkins"
+            namespace: 'jenkins'
             skipTlsVerify: true
         }
     }
