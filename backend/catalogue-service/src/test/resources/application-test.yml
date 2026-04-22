@@ -2,3 +2,7 @@ spring:
   kafka:
     listener:
       auto-startup: false
+
+otel:
+  sdk:
+    disabled: true
