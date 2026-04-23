@@ -29,12 +29,6 @@ import java.util.List;
     name = "Categories",
     description = "Category Management API - Retrieve and manage product categories"
 )
-
-import java.util.List;
-
-@RestController
-@RequestMapping("/api/categories")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
 public class CategoryController {
 
@@ -42,76 +36,73 @@ public class CategoryController {
 
     /**
      * Retrieve all product categories
-     * 
+     * <p>
      * Fetches a complete list of all product categories available in the system.
      * Categories are used to organize and filter products.
-     * 
+     *
      * @return List of all available categories
      */
     @GetMapping
     @Operation(
-        summary = "Get all categories",
-        description = "Retrieve a complete list of all product categories. Used for product organization and filtering.",
-        tags = {"Categories", "Retrieve"}
+            summary = "Get all categories",
+            description = "Retrieve a complete list of all product categories. Used for product organization and filtering.",
+            tags = {"Categories", "Retrieve"}
     )
     @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Successfully retrieved all categories",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CategoryResponse.class))
-        ),
-        @ApiResponse(
-            responseCode = "500",
-            description = "Internal server error"
-        )
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved all categories",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CategoryResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error"
+            )
     })
-    @GetMapping
     public ResponseEntity<List<CategoryResponse>> getAllCategories() {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
     /**
      * Retrieve a specific category by ID
-     * 
+     *
      * Fetches detailed information about a single category including:
      * - Category name and description
      * - Associated products count (if available)
-     * 
+     *
      * @param id The unique category identifier (Long)
      * @return Category details if found
      */
     @GetMapping("/{id}")
     @Operation(
-        summary = "Get category by ID",
-        description = "Retrieve detailed information about a specific category by its ID. " +
-                      "Includes category metadata and associated information.",
-        tags = {"Categories", "Retrieve"}
+            summary = "Get category by ID",
+            description = "Retrieve detailed information about a specific category by its ID. " +
+                    "Includes category metadata and associated information.",
+            tags = {"Categories", "Retrieve"}
     )
     @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Category found and returned successfully",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CategoryResponse.class))
-        ),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Category not found with the given ID"
-        ),
-        @ApiResponse(
-            responseCode = "500",
-            description = "Internal server error"
-        )
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Category found and returned successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CategoryResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Category not found with the given ID"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error"
+            )
     })
     public ResponseEntity<CategoryResponse> getCategory(
-        @Parameter(
-            name = "id",
-            description = "The unique identifier of the category to retrieve",
-            required = true,
-            example = "1"
-        )
-        @PathVariable Long id) {
-    @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponse> getCategory(@PathVariable Long id) {
+            @Parameter(
+                    name = "id",
+                    description = "The unique identifier of the category to retrieve",
+                    required = true,
+                    example = "1"
+            )
+            @PathVariable Long id) {
         return ResponseEntity.ok(categoryService.getCategoryById(id));
     }
 }

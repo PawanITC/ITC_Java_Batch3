@@ -1,5 +1,6 @@
 package com.itc.funkart.product_service.dto.events;
 
+import com.itc.funkart.product_service.enums.OrderEventType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class OrderEvent {
-    private String eventType; // "ORDER_CREATED"
+    private OrderEventType eventType; // "ORDER_CREATED"
     private Long userId;
     private BigDecimal totalAmount;
     private List<Long> productIds;
