@@ -1,42 +1,72 @@
 pipeline {
     agent any
+
+    // SCM polling trigger: Jenkins checks Git every 5 minutes
+    // and runs the pipeline only if there are new commits
     triggers {
-            pollSCM('H/5 * * * *')
-        }
+        pollSCM('H/5 * * * *')
+    }
+
     environment {
         DOCKER_USER     = 'ipenitcdocker'
         REPO_NAME       = 'product-service'
+        // Full Docker image name (user/repo)
         IMAGE_NAME      = "${DOCKER_USER}/${REPO_NAME}"
+        // Jenkins credential ID for Docker Hub login
         CREDS_ID        = 'DOCKER_HUB_CREDS'
         VERSION         = "1.0.${env.BUILD_NUMBER}"
+        // Path to backend service inside repo
         PROJECT_DIR     = 'backend/product-service'
     }
 
     stages {
+
+        // Step 1: Checkout source code from Git repository
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
+        // Step 2: Build the application artifact using Gradle
         stage('Build Artifact') {
             steps {
                 dir("${env.PROJECT_DIR}") {
+                    // Make Gradle wrapper executable
                     sh "chmod +x gradlew"
+
+                    // Build project while skipping tests
                     sh "./gradlew clean build -x test"
                 }
             }
         }
 
+        // Step 3: Build Docker image from the application
         stage('Build Image') {
             steps {
                 dir("${env.PROJECT_DIR}") {
+                    // Build Docker image with version and latest tags
                     sh "docker build -t ${IMAGE_NAME}:${VERSION} -t ${IMAGE_NAME}:latest ."
                 }
             }
         }
 
+        // Step 4: Push Docker image to Docker Hub
         stage('Push to Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${env.CREDS_ID}",
-                                                 passwordVariable: 'DOCKER_PASS',
-                                                 usernameVariable: 'DOCKER_USER_ID')]) {
+                withCredentials([usernamePassword(
+                    credentialsId: "${env.CREDS_ID}",
+                    passwordVariable: 'DOCKER_PASS',
+                    usernameVariable: 'DOCKER_USER_ID'
+                )]) {
+
+                    // Login to Docker Hub securely
                     sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER_ID --password-stdin"
+
+                    // Push versioned image
                     sh "docker push ${IMAGE_NAME}:${VERSION}"
+
+                    // Push latest image tag
                     sh "docker push ${IMAGE_NAME}:latest"
                 }
             }
@@ -44,8 +74,13 @@ pipeline {
     }
 
     post {
+
+        // Always executed regardless of success or failure
         always {
+            // Logout from Docker Hub
             sh "docker logout || true"
+
+            // Clean up local Docker images to save space
             sh "docker rmi ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest || true"
         }
     }
