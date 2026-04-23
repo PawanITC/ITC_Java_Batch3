@@ -49,34 +49,33 @@ services:
 
   user-service:
     container_name: user-service
-    build: 
-      context: ./backend/user-service
-    ports:
-      - "8081:8080"
+    image: abbasgureitc/user-service:latest
+    pull_policy: always
     env_file:
       - ./backend/user-service/.env
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATA_REDIS_HOST=redis
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      DB_URL: jdbc:postgresql://postgres-db:5432/mydb
     depends_on:
       - postgres
       - kafka
-      - redis   
+      - redis
     networks:
       - db-network
 
   api-gateway:
     container_name: api-gateway
-    build: 
-      context: ./backend/api-gateway
+    image: abbasgureitc/api-gateway:latest 
+    pull_policy: always
     ports:
       - "8060:8060" 
     env_file:
       - ./backend/api-gateway/.env
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATA_REDIS_HOST=redis
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATA_REDIS_HOST: redis
     depends_on:
       - user-service
       - payment-service
@@ -86,14 +85,18 @@ services:
 
   payment-service:
     container_name: payment-service
-    build:
-      context: ./backend/payment-service
+    image: abbasgureitc/payment-service:latest
+    pull_policy: always
     ports:
       - "8082:8080"
     env_file:
       - ./backend/payment-service/.env
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      - postgres
+      - kafka
+      - redis
     networks:
       - db-network
     depends_on:
@@ -122,6 +125,9 @@ services:
     image: provectuslabs/kafka-ui:latest
     ports:
       - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     networks:
       - db-network
 
