@@ -12,6 +12,8 @@ services:
       POSTGRES_PASSWORD: product_password
     ports:
       - "5432:5432"
+    volumes:
+      - product_postgres_data:/var/lib/postgresql/data # PERSISTENT DATA
     networks:
       - product-network
 
@@ -23,6 +25,8 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@product.com
       PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - product_pgadmin_data:/var/lib/pgadmin # PERSISTENT SETTINGS
     networks:
       - product-network
 
@@ -31,14 +35,15 @@ services:
     container_name: product-redis
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data # PERSISTENT CACHE
     networks:
       - product-network
-
   redis-insight:
     image: redis/redisinsight:latest
     container_name: redis-insight
     ports:
-      - "5540:5540"
+    - "5540:5540"
     networks:
       - product-network
 
@@ -53,23 +58,17 @@ services:
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-
-      KAFKA_CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
-
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093,OUTSIDE://0.0.0.0:29092
+      # CRITICAL: Added OUTSIDE for external tools and internal for app
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,OUTSIDE://kafka:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-
+      # Log Dir must match the volume path
       KAFKA_LOG_DIRS: '/var/lib/kafka/data'
-
     volumes:
-      - kafka_data:/var/lib/kafka/data
-
+      - kafka_data:/var/lib/kafka/data # PERSISTENT MESSAGES
     networks:
       - product-network
 
@@ -85,7 +84,6 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     networks:
       - product-network
-
   # --- AUTOMATION ENGINE ---
   jenkins:
     image: jenkins/jenkins:lts-jdk17
@@ -99,8 +97,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - product-network
-
-  # --- THE APPLICATION (The "Built by Jenkins" group) ---
+  # --- THE APPLICATION (The "Built by Jenkins" group) --
   product-service:
     image: ${DOCKER_HUB_USER}/product-service:latest
     container_name: product-service
@@ -112,19 +109,19 @@ services:
       - redis
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      # Here is the MAGIC: Mapping the service names to the YAML variables
       - DB_HOST=postgres
       - KAFKA_HOST=kafka
       - REDIS_HOST=redis
-      - OTLP_HOST=jaeger # Or whatever OTLP collector you use
     networks:
       - product-network
+
+volumes:
+  product_postgres_data:
+  product_pgadmin_data:
+  redis_data:
+  jenkins_data:
+  kafka_data:
 
 networks:
   product-network:
     driver: bridge
-
-volumes:
-  product_postgres_data:
-  jenkins_data:
-  kafka_data:
