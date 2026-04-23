@@ -1,0 +1,188 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pYOXcbv2aV
+      POSTGRES_DB: reviews
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - observability
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - observability
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: [ "--config=/etc/otel-config.yaml" ]
+    volumes:
+      - ./otel-config.yaml:/etc/otel-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics
+    depends_on:
+      - jaeger
+    networks:
+      - observability
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4317:4317"   # ✅ OTLP gRPC
+      - "4318:4318"
+    networks:
+      - observability
+
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - observability
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      # Correct dual-listener setup
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://localhost:9092,OUTSIDE://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - observability
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8084:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: localhost:9092
+    networks:
+      - observability
+
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.6.0
+    depends_on:
+      - kafka
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: "connect-cluster"
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_PLUGIN_PATH: /usr/share/java,/etc/kafka-connect/jars
+    volumes:
+      - ./connect-plugins:/etc/kafka-connect/jars
+    ports:
+      - "8083:8083"
+    networks:
+      - observability
+
+
+  review-rating-service:
+    build:
+      context: ./review-rating-service
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+      - otel-collector
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+      SPRING_PROFILES_ACTIVE: docker
+    volumes:
+      - C:/otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar
+    expose:
+      - "9097"
+    networks:
+      - observability
+
+    # -----------------------------
+    # Consumer Microservice
+    # -----------------------------
+  rating-aggregator-service:
+    build:
+      context: ./rating-aggregator-service
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+      - otel-collector
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+      SPRING_PROFILES_ACTIVE: docker
+    volumes:
+      - C:/otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar
+    expose:
+      - "9096"
+    networks:
+      - observability
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - C:/Users/Sunil/IdeaProjects/ITC_Java_Batch3/backend/reviewrating-service/prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks: [ observability ]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    networks: [ observability ]
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    networks:
+      - observability
+
+
+
+networks:
+  observability:
+    driver: bridge
+
+volumes:
+  pgdata:

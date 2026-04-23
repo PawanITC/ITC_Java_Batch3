@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,16 +19,15 @@ public class Payment {
 
     private Long userId;
     private Long orderId;
-    private BigDecimal amount;
+    private Long amount;
     private String currency;
     private String stripePaymentIntentId;
-
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Custom constructor
-    public Payment(Long userId, Long orderId, BigDecimal amount, String currency) {
+    // Custom constructor for creating pending payments
+    public Payment(Long userId, Long orderId, Long amount, String currency) {
         this.userId = userId;
         this.orderId = orderId;
         this.amount = amount;
@@ -37,17 +35,5 @@ public class Payment {
         this.status = "pending";
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-    }
-
-    // ================= JPA Lifecycle Callbacks =================
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = createdAt;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 }

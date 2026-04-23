@@ -1,0 +1,139 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Verify JMX File') {
+            steps {
+                sh '''
+                if grep -q "host.docker.internal" backend/catalogue-service/jmeter/catalogue-docker-test.jmx; then
+                    echo "JMX INVALID"
+                    exit 1
+                else
+                    echo "JMX OK"
+                fi
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'cd backend/catalogue-service && ./gradlew test --no-daemon'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'cd backend/catalogue-service && ./gradlew build -x test --no-daemon'
+            }
+        }
+
+        stage('Deploy (Docker Compose)') {
+            steps {
+                sh '''
+                cd backend/catalogue-service
+                docker-compose down || true
+                docker-compose up -d --build
+                '''
+            }
+        }
+
+        stage('Wait for Service Health') {
+            steps {
+                sh '''
+                timeout=60
+                elapsed=0
+
+                until docker run --rm --network shared-network appropriate/curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
+                    if [ $elapsed -ge $timeout ]; then
+                        docker logs catalogue-service
+                        exit 1
+                    fi
+                    sleep 3
+                    elapsed=$((elapsed+3))
+                done
+                '''
+            }
+        }
+
+        stage('Performance Test (JMeter)') {
+            steps {
+                sh '''
+                cd backend/catalogue-service/jmeter
+                rm -rf results.jtl jmeter.log report-${BUILD_NUMBER}
+
+                trap "docker rm -f jmeter-run-${BUILD_NUMBER} jmeter-report-${BUILD_NUMBER} 2>/dev/null || true" EXIT
+
+                docker create --name jmeter-run-${BUILD_NUMBER} \
+                  --network shared-network \
+                  justb4/jmeter \
+                  -n \
+                  -t /catalogue-docker-test.jmx \
+                  -l /results.jtl \
+                  -j /jmeter.log \
+                  -JtestType=veryhigh
+
+                docker cp catalogue-docker-test.jmx jmeter-run-${BUILD_NUMBER}:/catalogue-docker-test.jmx
+
+                set +e
+                docker start -a jmeter-run-${BUILD_NUMBER}
+                JMETER_EXIT=$?
+                set -e
+
+                docker cp jmeter-run-${BUILD_NUMBER}:/results.jtl . || true
+                docker cp jmeter-run-${BUILD_NUMBER}:/jmeter.log . || true
+
+                if [ ! -f results.jtl ]; then
+                    echo "Error: results.jtl not generated. JMeter test failed entirely."
+                    exit 1
+                fi
+
+                docker create --name jmeter-report-${BUILD_NUMBER} \
+                  justb4/jmeter \
+                  -g /results.jtl \
+                  -o /report-${BUILD_NUMBER}
+
+                docker cp results.jtl jmeter-report-${BUILD_NUMBER}:/results.jtl
+
+                set +e
+                docker start -a jmeter-report-${BUILD_NUMBER}
+                set -e
+
+                docker cp jmeter-report-${BUILD_NUMBER}:/report-${BUILD_NUMBER} ./report-${BUILD_NUMBER} || true
+
+                if [ $JMETER_EXIT -ne 0 ]; then
+                    echo "JMeter test failed with exit code $JMETER_EXIT"
+                    exit $JMETER_EXIT
+                fi
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
+
+            publishHTML([
+                reportDir: "backend/catalogue-service/jmeter/report-${env.BUILD_NUMBER}",
+                reportFiles: 'index.html',
+                reportName: 'JMeter Report',
+                keepAll: true,
+                alwaysLinkToLastBuild: true,
+                allowMissing: false
+            ])
+        }
+    }
+}

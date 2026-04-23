@@ -7,22 +7,7 @@
 # ==================================================
 
 # ---------------------------
-# Stage 1: Build
-# ---------------------------
-FROM gradle:9.4.0-jdk17 AS builder
-
-WORKDIR /app
-
-# Copy project files
-COPY build.gradle .
-COPY settings.gradle .
-COPY src ./src
-
-# Build the Spring Boot fat jar (skip tests to speed up)
-RUN gradle clean build -x test
-
-# ---------------------------
-# Stage 2: Runtime
+# Runtime Stage (Lean & Fast)
 # ---------------------------
 FROM eclipse-temurin:17-jdk-jammy
 
@@ -32,12 +17,14 @@ WORKDIR /app
 LABEL maintainer="Abbas"
 LABEL service.name="payment-service"
 LABEL service.description="Payment Service - Handles payments via Stripe integration"
-LABEL service.version="1.0.0"
 
-# Copy jar from build stage
-COPY --from=builder /app/build/libs/*.jar app.jar
+# Copy the JAR built by Jenkins
+# Jenkins output: backend/payment-service/build/libs/
+# Ensure Gradle bootJar produces a single predictable artifact
+COPY build/libs/*.jar app.jar
 
-EXPOSE 8082
+# Standard internal port for microservices
+EXPOSE 8080
 
-# Run the jar
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# JVM container-friendly settings
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

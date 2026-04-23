@@ -1,0 +1,45 @@
+server:
+  port: 9096
+
+spring:
+  application:
+    name: rating-aggregator-service
+
+  datasource:
+    url: jdbc:postgresql://18.132.197.27:31369/postgres
+    username: postgres
+    password: pYOXcbv2aV
+    jpa:
+      hibernate:
+        ddl-auto: update
+      properties:
+        hibernate:
+          dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,info,prometheus
+
+
+
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: rating-aggregator-group-v2
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+
+
+otel:
+  service:
+    name: rating-aggregator-service
+  exporter:
+    otlp:
+      endpoint: http://localhost:4318
+
