@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: catalogue-service
-          image: localhost:5000/catalogue-service-registry:local
+          image: host.docker.internal:5000/catalogue-service-registry:local
           imagePullPolicy: Always
           ports:
             - containerPort: 8081
