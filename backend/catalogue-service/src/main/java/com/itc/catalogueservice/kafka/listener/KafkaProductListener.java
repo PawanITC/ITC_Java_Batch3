@@ -11,7 +11,7 @@ import org.springframework.kafka.retrytopic.TopicSuffixingStrategy;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
-@Profile("kafka")
+
 @Component
 @RequiredArgsConstructor
 public class KafkaProductListener {
@@ -43,6 +43,12 @@ public class KafkaProductListener {
                 break;
 
             case DELETED:
+                if (event.getProduct() == null ||
+                        event.getProduct().getId() == null ||
+                        event.getProduct().getCategory() == null) {
+                    throw new InvalidProductEventException("Invalid delete event");
+                }
+
                 catalogueService.deleteProductFromCache(
                         String.valueOf(event.getProduct().getId()),
                         event.getProduct().getCategory()
