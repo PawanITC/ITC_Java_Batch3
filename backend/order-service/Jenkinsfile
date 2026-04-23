@@ -604,39 +604,209 @@
 
 
 
+// pipeline {
+//     agent {
+//             kubernetes {
+//                 namespace 'jenkins'
+//                 yaml '''
+//                 apiVersion: v1
+//                 kind: Pod
+//                 spec:
+//                   serviceAccountName: jenkins-sa
+//                   containers:
+//                   - name: kaniko
+//                     image: gcr.io/kaniko-project/executor:debug
+//                     command:
+//                     - cat
+//                     tty: true
+//                     volumeMounts:
+//                     - name: kaniko-secret
+//                       mountPath: /kaniko/.docker
+//                   - name: kubectl
+//                     image: bitnami/kubectl:latest
+//                     command:
+//                     - cat
+//                     tty: true
+//                   volumes:
+//                   - name: kaniko-secret
+//                     secret:
+//                       secretName: ecr-registry-secret
+//                       items:
+//                       - key: .dockerconfigjson
+//                         path: config.json
+//                 '''
+//             }
+//         }
+//
+//     parameters {
+//         string(name: 'GIT_BRANCH', defaultValue: 'feature-anjali', description: 'Git branch')
+//         string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag')
+//     }
+//
+//     environment {
+//         AWS_ACCOUNT_ID = '666127452756'
+//         AWS_REGION = 'eu-west-2'
+//         ECR_REPO_NAME = 'ecr-java'
+//         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+//         IMAGE_NAME = "${ECR_REGISTRY}/${ECR_REPO_NAME}"
+//         IMAGE_TAG = "${params.IMAGE_TAG ?: env.BUILD_NUMBER}"
+//         K8S_NAMESPACE = 'order-service'
+//         K8S_DEPLOYMENT = 'order-service'
+//         K8S_CLUSTER_NAME = 'tf-java-eks-jn7re'
+//         GITHUB_REPO = 'https://github.com/PawanITC/ITC_Java_Batch3.git'
+//         SERVICE_PATH = 'backend/order-service'
+//     }
+//
+//     stages {
+//         stage('Checkout') {
+//             steps {
+//                 echo "========== Checkout Code =========="
+//                 checkout([
+//                     $class: 'GitSCM',
+//                     branches: [[name: "*/${params.GIT_BRANCH}"]],
+//                     userRemoteConfigs: [[url: "${GITHUB_REPO}"]]
+//                 ])
+//                 echo "✓ Code checked out"
+//             }
+//         }
+//
+//         stage('Build Info') {
+//             steps {
+//                 echo "========== Build Information =========="
+//                 echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
+//                 echo "Cluster: ${K8S_CLUSTER_NAME}"
+//                 echo "Region: ${AWS_REGION}"
+//             }
+//         }
+//
+//         stage('AWS Login') {
+//             steps {
+//                 container('kaniko') {
+//                     echo "========== AWS Authentication =========="
+//                     sh '''
+//                         aws ecr get-login-password --region ${AWS_REGION} | \
+//                         docker login --username AWS --password-stdin ${ECR_REGISTRY}
+//                         echo "✓ AWS ECR authenticated"
+//                     '''
+//                 }
+//             }
+//         }
+//
+//         stage('Build Image') {
+//             steps {
+//                 container('kaniko') {
+//                     echo "========== Build Docker Image =========="
+//                     sh '''
+//                        cd ${SERVICE_PATH}
+//                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+//                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+//                        echo "✓ Image built locally"
+//                     '''
+//                 }
+//             }
+//         }
+//
+//         stage('Push ECR') {
+//             steps {
+//                 echo "========== Push to ECR =========="
+//                 sh '''
+//                     docker push ${IMAGE_NAME}:${IMAGE_TAG}
+//                     docker push ${IMAGE_NAME}:latest
+//                     echo "✓ Image pushed to ECR"
+//                 '''
+//             }
+//         }
+//
+//         stage('Deploy K8S') {
+//             steps {
+//                 echo "========== Deploy to Kubernetes =========="
+//                 withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+//                     sh '''
+//                         aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
+//
+//                         echo "Updating deployment..."
+//                         kubectl set image deployment/${K8S_DEPLOYMENT} \
+//                             ${K8S_DEPLOYMENT}=${IMAGE_NAME}:${IMAGE_TAG} \
+//                             -n ${K8S_NAMESPACE}
+//
+//                         kubectl rollout status deployment/${K8S_DEPLOYMENT} \
+//                             -n ${K8S_NAMESPACE} --timeout=5m
+//
+//                         echo "✓ Deployment updated"
+//                     '''
+//                 }
+//             }
+//         }
+//
+//         stage('Verify') {
+//             steps {
+//                 echo "========== Verify Deployment =========="
+//                 withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+//                     sh '''
+//                         aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
+//
+//                         echo "Pod Status:"
+//                         kubectl get pods -n ${K8S_NAMESPACE} -l app=order-service
+//
+//                         echo ""
+//                         echo "Service Status:"
+//                         kubectl get svc order-service -n ${K8S_NAMESPACE}
+//
+//                         echo "✓ Deployment verified"
+//                     '''
+//                 }
+//             }
+//         }
+//     }
+//
+//     post {
+//         success {
+//             echo "========== SUCCESS =========="
+//             echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
+//             echo "Deployed: ${K8S_NAMESPACE}/${K8S_DEPLOYMENT}"
+//         }
+//         failure {
+//             echo "========== FAILED =========="
+//             echo "Stage: ${env.STAGE_NAME}"
+//         }
+//     }
+// }
+
+
+
 pipeline {
     agent {
-            kubernetes {
-                namespace 'jenkins'
-                yaml '''
-                apiVersion: v1
-                kind: Pod
-                spec:
-                  serviceAccountName: jenkins-sa
-                  containers:
-                  - name: kaniko
-                    image: gcr.io/kaniko-project/executor:debug
-                    command:
-                    - cat
-                    tty: true
-                    volumeMounts:
-                    - name: kaniko-secret
-                      mountPath: /kaniko/.docker
-                  - name: kubectl
-                    image: bitnami/kubectl:latest
-                    command:
-                    - cat
-                    tty: true
-                  volumes:
-                  - name: kaniko-secret
-                    secret:
-                      secretName: ecr-registry-secret
-                      items:
-                      - key: .dockerconfigjson
-                        path: config.json
-                '''
-            }
+        kubernetes {
+            namespace 'jenkins'
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins-sa
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: kaniko-secret
+      mountPath: /kaniko/.docker
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command:
+    - cat
+    tty: true
+  volumes:
+  - name: kaniko-secret
+    secret:
+      secretName: ecr-registry-secret
+      items:
+      - key: .dockerconfigjson
+        path: config.json
+'''
         }
+    }
 
     parameters {
         string(name: 'GIT_BRANCH', defaultValue: 'feature-anjali', description: 'Git branch')
@@ -658,6 +828,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo "========== Checkout Code =========="
@@ -666,94 +837,61 @@ pipeline {
                     branches: [[name: "*/${params.GIT_BRANCH}"]],
                     userRemoteConfigs: [[url: "${GITHUB_REPO}"]]
                 ])
-                echo "✓ Code checked out"
             }
         }
 
-        stage('Build Info') {
-            steps {
-                echo "========== Build Information =========="
-                echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-                echo "Cluster: ${K8S_CLUSTER_NAME}"
-                echo "Region: ${AWS_REGION}"
-            }
-        }
-
-        stage('AWS Login') {
+        stage('Build & Push Image (Kaniko)') {
             steps {
                 container('kaniko') {
-                    echo "========== AWS Authentication =========="
+                    echo "========== Building & Pushing Image =========="
                     sh '''
-                        aws ecr get-login-password --region ${AWS_REGION} | \
-                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                        echo "✓ AWS ECR authenticated"
+                      /kaniko/executor \
+                        --context=${WORKSPACE}/${SERVICE_PATH} \
+                        --dockerfile=${WORKSPACE}/${SERVICE_PATH}/Dockerfile \
+                        --destination=${IMAGE_NAME}:${IMAGE_TAG} \
+                        --destination=${IMAGE_NAME}:latest \
+                        --cache=true
                     '''
                 }
             }
         }
 
-        stage('Build Image') {
+        stage('Deploy to EKS') {
             steps {
-                container('kaniko') {
-                    echo "========== Build Docker Image =========="
-                    sh '''
-                       cd ${SERVICE_PATH}
-                       docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                       docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
-                       echo "✓ Image built locally"
-                    '''
-                }
-            }
-        }
+                container('kubectl') {
+                    echo "========== Deploy to Kubernetes =========="
+                    withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                        sh '''
+                          aws eks update-kubeconfig \
+                            --region ${AWS_REGION} \
+                            --name ${K8S_CLUSTER_NAME}
 
-        stage('Push ECR') {
-            steps {
-                echo "========== Push to ECR =========="
-                sh '''
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                    docker push ${IMAGE_NAME}:latest
-                    echo "✓ Image pushed to ECR"
-                '''
-            }
-        }
-
-        stage('Deploy K8S') {
-            steps {
-                echo "========== Deploy to Kubernetes =========="
-                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                    sh '''
-                        aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
-
-                        echo "Updating deployment..."
-                        kubectl set image deployment/${K8S_DEPLOYMENT} \
+                          kubectl set image deployment/${K8S_DEPLOYMENT} \
                             ${K8S_DEPLOYMENT}=${IMAGE_NAME}:${IMAGE_TAG} \
                             -n ${K8S_NAMESPACE}
 
-                        kubectl rollout status deployment/${K8S_DEPLOYMENT} \
+                          kubectl rollout status deployment/${K8S_DEPLOYMENT} \
                             -n ${K8S_NAMESPACE} --timeout=5m
-
-                        echo "✓ Deployment updated"
-                    '''
+                        '''
+                    }
                 }
             }
         }
 
-        stage('Verify') {
+        stage('Verify Deployment') {
             steps {
-                echo "========== Verify Deployment =========="
-                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                    sh '''
-                        aws eks update-kubeconfig --region ${AWS_REGION} --name ${K8S_CLUSTER_NAME}
+                container('kubectl') {
+                    echo "========== Verify Deployment =========="
+                    withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                        sh '''
+                          aws eks update-kubeconfig \
+                            --region ${AWS_REGION} \
+                            --name ${K8S_CLUSTER_NAME}
 
-                        echo "Pod Status:"
-                        kubectl get pods -n ${K8S_NAMESPACE} -l app=order-service
-
-                        echo ""
-                        echo "Service Status:"
-                        kubectl get svc order-service -n ${K8S_NAMESPACE}
-
-                        echo "✓ Deployment verified"
-                    '''
+                          kubectl get pods -n ${K8S_NAMESPACE} -l app=order-service
+                          kubectl get svc order-service -n ${K8S_NAMESPACE}
+                        '''
+                    }
                 }
             }
         }
@@ -763,7 +901,6 @@ pipeline {
         success {
             echo "========== SUCCESS =========="
             echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-            echo "Deployed: ${K8S_NAMESPACE}/${K8S_DEPLOYMENT}"
         }
         failure {
             echo "========== FAILED =========="
