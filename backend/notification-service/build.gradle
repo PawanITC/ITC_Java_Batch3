@@ -48,6 +48,8 @@ dependencies {
     // metrics
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
+    implementation 'org.springframework.kafka:spring-kafka'
+
     runtimeOnly 'org.postgresql:postgresql:42.7.3'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
