@@ -2,7 +2,7 @@ spring:
   application:
     name: product-service
   profiles:
-    active: prod
+    active: dev
   kafka:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
