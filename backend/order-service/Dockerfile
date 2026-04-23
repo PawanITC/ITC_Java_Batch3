@@ -44,16 +44,26 @@
 #ENTRYPOINT ["java", "-jar", "app.jar"]
 
 
-# Build stage (this one is fine - maven:3.8.1-openjdk-17 still works)
-FROM maven:3.8.1-openjdk-17 AS builder
+# Build stage
+FROM gradle:8.5-jdk17 AS builder
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN mvn clean package -DskipTests
 
-# Run stage - FIXED
+# Copy gradle files first (better layer caching)
+COPY build.gradle .
+COPY settings.gradle .
+COPY gradlew .
+COPY gradle ./gradle
+
+# Download dependencies first (cached separately)
+RUN gradle dependencies --no-daemon || true
+
+# Copy source and build
+COPY src ./src
+RUN gradle clean bootJar --no-daemon -x test
+
+# Run stage
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/build/libs/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
