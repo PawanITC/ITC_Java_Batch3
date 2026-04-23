@@ -20,7 +20,7 @@ pipeline {
     stages {
         stage('Fetch Code') {
             steps {
-                // Standalone git command for "Pipeline script" mode
+                // Standalone git command for "Pipeline script" mode for branch product-service
                 git branch: 'product-service', url: "${env.GIT_URL}"
             }
         }
