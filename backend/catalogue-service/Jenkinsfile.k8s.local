@@ -8,6 +8,7 @@ spec:
   containers:
     - name: jnlp
       image: jenkins/inbound-agent:jdk17
+      args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']
 
     - name: kaniko
       image: gcr.io/kaniko-project/executor:debug
@@ -24,7 +25,7 @@ spec:
     }
 
     environment {
-        IMAGE = "localhost:5000/catalogue-service-registry:local"
+        IMAGE = "host.docker.internal:5000/catalogue-service-registry:local"
     }
 
     stages {
@@ -72,8 +73,8 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    kubectl apply -f backend/catalogue-service/k8s/local/
-                    kubectl rollout restart deployment catalogue-service
+                    kubectl apply -n catalogue-service -f backend/catalogue-service/k8s/local/
+                    kubectl rollout restart deployment catalogue-service -n catalogue-service
                     '''
                 }
             }
@@ -82,8 +83,8 @@ spec:
         stage('Verify') {
             steps {
                 container('kubectl') {
-                    sh 'kubectl get pods'
-                    sh 'kubectl get svc'
+                    sh 'kubectl get pods -n catalogue-service'
+                    sh 'kubectl get svc -n catalogue-service'
                 }
             }
         }
