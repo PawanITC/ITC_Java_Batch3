@@ -1,8 +1,30 @@
 pipeline {
-    agent any
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: jnlp
+      image: jenkins/inbound-agent:jdk17
+
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:debug
+      command: ["/busybox/sh"]
+      args: ["-c", "sleep 999999"]
+      tty: true
+
+    - name: kubectl
+      image: bitnami/kubectl:latest
+      command: ["cat"]
+      tty: true
+'''
+        }
+    }
 
     environment {
-        IMAGE = "catalogue-service:local"
+        IMAGE = "localhost:5000/catalogue-service-registry:local"
     }
 
     stages {
@@ -31,23 +53,38 @@ pipeline {
             }
         }
 
-        stage('Build Image (Docker)') {
+        stage('Build & Push Image (Kaniko)') {
             steps {
-                sh 'docker build -t $IMAGE backend/catalogue-service'
+                container('kaniko') {
+                    sh '''
+                    /kaniko/executor \
+                      --dockerfile=backend/catalogue-service/Dockerfile \
+                      --context=dir://backend/catalogue-service \
+                      --destination=$IMAGE \
+                      --insecure \
+                      --skip-tls-verify
+                    '''
+                }
             }
         }
 
         stage('Deploy to Local K8s') {
             steps {
-                sh 'kubectl apply -f backend/catalogue-service/k8s/local/'
-                sh 'kubectl rollout restart deployment catalogue-service'
+                container('kubectl') {
+                    sh '''
+                    kubectl apply -f backend/catalogue-service/k8s/local/
+                    kubectl rollout restart deployment catalogue-service
+                    '''
+                }
             }
         }
 
         stage('Verify') {
             steps {
-                sh 'kubectl get pods'
-                sh 'kubectl get svc'
+                container('kubectl') {
+                    sh 'kubectl get pods'
+                    sh 'kubectl get svc'
+                }
             }
         }
     }

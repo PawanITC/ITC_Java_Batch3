@@ -14,8 +14,8 @@ spec:
     spec:
       containers:
         - name: catalogue-service
-          image: catalogue-service:local
-          imagePullPolicy: IfNotPresent
+          image: localhost:5000/catalogue-service-registry:local
+          imagePullPolicy: Always
           ports:
             - containerPort: 8081
           env:
