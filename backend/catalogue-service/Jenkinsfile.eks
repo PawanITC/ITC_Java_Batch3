@@ -29,6 +29,10 @@ spec:
         }
     }
 
+    environment {
+        IMAGE = "666127452756.dkr.ecr.eu-west-2.amazonaws.com/catalogue-service:v1"
+    }
+
     stages {
 
         stage('Clean Workspace') {
@@ -62,7 +66,7 @@ spec:
                     /kaniko/executor \
                       --dockerfile=backend/catalogue-service/Dockerfile \
                       --context=dir://backend/catalogue-service \
-                      --destination=666127452756.dkr.ecr.eu-west-2.amazonaws.com/catalogue-service:latest \
+                      --destination=$IMAGE \
                       --verbosity=info
                     '''
                 }
@@ -73,7 +77,7 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    kubectl apply -f backend/catalogue-service/k8s/
+                    kubectl apply -f backend/catalogue-service/k8s/eks/
                     kubectl get pods -n catalogue-service
                     '''
                 }

@@ -4,12 +4,14 @@ import com.itc.catalogueservice.exception.kafka.InvalidProductEventException;
 import com.itc.catalogueservice.kafka.listener.dto.ProductEventDTO;
 import com.itc.catalogueservice.service.CatalogueService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.retrytopic.TopicSuffixingStrategy;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
+@Profile("kafka")
 @Component
 @RequiredArgsConstructor
 public class KafkaProductListener {

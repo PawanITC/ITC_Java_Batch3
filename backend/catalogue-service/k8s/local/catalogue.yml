@@ -28,13 +28,9 @@ kind: Service
 metadata:
   name: catalogue-service
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: catalogue-service
   ports:
     - port: 8081
       targetPort: 8081
-      nodePort: 30081
-
-
-

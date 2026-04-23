@@ -7,10 +7,11 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaRetryTopic;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+@Profile("kafka")
 @Configuration
 @EnableKafka
 @EnableKafkaRetryTopic
-@Profile("!test")
+//@Profile("!test")
 public class KafkaConfig {
 
     @Bean
