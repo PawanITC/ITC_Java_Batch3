@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE = "catalogue-service:local"
+    }
+
+    stages {
+
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'cd backend/catalogue-service && ./gradlew test --no-daemon'
+            }
+        }
+
+        stage('Build JAR') {
+            steps {
+                sh 'cd backend/catalogue-service && ./gradlew build -x test --no-daemon'
+            }
+        }
+
+        stage('Build Image (Docker)') {
+            steps {
+                sh 'docker build -t $IMAGE backend/catalogue-service'
+            }
+        }
+
+        stage('Deploy to Local K8s') {
+            steps {
+                sh 'kubectl apply -f backend/catalogue-service/k8s/local/'
+                sh 'kubectl rollout restart deployment catalogue-service'
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                sh 'kubectl get pods'
+                sh 'kubectl get svc'
+            }
+        }
+    }
+}
