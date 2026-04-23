@@ -772,7 +772,6 @@
 //     }
 // }
 
-
 pipeline {
     agent {
         kubernetes {
@@ -792,7 +791,7 @@ spec:
     - name: kaniko-secret
       mountPath: /kaniko/.docker
   - name: kubectl
-    image: bitnami/kubectl:latest
+    image: alpine/k8s:1.28.13
     command:
     - cat
     tty: true
@@ -864,7 +863,6 @@ spec:
             steps {
                 container('kubectl') {
                     echo "========== Deploy to Kubernetes =========="
-                    // Using kubeconfig file saved in Jenkins credentials
                     withCredentials([file(credentialsId: 'kubeconfig-eks', variable: 'KUBECONFIG')]) {
                         sh '''
                           kubectl set image deployment/${K8S_DEPLOYMENT} \
