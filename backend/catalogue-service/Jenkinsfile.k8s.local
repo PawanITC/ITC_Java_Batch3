@@ -19,7 +19,11 @@ spec:
 
     - name: kubectl
       image: bitnami/kubectl:latest
-      command: ["cat"]
+      command:
+        - /bin/sh
+        - -c
+      args:
+        - cat
       tty: true
 '''
         }
