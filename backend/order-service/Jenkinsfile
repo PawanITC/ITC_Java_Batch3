@@ -773,8 +773,6 @@
 // }
 
 
-
-
 pipeline {
     agent {
         kubernetes {
@@ -798,6 +796,9 @@ spec:
     command:
     - cat
     tty: true
+    volumeMounts:
+    - name: kubeconfig-volume
+      mountPath: /root/.kube
   volumes:
   - name: kaniko-secret
     secret:
@@ -805,6 +806,8 @@ spec:
       items:
       - key: .dockerconfigjson
         path: config.json
+  - name: kubeconfig-volume
+    emptyDir: {}
 '''
         }
     }
@@ -861,12 +864,9 @@ spec:
             steps {
                 container('kubectl') {
                     echo "========== Deploy to Kubernetes =========="
-                    withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                    // Using kubeconfig file saved in Jenkins credentials
+                    withCredentials([file(credentialsId: 'kubeconfig-eks', variable: 'KUBECONFIG')]) {
                         sh '''
-                          aws eks update-kubeconfig \
-                            --region ${AWS_REGION} \
-                            --name ${K8S_CLUSTER_NAME}
-
                           kubectl set image deployment/${K8S_DEPLOYMENT} \
                             ${K8S_DEPLOYMENT}=${IMAGE_NAME}:${IMAGE_TAG} \
                             -n ${K8S_NAMESPACE}
@@ -883,12 +883,8 @@ spec:
             steps {
                 container('kubectl') {
                     echo "========== Verify Deployment =========="
-                    withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                    withCredentials([file(credentialsId: 'kubeconfig-eks', variable: 'KUBECONFIG')]) {
                         sh '''
-                          aws eks update-kubeconfig \
-                            --region ${AWS_REGION} \
-                            --name ${K8S_CLUSTER_NAME}
-
                           kubectl get pods -n ${K8S_NAMESPACE} -l app=order-service
                           kubectl get svc order-service -n ${K8S_NAMESPACE}
                         '''
