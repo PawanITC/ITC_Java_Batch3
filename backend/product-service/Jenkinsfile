@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    triggers {
+            pollSCM('H/5 * * * *')
+        }
     environment {
         DOCKER_USER     = 'ipenitcdocker'
         REPO_NAME       = 'product-service'
