@@ -79,6 +79,7 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
     depends_on:
       - user-service
+      - payment-service
       - redis
     networks:
       - db-network
@@ -95,6 +96,10 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
     networks:
       - db-network
+    depends_on:
+      - postgres
+      - kafka
+      - redis
 
   jenkins:
     user: root

@@ -1,7 +1,7 @@
 package com.itc.funkart.user.config;
 
-import com.itc.funkart.user.auth.JwtService;
 import com.itc.funkart.user.auth.JwtAuthWebFilter;
+import com.itc.funkart.user.auth.JwtService;
 import com.itc.funkart.user.auth.PrincipalFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -33,6 +33,7 @@ public class SecurityConfig {
 
     /**
      * Configures the custom JWT filter to intercept and validate tokens in the request header/cookies.
+     *
      * @return an instance of {@link JwtAuthWebFilter}
      */
     @Bean
@@ -43,6 +44,7 @@ public class SecurityConfig {
     /**
      * Bypasses the Spring Security Filter Chain for infrastructure and health endpoints.
      * This improves performance for high-frequency monitoring requests.
+     *
      * @return a {@link WebSecurityCustomizer} with ignoring rules.
      */
     @Bean
@@ -55,6 +57,7 @@ public class SecurityConfig {
     /**
      * Defines the security constraints for HTTP requests.
      * * @param http the {@link HttpSecurity} to modify
+     *
      * @return the built {@link SecurityFilterChain}
      * @throws Exception if an error occurs during configuration
      */
@@ -66,14 +69,10 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // Public Auth & OAuth Endpoints
-                        .requestMatchers(
-                                "/users/login",
-                                "/users/signup",
-                                "/users/oauth/**"
-                        ).permitAll()
-
-                        // All other resources (including /users/me) require JWT
+                        // Match the exact paths the Gateway forwards
+                        .requestMatchers("/users/login", "/users/signup").permitAll()
+                        .requestMatchers("/users/oauth/**").permitAll()
+                        .requestMatchers("/users/health").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Intercept requests before they reach the controller
@@ -84,6 +83,7 @@ public class SecurityConfig {
     /**
      * Prevents Spring Boot from generating a default security password in the logs.
      * Notifies Spring that identity management is handled via JWT.
+     *
      * @return a no-op {@link UserDetailsService}
      */
     @Bean

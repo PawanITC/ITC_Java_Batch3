@@ -14,7 +14,8 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    # Adding ':localhost:9092' as a default fallback
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -42,5 +43,5 @@ management:
 
 logging:
   level:
-    root: INFO
-    com.itc.funkart: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
