@@ -1,0 +1,36 @@
+plugins {
+    id 'java-library'
+    id 'com.github.davidmc24.gradle.plugin.avro' version '1.8.0'
+    id 'maven-publish'
+}
+
+group = 'com.itc.funkart'
+version = file("version.txt").text.trim()
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api "org.apache.avro:avro:1.11.3"
+}
+
+avro {
+    stringType = "String"
+    fieldVisibility = "PRIVATE"
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            groupId = 'com.itc.funkart'
+            artifactId = 'review-events-schema'
+            version = file("version.txt").text.trim()
+        }
+    }
+
+    repositories {
+        mavenLocal()
+    }
+}

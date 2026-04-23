@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "ReviewEventEnvelope",
+  "namespace": "com.itc.funkart.event",
+  "fields": [
+    { "name": "eventId", "type": "string" },
+    { "name": "occurredAt", "type": "string" },
+    { "name": "eventType", "type": "string" },
+    { "name": "eventData", "type": "bytes" }
+  ]
+}

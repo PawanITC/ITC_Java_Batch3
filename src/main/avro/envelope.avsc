@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "ReviewEventEnvelope",
+  "namespace": "com.itc.funkart.avro",
+  "fields": [
+    { "name": "eventId", "type": "string" },
+    { "name": "eventType", "type": "string" },
+    { "name": "occurredAt", "type": { "type": "long", "logicalType": "timestamp-millis" } },
+    { "name": "payload", "type": "bytes" }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "ReviewUpdatedEvent",
+  "namespace": "com.itc.funkart.event",
+  "fields": [
+    { "name": "eventType", "type": "string", "default": "REVIEW_UPDATED" },
+    { "name": "payload", "type": "com.example.events.common.ReviewPayload" }
+  ]
+}
