@@ -8,6 +8,7 @@ import com.itc.funkart.product_service.dto.request.CartResponse;
 import com.itc.funkart.product_service.entity.Cart;
 import com.itc.funkart.product_service.entity.CartItem;
 import com.itc.funkart.product_service.entity.Product;
+import com.itc.funkart.product_service.enums.OrderEventType;
 import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
 import com.itc.funkart.product_service.mapper.CartMapper;
 import com.itc.funkart.product_service.producer.OrderProducer;
@@ -123,16 +124,16 @@ public class CartServiceImpl implements CartService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         OrderEvent event = OrderEvent.builder()
-                .eventType("ORDER_CREATED")
+                .eventType(OrderEventType.ORDER_CREATED)
                 .userId(userId)
                 .totalAmount(total)
                 .productIds(productIds)
                 .build();
 
-        cart.getItems().clear();
+        cart.getItems().clear(); //now cart is cleared after checkout but later actual order will be created (order-service) then with the topic cart will be cleared for that particular user
         cartRepository.save(cart);
 
-        //orderProducer.sendOrderEvent(event);
+        orderProducer.sendOrderEvent(event);
     }
 
     // Helper method to ensure every user has a cart

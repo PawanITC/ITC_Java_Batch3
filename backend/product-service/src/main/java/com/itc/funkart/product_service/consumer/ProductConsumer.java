@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ProductConsumer {
 
-    @KafkaListener(topics = "product-topic", groupId = "product-group")
+    @KafkaListener(topics = "products", groupId = "products-group")
     public void consume(ProductEvent event) {
         log.info(">>>> EVENT RECEIVED: {}", event);
     }
