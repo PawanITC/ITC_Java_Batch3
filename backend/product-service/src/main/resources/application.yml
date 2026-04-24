@@ -62,4 +62,4 @@ logging:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     org.springframework.kafka: DEBUG
-    org.apache.kafka: WARN
+    org.apache.kafka: WAR
