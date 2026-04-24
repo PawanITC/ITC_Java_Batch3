@@ -13,9 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -29,16 +27,14 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class KafkaEventPublisherTest {
 
-    @Mock
-    private KafkaTemplate<String, Object> kafkaTemplate;
-
-    @InjectMocks
-    private KafkaEventPublisher kafkaEventPublisher;
-
     // Constants mirrored from Service for verification
     private static final String TOPIC_COMPLETED = "payment_completed";
     private static final String TOPIC_FAILED = "payment_failed";
     private static final String TOPIC_REFUNDED = "payment_refunded";
+    @Mock
+    private KafkaTemplate<String, Object> kafkaTemplate;
+    @InjectMocks
+    private KafkaEventPublisher kafkaEventPublisher;
 
     /**
      * Grouping for successful event dispatch scenarios.
@@ -147,6 +143,45 @@ public class KafkaEventPublisherTest {
             assertDoesNotThrow(() -> kafkaEventPublisher.publishPaymentCompletedEvent(event));
 
             verify(kafkaTemplate).send(anyString(), anyString(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Edge Cases: Data Integrity")
+    class EdgeCaseTests {
+
+        /**
+         * Verifies the guard clause for null keys.
+         * If the paymentId is null, the message should never even try to send.
+         */
+        @Test
+        @DisplayName("Guard Clause: Abort dispatch if key is null")
+        void sendEvent_NullKey_Aborts() {
+            // Using a DTO where paymentId() returns null (requires a mock or custom DTO)
+            PaymentCompletedEvent event = mock(PaymentCompletedEvent.class);
+            when(event.paymentId()).thenReturn(null);
+
+            kafkaEventPublisher.publishPaymentCompletedEvent(event);
+
+            // Verify that kafkaTemplate was NEVER called
+            verify(kafkaTemplate, never()).send(anyString(), anyString(), any());
+        }
+
+        /**
+         * Verifies that the key is stringified correctly.
+         * Kafka keys must be strings to ensure the hashing algorithm works consistently.
+         */
+        @Test
+        @DisplayName("Data Mapping: Ensure key is converted to String")
+        void sendEvent_VerifiesStringKey() {
+            Long paymentId = 99999L;
+            PaymentCompletedEvent event = new PaymentCompletedEvent(
+                    paymentId, 1L, 500L, 2000L, "USD", 12345L);
+
+            kafkaEventPublisher.publishPaymentCompletedEvent(event);
+
+            // Verify the specific conversion from Long 99999 to String "99999"
+            verify(kafkaTemplate).send(anyString(), eq("99999"), eq(event));
         }
     }
 }

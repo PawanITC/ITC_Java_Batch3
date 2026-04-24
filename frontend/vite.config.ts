@@ -5,22 +5,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    strictPort: true,
     proxy: {
+      // Standard proxy for all your fetch() calls
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8060',
         changeOrigin: true,
         secure: false,
-      },
-      '/oauth': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        secure: false,
+        // No need for bypass if we call the Gateway directly for login
       },
     },
   },
-  build: {
-    outDir: "dist",
-  },
-  base: "/",
 });
-

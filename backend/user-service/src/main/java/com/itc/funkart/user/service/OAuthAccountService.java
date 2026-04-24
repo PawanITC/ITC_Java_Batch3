@@ -1,6 +1,7 @@
 package com.itc.funkart.user.service;
 
 import com.itc.funkart.user.entity.OAuthAccount;
+import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.repository.OAuthAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,26 +38,44 @@ public class OAuthAccountService {
      * @param providerId The remote provider's unique user ID.
      * @return The saved {@link OAuthAccount} entity.
      */
-    public OAuthAccount createAccount(Long userId, String provider, String providerId) {
-        // Using the Builder pattern for cleaner, immutable-style instantiation
+    public OAuthAccount createAccount(User user, String provider, String providerId) {
         OAuthAccount account = OAuthAccount.builder()
-                .userId(userId)
+                .user(user)
                 .provider(provider)
                 .providerId(providerId)
                 .build();
-
         return oauthAccountRepository.save(account);
     }
 
     /**
      * Idempotent method to retrieve an existing OAuth mapping or create a new one.
-     * * @param userId     The local user ID to link if the account doesn't exist.
-     * @param provider   The OAuth provider name.
-     * @param providerId The remote provider's unique user ID.
-     * @return The existing or newly created {@link OAuthAccount}.
+     * <p>
+     * This ensures that a single local {@link User} can be linked to their
+     * external identity (e.g., GitHub) without creating duplicate mappings.
+     * </p>
+     *
+     * @param user       The local {@link User} entity to link if the mapping doesn't exist.
+     * @param provider   The name of the OAuth provider (e.g., "github").
+     * @param providerId The unique identifier string returned by the provider.
+     * @return The existing or newly persisted {@link OAuthAccount}.
      */
-    public OAuthAccount findOrCreate(Long userId, String provider, String providerId) {
-        return findByProviderAndProviderId(provider, providerId)
-                .orElseGet(() -> createAccount(userId, provider, providerId));
+    public OAuthAccount findOrCreate(User user, String provider, String providerId) {
+
+        return oauthAccountRepository
+                .findByProviderAndProviderId(provider, providerId)
+                .orElseGet(() -> {
+                    try {
+                        return createAccount(user, provider, providerId);
+                    } catch (Exception ex) {
+                        // fallback in case of race condition
+                        try {
+                            return oauthAccountRepository
+                                    .findByProviderAndProviderId(provider, providerId)
+                                    .orElseThrow(() -> ex);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
     }
 }

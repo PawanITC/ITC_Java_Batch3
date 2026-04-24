@@ -1,37 +1,44 @@
-HELP.md
+# ==================================================
+# Funkart Payment Service - Git Ignore
+# ==================================================
+
+# --- Gradle Essentials (CRITICAL for Jenkins) ---
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# --- Build Outputs (Keep Git Clean) ---
 .gradle
 build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
 bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+out/
+.apt_generated
 
-### IntelliJ IDEA ###
-.idea
+# --- IDEs & Editors ---
+.idea/
 *.iws
 *.iml
 *.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
 .vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.springBeans
+.sts4-cache
+
+# --- Secrets & Environment (SECURITY) ---
+# This is the most important part for Payments!
+.env
+*.env
+.env.local
+
+# --- OS & Logs ---
+.DS_Store
+Thumbs.db
+*.log
+
+# --- Specific Negations ---
+# Only use these if you have specific generated source requirements
+# !**/src/main/resources/static/build/

@@ -1,7 +1,8 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.3.5'
+    id 'org.springframework.boot' version '3.5.12'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.itc.funkart'
@@ -9,9 +10,12 @@ version = '0.0.1-SNAPSHOT'
 description = 'api-gateway'
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
 }
 
 repositories {
@@ -20,45 +24,76 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2023.0.3'
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2025.0.1"
     }
 }
 
 dependencies {
-    // Reactive webflux (NOT web)
+
+    // =====================
+    // Core Gateway Stack
+    // =====================
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
-    implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
+    implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    // Security for JWT
+    // Required for @NotBlank, @NotNull, etc.
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Required for @ConfigurationProperties Records
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    // =====================
+    // Security
+    // =====================
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
-    // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // Config binding
-    implementation 'org.springframework.boot:spring-boot-configuration-processor'
+    // =====================
+    // Redis / Cache
+    // =====================
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
 
-    // Lombok (optional)
-    compileOnly 'org.projectlombok:lombok:1.18.30'
-    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    // =====================
+    // Observability
+    // =====================
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
-    // Databases
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    runtimeOnly 'org.postgresql:postgresql'
-    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    // =====================
+    // Utilities
+    // =====================
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
+    // =====================
     // Testing
+    // =====================
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'io.projectreactor:reactor-test'
-    testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-stub-runner'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.11.0'
+    testImplementation 'org.springframework.cloud:spring-cloud-contract-wiremock:4.3.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
 }
 
 tasks.named('jar') {
@@ -66,5 +101,5 @@ tasks.named('jar') {
 }
 
 tasks.named('bootJar') {
-    archiveFileName = "payment-service-0.0.1-SNAPSHOT.jar"
+    archiveFileName = "api-gateway.jar"
 }

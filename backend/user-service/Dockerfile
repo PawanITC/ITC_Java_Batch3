@@ -2,27 +2,12 @@
 # User Service Microservice
 # ==================================================
 # Author: Abbas
-# Description: Handles all user-related operations including registration,
-#              authentication, profile management, and user data persistence.
+# Description: Handles authentication, user profiles,
+#              and user-related operations for Funkart.
 # ==================================================
 
 # ---------------------------
-# Stage 1: Build
-# ---------------------------
-FROM gradle:9.4.0-jdk17 AS builder
-
-WORKDIR /app
-
-# Copy project files
-COPY build.gradle .
-COPY settings.gradle .
-COPY src ./src
-
-# Build the Spring Boot fat jar (skip tests to speed up)
-RUN gradle clean build -x test
-
-# ---------------------------
-# Stage 2: Runtime
+# Runtime Stage (Lean & Fast)
 # ---------------------------
 FROM eclipse-temurin:17-jdk-jammy
 
@@ -31,13 +16,14 @@ WORKDIR /app
 # Metadata Labels
 LABEL maintainer="Abbas"
 LABEL service.name="user-service"
-LABEL service.description="User Service - Manages user registration, authentication, and profiles"
-LABEL service.version="1.0.0"
+LABEL service.description="User Service - Core identity and profile management"
 
-# Copy jar from build stage
-COPY --from=builder /app/build/libs/*-SNAPSHOT.jar app.jar
+# Copy the JAR built by Jenkins
+# IMPORTANT: Ensure bootJar is configured to produce consistent name if you switch away from wildcard
+COPY build/libs/*.jar app.jar
 
-EXPOSE 8081
+# Service runs on 8080 internally (mapped externally to 8081 in docker-compose)
+EXPOSE 8080
 
-# Run the jar
+# JVM container-friendly settings
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

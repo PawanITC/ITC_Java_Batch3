@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {BrowserRouter, Routes, Route} from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -19,11 +19,11 @@ function App() {
         <AuthProvider>
             <BrowserRouter>
                 <Routes>
-                    <Route path="/" element={<Layout />}>
-                        <Route index element={<Home />} />
-                        <Route path="login" element={<Login />} />
-                        <Route path="signup" element={<Signup />} />
-                        <Route path="oauth-success" element={<OAuthCallback />} />
+                    <Route path="/" element={<Layout/>}>
+                        <Route index element={<Home/>}/>
+                        <Route path="login" element={<Login/>}/>
+                        <Route path="signup" element={<Signup/>}/>
+                        <Route path="/oauth-success" element={<OAuthSuccess/>}/>
                         {/* <Route path="products" element={<ProductManagement />} /> */}
 
                         {/* USER STOREFRONT: List, View, and Cart logic */}
@@ -32,7 +32,7 @@ function App() {
                         {/* ADMIN DASHBOARD: Create, Update, Delete logic */}
                         <Route path="admin-products" element={<AdminProductManagement />} />
                         {/* <Route path="products" element={<UserProductStore />} /> */}
-                        
+
                         {/* ADMIN DASHBOARD: Create, Update, Delete logic */}
                         {/* <Route path="admin-products" element={<AdminProductManagement />} /> */}
                     </Route>

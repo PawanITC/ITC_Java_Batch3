@@ -137,4 +137,30 @@ public class ProductServiceImpl implements ProductService {
 
         return response;
     }
+
+    @Override
+    public ProductsResponse getProductsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BadRequestException("ID list cannot be empty");
+        }
+
+        if (ids.size() > MAX_IDS) {
+            throw new BadRequestException("Too many IDs requested. Max allowed: " + MAX_IDS);
+        }
+        ids = ids.stream().distinct().toList();
+        List<Product> products = productRepository.findAllById(ids);
+
+        Set<Long> foundIds = products.stream()
+                .map(Product::getId)
+                .collect(Collectors.toSet());
+
+        List<Long> missingIds = ids.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+        ProductsResponse response = new ProductsResponse();
+        response.setFound(products);
+        response.setMissing(missingIds);
+
+        return response;
+    }
 }

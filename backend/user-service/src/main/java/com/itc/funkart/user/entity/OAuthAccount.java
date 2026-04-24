@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
  * Entity representing an external OAuth connection (e.g., GitHub) for a user.
  */
 @Entity
-@Table(name = "oauth_accounts")
+@Table(name = "oauth_accounts", uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "provider"})})
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,17 +21,23 @@ public class OAuthAccount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** * Foreign reference to the {@link User#getId()}.
-     * Stored as a plain Long to maintain service flexibility.
+    /**
+     * The actual User object.
+     * FetchType.LAZY means we only load the user details if we explicitly ask for them.
      */
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    /** The OAuth provider name (e.g., "GitHub", "google"). */
+    /**
+     * The OAuth provider name (e.g., "GitHub", "google").
+     */
     @Column(nullable = false)
     private String provider;
 
-    /** The unique identifier provided by the external OAuth service. */
+    /**
+     * The unique identifier provided by the external OAuth service.
+     */
     @Column(nullable = false, unique = true)
     private String providerId;
 }

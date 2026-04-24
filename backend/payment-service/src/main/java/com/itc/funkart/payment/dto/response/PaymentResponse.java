@@ -29,6 +29,7 @@ public record PaymentResponse(
     /**
      * Maps a persistent Payment entity to a read-only Response record.
      * * @param payment The JPA Entity retrieved from the database.
+     *
      * @return A sanitized, immutable version of the payment data for the client.
      */
     public static PaymentResponse from(Payment payment) {

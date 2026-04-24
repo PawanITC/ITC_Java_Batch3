@@ -5,11 +5,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Main Integration Test for the Payment Service.
+ * <h2>PaymentServiceApplicationTests</h2>
  * <p>
- * This class serves as a "Smoke Test" to verify that the Spring Application Context
- * can be successfully started. It acts as the first line of defense against
- * configuration errors, invalid bean definitions, or missing environment variables.
+ * This is a <b>Context Load</b> test. Its purpose is to verify that the
+ * Spring ApplicationContext can be initialized successfully with all
+ * bean dependencies and configurations.
+ * </p>
+ * <p>
+ * Uses the {@code @ActiveProfiles("test")} annotation to ensure that
+ * <b>application-test.yml</b> is used instead of the production or dev configurations.
  * </p>
  */
 @SpringBootTest
@@ -17,20 +21,12 @@ import org.springframework.test.context.ActiveProfiles;
 class PaymentServiceApplicationTests {
 
     /**
-     * Verifies that the Spring Boot container initializes without failure.
-     * <p>
-     * <b>What this checks:</b>
-     * <ul>
-     * <li><b>Bean Wiring:</b> Ensures all @Service, @Repository, and @Component beans can be injected.</li>
-     * <li><b>Properties:</b> Validates that application.yml or application.properties are correctly mapped.</li>
-     * <li><b>External Config:</b> Checks that dependencies like Stripe and Kafka configurations are syntactically valid.</li>
-     * </ul>
-     * </p>
+     * Verifies that the Spring context starts without errors.
+     * If the EntityManagerFactory or Kafka Producers are misconfigured,
+     * this test will fail on startup.
      */
     @Test
     void contextLoads() {
-        // This method remains empty because its success is defined by the
-        // framework's ability to start the context without throwing an exception.
+        // No logic needed; the successful startup of the test class itself validates the context.
     }
-
 }

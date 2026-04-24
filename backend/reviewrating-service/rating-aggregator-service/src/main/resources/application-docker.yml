@@ -1,0 +1,55 @@
+server:
+  port: 9096
+
+spring:
+  application:
+    name: rating-aggregator-service
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: rating-aggregator
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    properties:
+      spring.json.trusted.packages: "*"
+
+  data:
+    redis:
+      host: reviewrating-service-redis-1
+      port: 6379
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ratingServiceCb:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+
+  retry:
+    instances:
+      ratingServiceRetry:
+        max-attempts: 3
+        wait-duration: 200ms
+
+  timelimiter:
+    instances:
+      ratingServiceTl:
+        timeout-duration: 2s
+        cancel-running-future: true
+
+  bulkhead:
+    instances:
+      ratingServiceBh:
+        max-concurrent-calls: 20
+        max-wait-duration: 0
+
+review-rating-service:
+  base-url: http://review-rating-service:9097
+
+
