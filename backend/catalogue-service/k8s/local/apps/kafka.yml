@@ -12,7 +12,18 @@ spec:
       labels:
         app: kafka
     spec:
+      securityContext:
+        fsGroup: 1000
       enableServiceLinks: false
+      initContainers:
+        - name: volume-permissions
+          image: confluentinc/cp-kafka:7.6.0
+          command: ['sh', '-c', 'chown -R 1000:1000 /var/lib/kafka/data']
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: kafka-storage
+              mountPath: /var/lib/kafka/data
       containers:
         - name: kafka
           image: confluentinc/cp-kafka:7.6.0
@@ -43,7 +54,7 @@ spec:
               value: "CONTROLLER"
 
             - name: KAFKA_CONTROLLER_QUORUM_VOTERS
-              value: "1@kafka:9093"
+              value: "1@localhost:9093"
 
             - name: KAFKA_INTER_BROKER_LISTENER_NAME
               value: "PLAINTEXT"
@@ -71,19 +82,6 @@ spec:
         - name: kafka-storage
           persistentVolumeClaim:
             claimName: kafka-pvc
-
----
-
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: kafka-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 400Mi
 
 ---
 
