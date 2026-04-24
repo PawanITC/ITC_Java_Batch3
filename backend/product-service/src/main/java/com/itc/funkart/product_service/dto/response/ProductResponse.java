@@ -2,27 +2,24 @@ package com.itc.funkart.product_service.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Data
+/**
+ * Standard API response for product details.
+ */
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ProductResponse implements Serializable {
-
-    private Long id;
-    private String name;
-    private String slug;
-    private String description;
-    private BigDecimal price;
-    private String categoryName;
-    private List<String> imageUrls;
-    private Boolean active;
-    private String brand;
+public record ProductResponse(
+        Long id,
+        String name,
+        String slug,
+        String description,
+        BigDecimal price,
+        String categoryName,
+        List<String> imageUrls,
+        Boolean active,
+        String brand
+) implements Serializable {
 }
-

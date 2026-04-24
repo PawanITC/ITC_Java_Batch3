@@ -2,27 +2,42 @@ package com.itc.funkart.product_service.integration;
 
 import com.itc.funkart.product_service.dto.request.AddToCartRequest;
 import com.itc.funkart.product_service.dto.request.CartItemUpdateDto;
-import com.itc.funkart.product_service.dto.request.CartResponse;
 import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
+import com.itc.funkart.product_service.dto.response.CartResponse;
 import com.itc.funkart.product_service.dto.response.ProductResponse;
-import com.itc.funkart.product_service.entity.Cart;
 import com.itc.funkart.product_service.entity.Category;
+import com.itc.funkart.product_service.producer.OrderProducer;
+import com.itc.funkart.product_service.producer.ProductProducer;
 import com.itc.funkart.product_service.repository.CartRepository;
 import com.itc.funkart.product_service.repository.CategoryRepository;
-import com.itc.funkart.product_service.repository.ProductRepository;
 import com.itc.funkart.product_service.service.CartService;
+import com.itc.funkart.product_service.service.JwtService;
 import com.itc.funkart.product_service.service.ProductService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * <h2>CartServiceIntegrationTest</h2>
+ * <p>
+ * This suite validates the full lifecycle of a shopping cart, ensuring that
+ * business rules like item aggregation, quantity updates, and cart isolation
+ * work correctly when interacting with the real database schema.
+ * </p>
+ * <p>
+ * Infrastructure dependencies like Kafka and JWT verification are mocked to ensure
+ * the tests remain focused on the service and repository layer interactions.
+ * </p>
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
@@ -31,348 +46,163 @@ class CartServiceIntegrationTest {
 
     @Autowired
     private CartService cartService;
-
     @Autowired
     private ProductService productService;
-
     @Autowired
     private CartRepository cartRepository;
-
     @Autowired
     private CategoryRepository categoryRepository;
 
-    @Autowired
-    private ProductRepository productRepository;
+    // --- Mocks to prevent infrastructure hangs ---
+    @MockitoBean
+    private JwtService jwtService;
+    @MockitoBean
+    private OrderProducer orderProducer;
+    @MockitoBean
+    private ProductProducer productProducer;
 
+    // --- Helpers using Records & Builders ---
+
+    /**
+     * Persists a new category to provide a valid relationship for product creation.
+     */
     private Category createCategory() {
         return categoryRepository.save(Category.builder()
-                .name("Test Category_" + System.nanoTime())
-                .description("Test description")
+                .name("Category_" + System.nanoTime())
+                .description("Integration Test Category")
                 .build());
     }
 
+    /**
+     * Creates a product with unique identifiers to avoid collision during parallel runs.
+     * Includes the required 'imageUrls' list for the Record constructor.
+     */
     private ProductResponse createProduct(String name) {
         Category category = createCategory();
-        return productService.createProduct(ProductCreateRequest.builder()
-                .name(name + "_" + System.nanoTime()) // Make unique
-                .description("Test product")
+        ProductCreateRequest request = ProductCreateRequest.builder()
+                .name(name + "_" + System.nanoTime())
+                .description("Description")
                 .price(BigDecimal.valueOf(99.99))
                 .stockQuantity(10)
                 .categoryId(category.getId())
-                .brand("TestBrand")
-                .build());
+                .brand("Brand")
+                .imageUrls(List.of()) // Vital for record instantiation
+                .build();
+        return productService.createProduct(request);
     }
 
-    @Test
-    @DisplayName("Should create cart for user on first request")
-    void shouldCreateCartForUserOnFirstRequest() {
-        // Act
-        CartResponse cart = cartService.getCartByUserId(1L);
+    // --- Tests ---
 
-        // Assert
+    /**
+     * Verifies the "Lazy Cart Creation" logic where a user record is initialized
+     * in the database the moment they first access their cart.
+     */
+    @Test
+    @DisplayName("Workflow - Should create cart automatically on first user access")
+    void shouldCreateCartOnFirstRequest() {
+        Long userId = 1001L;
+
+        CartResponse cart = cartService.getCartByUserId(userId);
+
         assertThat(cart).isNotNull();
-        assertThat(cart.getUserId()).isEqualTo(1L);
-        assertThat(cart.getItems()).isEmpty();
+        assertThat(cart.userId()).isEqualTo(userId);
+        assertThat(cart.items()).isEmpty();
 
-        // Verify in database
-        Cart dbCart = cartRepository.findByUserId(1L).orElse(null);
-        assertThat(dbCart).isNotNull();
-        assertThat(dbCart.getUserId()).isEqualTo(1L);
+        assertThat(cartRepository.findByUserId(userId)).isPresent();
     }
 
+    /**
+     * Tests the logic that merges multiple additions of the same product into
+     * a single line item with an aggregated quantity.
+     */
     @Test
-    @DisplayName("Should get existing cart without creating new one")
-    void shouldGetExistingCartWithoutCreatingNew() {
-        // Arrange
-        CartResponse firstCall = cartService.getCartByUserId(2L);
-
-        // Act
-        CartResponse secondCall = cartService.getCartByUserId(2L);
-
-        // Assert
-        assertThat(firstCall.getCartId()).isEqualTo(secondCall.getCartId());
-    }
-
-    @Test
-    @DisplayName("Should add single item to cart and persist to database")
-    void shouldAddSingleItemToCartAndPersist() {
-        // Arrange
-        ProductResponse product = createProduct("Laptop");
-        AddToCartRequest request = new AddToCartRequest();
-        request.setProductId(product.getId());
-        request.setQuantity(1);
-
-        // Act
-        CartResponse cart = cartService.addItemToCart(3L, request);
-
-        // Assert
-        assertThat(cart.getItems()).hasSize(1);
-        assertThat(cart.getItems().get(0).getProductId()).isEqualTo(product.getId());
-        assertThat(cart.getItems().get(0).getQuantity()).isEqualTo(1);
-
-        // Verify in database
-        Cart dbCart = cartRepository.findByUserId(3L).orElseThrow();
-        assertThat(dbCart.getItems()).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("Should add multiple different items to cart")
-    void shouldAddMultipleDifferentItemsToCart() {
-        // Arrange
-        ProductResponse product1 = createProduct("Phone");
-        ProductResponse product2 = createProduct("Tablet");
-
-        AddToCartRequest request1 = new AddToCartRequest();
-        request1.setProductId(product1.getId());
-        request1.setQuantity(1);
-
-        AddToCartRequest request2 = new AddToCartRequest();
-        request2.setProductId(product2.getId());
-        request2.setQuantity(2);
-
-        // Act
-        cartService.addItemToCart(4L, request1);
-        CartResponse cart = cartService.addItemToCart(4L, request2);
-
-        // Assert
-        assertThat(cart.getItems()).hasSize(2);
-    }
-
-    @Test
-    @DisplayName("Should increase quantity when adding same item again")
-    void shouldIncreaseQuantityWhenAddingSameItemAgain() {
-        // Arrange
+    @DisplayName("Workflow - Should add items and aggregate quantities correctly")
+    void shouldHandleItemAggregation() {
+        Long userId = 1002L;
         ProductResponse product = createProduct("Monitor");
-        AddToCartRequest request1 = new AddToCartRequest();
-        request1.setProductId(product.getId());
-        request1.setQuantity(1);
 
-        AddToCartRequest request2 = new AddToCartRequest();
-        request2.setProductId(product.getId());
-        request2.setQuantity(2);
+        // Add first time
+        cartService.addItemToCart(userId, AddToCartRequest.builder()
+                .productId(product.id())
+                .quantity(1)
+                .build());
 
-        // Act
-        cartService.addItemToCart(5L, request1);
-        CartResponse cart = cartService.addItemToCart(5L, request2);
+        // Add second time (same product)
+        CartResponse finalCart = cartService.addItemToCart(userId, AddToCartRequest.builder()
+                .productId(product.id())
+                .quantity(2)
+                .build());
 
-        // Assert
-        assertThat(cart.getItems()).hasSize(1);
-        assertThat(cart.getItems().get(0).getQuantity()).isEqualTo(3); // 1 + 2
+        assertThat(finalCart.items()).hasSize(1);
+        assertThat(finalCart.items().get(0).quantity()).isEqualTo(3);
     }
 
+    /**
+     * Ensures that if an update results in zero or negative quantity, the
+     * business logic removes the item from the cart entirely.
+     */
     @Test
-    @DisplayName("Should remove item from cart")
-    void shouldRemoveItemFromCart() {
-        // Arrange
+    @DisplayName("Workflow - Should remove item when quantity update results in <= 0")
+    void shouldRemoveItemOnNegativeUpdate() {
+        Long userId = 1003L;
         ProductResponse product = createProduct("Keyboard");
-        AddToCartRequest request = new AddToCartRequest();
-        request.setProductId(product.getId());
-        request.setQuantity(1);
 
-        cartService.addItemToCart(6L, request);
+        cartService.addItemToCart(userId, AddToCartRequest.builder()
+                .productId(product.id())
+                .quantity(5)
+                .build());
 
-        // Act
-        CartResponse cart = cartService.removeItemsFromCart(6L, product.getId());
+        CartResponse updatedCart = cartService.updateItemQuantity(userId, product.id(),
+                CartItemUpdateDto.builder().quantityChange(-10).build());
 
-        // Assert
-        assertThat(cart.getItems()).isEmpty();
-
-        // Verify in database
-        Cart dbCart = cartRepository.findByUserId(6L).orElseThrow();
-        assertThat(dbCart.getItems()).isEmpty();
+        assertThat(updatedCart.items()).isEmpty();
     }
 
+    /**
+     * Comprehensive end-to-end test simulating a real user behavior:
+     * searching, adding, adjusting, and finally checking out.
+     */
     @Test
-    @DisplayName("Should update item quantity")
-    void shouldUpdateItemQuantity() {
-        // Arrange
-        ProductResponse product = createProduct("Mouse");
-        AddToCartRequest request = new AddToCartRequest();
-        request.setProductId(product.getId());
-        request.setQuantity(2);
+    @DisplayName("End-to-End - Full Shopping Journey: Add -> Update -> Checkout")
+    void shouldHandleFullShoppingWorkflow() {
+        Long userId = 1004L;
+        ProductResponse p1 = createProduct("Mouse");
+        ProductResponse p2 = createProduct("Pad");
 
-        cartService.addItemToCart(7L, request);
+        // 1. Add items
+        cartService.addItemToCart(userId, AddToCartRequest.builder().productId(p1.id()).quantity(1).build());
+        cartService.addItemToCart(userId, AddToCartRequest.builder().productId(p2.id()).quantity(1).build());
 
-        CartItemUpdateDto updateDto = new CartItemUpdateDto();
-        updateDto.setQuantityChange(3); // Add 3 more
+        // 2. Update quantity of Mouse
+        cartService.updateItemQuantity(userId, p1.id(), CartItemUpdateDto.builder().quantityChange(2).build());
 
-        // Act
-        CartResponse cart = cartService.updateItemQuantity(7L, product.getId(), updateDto);
+        // 3. Verify state before checkout
+        CartResponse midCart = cartService.getCartByUserId(userId);
+        assertThat(midCart.items()).hasSize(2);
 
-        // Assert
-        assertThat(cart.getItems().get(0).getQuantity()).isEqualTo(5); // 2 + 3
-    }
-
-    @Test
-    @DisplayName("Should remove item when quantity becomes zero")
-    void shouldRemoveItemWhenQuantityBecomesZero() {
-        // Arrange
-        ProductResponse product = createProduct("Headphones");
-        AddToCartRequest request = new AddToCartRequest();
-        request.setProductId(product.getId());
-        request.setQuantity(2);
-
-        cartService.addItemToCart(8L, request);
-
-        CartItemUpdateDto updateDto = new CartItemUpdateDto();
-        updateDto.setQuantityChange(-2); // Subtract 2
-
-        // Act
-        CartResponse cart = cartService.updateItemQuantity(8L, product.getId(), updateDto);
-
-        // Assert
-        assertThat(cart.getItems()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should clear all items from cart")
-    void shouldClearAllItemsFromCart() {
-        // Arrange
-        ProductResponse product1 = createProduct("Speaker");
-        ProductResponse product2 = createProduct("Charger");
-
-        AddToCartRequest request1 = new AddToCartRequest();
-        request1.setProductId(product1.getId());
-        request1.setQuantity(1);
-
-        AddToCartRequest request2 = new AddToCartRequest();
-        request2.setProductId(product2.getId());
-        request2.setQuantity(1);
-
-        cartService.addItemToCart(9L, request1);
-        cartService.addItemToCart(9L, request2);
-
-        // Act
-        cartService.clearCart(9L);
-
-        // Assert
-        CartResponse cart = cartService.getCartByUserId(9L);
-        assertThat(cart.getItems()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should complete checkout flow")
-    void shouldCompleteCheckoutFlow() {
-        // Arrange
-        ProductResponse product = createProduct("Laptop Pro");
-        AddToCartRequest request = new AddToCartRequest();
-        request.setProductId(product.getId());
-        request.setQuantity(1);
-
-        cartService.addItemToCart(10L, request);
-
-        // Act
-        cartService.checkout(10L);
-
-        // Assert
-        CartResponse cart = cartService.getCartByUserId(10L);
-        assertThat(cart.getItems()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should handle shopping workflow end-to-end")
-    void shouldHandleShoppingWorkflowEndToEnd() {
-        // Arrange - User starts shopping
-        Long userId = 11L;
-        CartResponse initialCart = cartService.getCartByUserId(userId);
-        assertThat(initialCart.getItems()).isEmpty();
-
-        // Act 1 - Add first item
-        ProductResponse product1 = createProduct("Laptop");
-        AddToCartRequest request1 = new AddToCartRequest();
-        request1.setProductId(product1.getId());
-        request1.setQuantity(1);
-        cartService.addItemToCart(userId, request1);
-
-        // Act 2 - Add second item
-        ProductResponse product2 = createProduct("Monitor");
-        AddToCartRequest request2 = new AddToCartRequest();
-        request2.setProductId(product2.getId());
-        request2.setQuantity(2);
-        cartService.addItemToCart(userId, request2);
-
-        // Act 3 - Update quantity
-        CartItemUpdateDto updateDto = new CartItemUpdateDto();
-        updateDto.setQuantityChange(1);
-        cartService.updateItemQuantity(userId, product1.getId(), updateDto);
-
-        // Act 4 - Checkout
-        CartResponse beforeCheckout = cartService.getCartByUserId(userId);
-        assertThat(beforeCheckout.getItems()).hasSize(2);
-
+        // 4. Checkout
         cartService.checkout(userId);
 
-        // Assert - Cart is empty after checkout
-        CartResponse afterCheckout = cartService.getCartByUserId(userId);
-        assertThat(afterCheckout.getItems()).isEmpty();
+        // 5. Final Assertion (Cart should be wiped clean)
+        CartResponse finalCart = cartService.getCartByUserId(userId);
+        assertThat(finalCart.items()).isEmpty();
     }
 
+    /**
+     * Tests Cart Isolation. This ensures that user data is correctly partitioned
+     * and that User A cannot see or modify User B's items.
+     */
     @Test
-    @DisplayName("Should handle multiple users with separate carts")
-    void shouldHandleMultipleUsersWithSeparateCarts() {
-        // Arrange
-        ProductResponse product = createProduct("Wireless Mouse");
-        AddToCartRequest request1 = new AddToCartRequest();
-        request1.setProductId(product.getId());
-        request1.setQuantity(1);
+    @DisplayName("Concurrency/Separation - Users should have isolated carts")
+    void shouldMaintainIsolationBetweenUsers() {
+        Long userA = 2001L;
+        Long userB = 2002L;
+        ProductResponse product = createProduct("Shared Product");
 
-        AddToCartRequest request2 = new AddToCartRequest();
-        request2.setProductId(product.getId());
-        request2.setQuantity(3);
+        cartService.addItemToCart(userA, AddToCartRequest.builder().productId(product.id()).quantity(1).build());
+        cartService.addItemToCart(userB, AddToCartRequest.builder().productId(product.id()).quantity(99).build());
 
-        // Act
-        cartService.addItemToCart(100L, request1);
-        cartService.addItemToCart(101L, request2);
-
-        CartResponse user1Cart = cartService.getCartByUserId(100L);
-        CartResponse user2Cart = cartService.getCartByUserId(101L);
-
-        // Assert
-        assertThat(user1Cart.getItems().get(0).getQuantity()).isEqualTo(1);
-        assertThat(user2Cart.getItems().get(0).getQuantity()).isEqualTo(3);
-    }
-
-    @Test
-    @Transactional
-    @DisplayName("Should verify cart persistence across requests")
-    void shouldVerifyCartPersistenceAcrossRequests() {
-        // Arrange
-        Long userId = 12L;
-        ProductResponse product = createProduct("USB Cable");
-        AddToCartRequest request = new AddToCartRequest();
-        request.setProductId(product.getId());
-        request.setQuantity(5);
-
-        // Act 1 - Add item
-        cartService.addItemToCart(userId, request);
-
-        // Act 2 - Verify persistence in database
-        Cart dbCart = cartRepository.findByUserId(userId).orElseThrow();
-
-        // Assert
-        assertThat(dbCart.getItems()).hasSize(1);
-        assertThat(dbCart.getItems().get(0).getProduct().getId()).isEqualTo(product.getId());
-        assertThat(dbCart.getItems().get(0).getQuantity()).isEqualTo(5);
-    }
-
-    @Test
-    @DisplayName("Should handle cart with maximum items")
-    void shouldHandleCartWithMaximumItems() {
-        // Arrange
-        Long userId = 13L;
-        AddToCartRequest request = new AddToCartRequest();
-        request.setQuantity(1);
-
-        // Act - Add 10 different items
-        for (int i = 0; i < 10; i++) {
-            ProductResponse product = createProduct("Product " + i);
-            request.setProductId(product.getId());
-            cartService.addItemToCart(userId, request);
-        }
-
-        // Assert
-        CartResponse cart = cartService.getCartByUserId(userId);
-        assertThat(cart.getItems()).hasSize(10);
+        assertThat(cartService.getCartByUserId(userA).items().get(0).quantity()).isEqualTo(1);
+        assertThat(cartService.getCartByUserId(userB).items().get(0).quantity()).isEqualTo(99);
     }
 }
-

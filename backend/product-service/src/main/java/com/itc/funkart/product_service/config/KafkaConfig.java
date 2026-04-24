@@ -7,6 +7,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.TopicBuilder;
 
+/**
+ * Infrastructure configuration for Kafka Messaging.
+ * Defines the initial topics and partition counts required for the service.
+ */
 @Configuration
 @EnableKafka
 public class KafkaConfig {
@@ -18,6 +22,7 @@ public class KafkaConfig {
                 .replicas(1)
                 .build();
     }
+
     @Bean
     public NewTopic orderTopics() {
         return TopicBuilder.name(KafkaConstants.TOPIC_ORDERS)

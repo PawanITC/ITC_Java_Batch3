@@ -2,64 +2,21 @@ spring:
   application:
     name: product-service
   profiles:
-    active: dev
-  kafka:
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      # 'all' ensures all replicas acknowledge the message (No data loss)
-      acks: all
-      # Retries are handled automatically by the client
-      retries: 3
-      properties:
-        # Optimization: Ensure the producer doesn't hang if the network blips
-        delivery.timeout.ms: 30000
-        request.timeout.ms: 10000
-    consumer:
-      group-id: products-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
-      properties:
-        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
-        spring.json.trusted.packages: "*"
-  cache:
-    type: redis
-server:
-  port: 9090
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-    enabled: true
-    operations-sorter: method
-    tags-sorter: alpha
-    urls-primary-name: "Product Service API"
-    display-request-duration: true
-    default-models-expand-depth: 2
-    default-model-expand-depth: 2
-    show-extensions: true
-  show-login-endpoint: true
+  main:
+    allow-bean-definition-overriding: true
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mydb}
+    username: ${DB_USER:admin}
+    password: ${DB_PASS:secret}
+
+jwt:
+  secret: ${JWT_SECRET:Ym9yZGVyLXJlbmRlci1zZWNyZXQta2V5LTMyLWNoYXJhY3RlcnMtbG9uZw==}
+  expiration: ${JWT_EXPIRATION:3600000}
 
 management:
-  tracing:
-    sampling:
-      probability: 1.0
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,tracing
-  observations:
-    http:
-      server:
-        requests:
-          enabled: true
-
-logging:
-  pattern:
-    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
-  level:
-    org.springframework.kafka: DEBUG
-    org.apache.kafka: WAR
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4317}

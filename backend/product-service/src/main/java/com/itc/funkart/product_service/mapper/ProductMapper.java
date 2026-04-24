@@ -8,48 +8,53 @@ import com.itc.funkart.product_service.entity.ProductImage;
 import com.itc.funkart.product_service.enums.ProductEventType;
 
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
+/**
+ * <h2>ProductMapper</h2>
+ * <p>
+ * Centralized mapping for Product lifecycle objects.
+ * Handles entity creation, response projection, and Kafka event generation.
+ * </p>
+ */
 public class ProductMapper {
 
+    /**
+     * Converts a {@link ProductCreateRequest} into a {@link Product} entity.
+     * Automatically generates a slug and initializes the image collection.
+     *
+     * @param request the creation request from the client.
+     * @return an initialized Product entity.
+     */
     public static Product toEntity(ProductCreateRequest request) {
-        if (request == null) {
-            return null;
-        }
+        if (request == null) return null;
 
         Product product = Product.builder()
-                .name(request.getName())
-                .description(request.getDescription())
-                .price(request.getPrice())
-                .stockQuantity(request.getStockQuantity())
-                .slug(generateSlug(request.getName()))
+                .name(request.name())
+                .description(request.description())
+                .price(request.price())
+                .stockQuantity(request.stockQuantity())
+                .slug(generateSlug(request.name()))
                 .active(true)
-                .brand(request.getBrand())
-                .images(new ArrayList<>()) // Initialize list
+                .brand(request.brand())
+                .images(new ArrayList<>())
                 .build();
 
-        // Handle Images: Ensure bi-directional link is set
-        if (request.getImageUrls() != null) {
-            request.getImageUrls().forEach(url -> {
-                ProductImage img = ProductImage.builder()
-                        .imageUrl(url)
-                        .product(product) // This is crucial for JPA
-                        .isPrimary(false)
-                        .build();
-                product.getImages().add(img);
-            });
+        if (request.imageUrls() != null) {
+            request.imageUrls().forEach(url -> product.addImage(
+                    ProductImage.builder().imageUrl(url).isPrimary(false).build()
+            ));
         }
-
         return product;
     }
 
     /**
-     * Converts Entity to Response DTO for the API.
+     * Projects a {@link Product} entity onto a {@link ProductResponse} DTO.
+     *
+     * @param product the managed product entity.
+     * @return a serialized product response.
      */
     public static ProductResponse toResponse(Product product) {
-        if (product == null) {
-            return null;
-        }
+        if (product == null) return null;
 
         return ProductResponse.builder()
                 .id(product.getId())
@@ -57,31 +62,31 @@ public class ProductMapper {
                 .slug(product.getSlug())
                 .description(product.getDescription())
                 .price(product.getPrice())
+                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
+                .imageUrls(product.getImages().stream().map(ProductImage::getImageUrl).toList())
                 .active(product.getActive())
                 .brand(product.getBrand())
-                // Safely get category name if it exists
-                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
-                // Extract only the URLs for the response
-                .imageUrls(product.getImages() != null ?
-                        product.getImages().stream()
-                                .map(ProductImage::getImageUrl)
-                                .collect(Collectors.toList()) : new ArrayList<>())
                 .build();
     }
 
     /**
-     * Basic slug generator (e.g., "Nike Air Max" -> "nike-air-max")
+     * Wraps a product into a {@link ProductEvent} for cross-service communication via Kafka.
+     *
+     * @param product the affected product.
+     * @param type    the nature of the change (CREATE, UPDATE, DELETE).
+     * @param id      the primary key of the product.
+     * @return a Kafka-ready event DTO.
      */
+    public static ProductEvent toEvent(Product product, ProductEventType type, long id) {
+        return ProductEvent.builder()
+                .eventType(type)
+                .product(toResponse(product))
+                .id(id)
+                .build();
+    }
+
     private static String generateSlug(String name) {
         if (name == null) return "";
-        return name.toLowerCase()
-                .replaceAll("[^a-z0-9\\s]", "")
-                .replaceAll("\\s+", "-");
-    }
-
-    public static ProductEvent toEvent(Product product, ProductEventType eventType,long id) {
-        return new ProductEvent(eventType, toResponse(product),id
-        );
+        return name.toLowerCase().replaceAll("[^a-z0-9\\s]", "").replaceAll("\\s+", "-");
     }
 }
-

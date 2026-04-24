@@ -2,30 +2,29 @@ spring:
   config:
     activate:
       on-profile: prod
+
   datasource:
-    url: jdbc:postgresql://18.175.222.132:32680/postgres
-    username: postgres
-    password: Ie422p9Cx8
+    url: jdbc:postgresql://${PROD_DB_HOST:18.175.222.132}:32680/postgres
+    username: ${PROD_DB_USER:postgres}
+    password: ${PROD_DB_PASS:Ie422p9Cx8}
     driver-class-name: org.postgresql.Driver
+
+
+  jwt:
+    secret: ${PROD_JWT_SECRET:${JWT_SECRET}}
+    expiration: ${PROD_JWT_EXPIRATION:3600000}
+
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
-    properties:
-      hibernate:
-        format_sql: false
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  kafka:
+    bootstrap-servers: ${PROD_KAFKA_HOST:ae2c9c1e88ee}:9092
+    producer:
+      client-id: product-service-prod-producer
+
   data:
     redis:
-      host: localhost
+      host: ${PROD_REDIS_HOST:localhost}
       port: 6379
-  cache:
-    redis:
-      time-to-live: 3600000
-  kafka:
-    bootstrap-servers: ae2c9c1e88ee:9092
-
-management:
-  otlp:
-    tracing:
-      endpoint: http://jaeger:4317/v1/traces

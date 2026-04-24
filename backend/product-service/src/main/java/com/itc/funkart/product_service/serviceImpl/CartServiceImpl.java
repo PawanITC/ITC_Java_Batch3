@@ -1,10 +1,9 @@
 package com.itc.funkart.product_service.serviceImpl;
 
-
 import com.itc.funkart.product_service.dto.events.OrderEvent;
 import com.itc.funkart.product_service.dto.request.AddToCartRequest;
 import com.itc.funkart.product_service.dto.request.CartItemUpdateDto;
-import com.itc.funkart.product_service.dto.request.CartResponse;
+import com.itc.funkart.product_service.dto.response.CartResponse;
 import com.itc.funkart.product_service.entity.Cart;
 import com.itc.funkart.product_service.entity.CartItem;
 import com.itc.funkart.product_service.entity.Product;
@@ -23,8 +22,11 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
+/**
+ * Implementation of {@link CartService}.
+ * Handles cart persistence, item management, and integration with the Order system via Kafka.
+ */
 @Service
 @RequiredArgsConstructor
 public class CartServiceImpl implements CartService {
@@ -44,21 +46,21 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public CartResponse addItemToCart(Long userId, AddToCartRequest request) {
         Cart cart = getOrCreateCart(userId);
-        Product product = productRepository.findById(request.getProductId())
+        Product product = productRepository.findById(request.productId()) // Record syntax
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        // Check if product already in cart
         Optional<CartItem> existingItem = cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
                 .findFirst();
 
         if (existingItem.isPresent()) {
-            existingItem.get().setQuantity(existingItem.get().getQuantity() + request.getQuantity());
+            existingItem.get().setQuantity(existingItem.get().getQuantity() + request.quantity());
         } else {
+            // Keep builder for Entities if you like, or use constructor
             CartItem newItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
-                    .quantity(request.getQuantity())
+                    .quantity(request.quantity())
                     .build();
             cart.getItems().add(newItem);
         }
@@ -93,7 +95,7 @@ public class CartServiceImpl implements CartService {
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Item not in cart"));
 
-        int newQuantity = item.getQuantity() + updateDto.getQuantityChange();
+        int newQuantity = item.getQuantity() + updateDto.quantityChange();
 
         if (newQuantity <= 0) {
             cart.getItems().remove(item);
@@ -116,13 +118,14 @@ public class CartServiceImpl implements CartService {
 
         List<Long> productIds = cart.getItems().stream()
                 .map(item -> item.getProduct().getId())
-                .collect(Collectors.toList());
+                .toList();
 
         BigDecimal total = cart.getItems().stream()
                 .map(item -> item.getProduct().getPrice()
                         .multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        // CLEANER: Using Record constructor instead of Builder
         OrderEvent event = OrderEvent.builder()
                 .eventType(OrderEventType.ORDER_CREATED)
                 .userId(userId)
@@ -136,13 +139,12 @@ public class CartServiceImpl implements CartService {
         orderProducer.sendOrderEvent(event);
     }
 
-    // Helper method to ensure every user has a cart
     private Cart getOrCreateCart(Long userId) {
         return cartRepository.findByUserId(userId)
                 .orElseGet(() -> cartRepository.save(
                         Cart.builder()
                                 .userId(userId)
-                                .items(new ArrayList<>()) // ✅ fix
+                                .items(new ArrayList<>())
                                 .build()
                 ));
     }

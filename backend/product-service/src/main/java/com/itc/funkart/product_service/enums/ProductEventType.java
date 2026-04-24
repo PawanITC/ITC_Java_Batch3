@@ -1,5 +1,20 @@
 package com.itc.funkart.product_service.enums;
 
+/**
+ * Defines the types of operations performed on products for event-driven synchronization.
+ * These events are typically published to Kafka topics to update search indexes or caches.
+ */
 public enum ProductEventType {
-    CREATE,UPDATE,DELETE
+    /**
+     * A new product was added to the catalog.
+     */
+    CREATE,
+    /**
+     * Existing product details or inventory were modified.
+     */
+    UPDATE,
+    /**
+     * A product was removed from the catalog.
+     */
+    DELETE
 }

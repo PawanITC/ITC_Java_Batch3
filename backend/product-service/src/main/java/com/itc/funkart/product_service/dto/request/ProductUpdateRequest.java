@@ -1,28 +1,32 @@
 package com.itc.funkart.product_service.dto.request;
 
-import jakarta.validation.constraints.*;
-import lombok.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import lombok.Builder;
+
 import java.math.BigDecimal;
 
-@Data
+/**
+ * Data transfer object for updating existing product details.
+ * All fields except validation constraints are optional to allow partial updates (PATCH style).
+ */
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ProductUpdateRequest {
+public record ProductUpdateRequest(
+        @Size(min = 3, max = 100, message = "Name must be between 3 and 100 characters")
+        String name,
 
-    @Size(min = 3, max = 100, message = "Name must be between 3 and 100 characters")
-    private String name;
+        String description,
 
-    private String description;
+        @Positive(message = "Price must be positive")
+        BigDecimal price,
 
-    @Positive(message = "Price must be positive")
-    private BigDecimal price;
+        @Min(value = 0, message = "Stock cannot be negative")
+        Integer stockQuantity,
 
-    @Min(value = 0, message = "Stock cannot be negative")
-    private Integer stockQuantity;
+        @Size(min = 2, message = "Brand name is too short")
+        String brand,
 
-    @NotNull(message = "Brand is required")
-    private String brand;
-
-    private Boolean active;
+        Boolean active
+) {
 }
