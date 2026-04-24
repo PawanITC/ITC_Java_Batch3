@@ -1,87 +1,81 @@
 pipeline {
     agent any
 
-    // SCM polling trigger: Jenkins checks Git every 5 minutes
-    // and runs the pipeline only if there are new commits
-    triggers {
-        pollSCM('H/5 * * * *')
-    }
-
     environment {
-        DOCKER_USER     = 'ipenitcdocker'
+        // Shared Config
         REPO_NAME       = 'product-service'
-        // Full Docker image name (user/repo)
-        IMAGE_NAME      = "${DOCKER_USER}/${REPO_NAME}"
-        // Jenkins credential ID for Docker Hub login
-        CREDS_ID        = 'DOCKER_HUB_CREDS'
-        VERSION         = "1.0.${env.BUILD_NUMBER}"
-        // Path to backend service inside repo
         PROJECT_DIR     = 'backend/product-service'
+        VERSION         = "1.0.${env.BUILD_NUMBER}"
+
+        // Dev (Docker Hub) Config
+        DH_USER         = 'ipenitcdocker'
+        DH_CREDS        = 'DOCKER_HUB_CREDS'
+
+        // Prod (AWS ECR) Config - Replace with your actual AWS details
+        AWS_REGION      = 'eu-west-2'
+        AWS_ACCOUNT_ID  = '666127452756'
+        ECR_URL         = "${AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
     }
 
     stages {
-
-        // Step 1: Checkout source code from Git repository
-        stage('Checkout Code') {
+        stage('Checkout & Build') {
             steps {
                 checkout scm
-            }
-        }
-
-        // Step 2: Build the application artifact using Gradle
-        stage('Build Artifact') {
-            steps {
                 dir("${env.PROJECT_DIR}") {
-                    // Make Gradle wrapper executable
                     sh "chmod +x gradlew"
-
-                    // Build project while skipping tests
                     sh "./gradlew clean build -x test"
                 }
             }
         }
 
-        // Step 3: Build Docker image from the application
-        stage('Build Image') {
+        stage('Build Docker Image') {
             steps {
                 dir("${env.PROJECT_DIR}") {
-                    // Build Docker image with version and latest tags
-                    sh "docker build -t ${IMAGE_NAME}:${VERSION} -t ${IMAGE_NAME}:latest ."
+                    // Build a local base image first
+                    sh "docker build -t ${env.REPO_NAME}:latest ."
                 }
             }
         }
 
-        // Step 4: Push Docker image to Docker Hub
-        stage('Push to Hub') {
+        stage('Push to Registry') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: "${env.CREDS_ID}",
-                    passwordVariable: 'DOCKER_PASS',
-                    usernameVariable: 'DOCKER_USER_ID'
-                )]) {
+                script {
+                    // Logic check: 'MY_SERVER_ROLE' is defined in Jenkins Global Settings
+                    if (env.MY_SERVER_ROLE == 'PRODUCTION') {
+                        echo "--- Detected PRODUCTION Server: Pushing to AWS ECR ---"
 
-                    // Login to Docker Hub securely
-                    sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER_ID --password-stdin"
+                        // Step 1: Login to ECR (Requires AWS CLI installed on server)
+                        sh "aws ecr get-login-password --region ${env.AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_URL}"
 
-                    // Push versioned image
-                    sh "docker push ${IMAGE_NAME}:${VERSION}"
+                        // Step 2: Tag and Push
+                        sh "docker tag ${env.REPO_NAME}:latest ${env.ECR_URL}/${env.REPO_NAME}:${env.VERSION}"
+                        sh "docker tag ${env.REPO_NAME}:latest ${env.ECR_URL}/${env.REPO_NAME}:latest"
+                        sh "docker push ${env.ECR_URL}/${env.REPO_NAME}:${env.VERSION}"
+                        sh "docker push ${env.ECR_URL}/${env.REPO_NAME}:latest"
+                    }
+                    else {
+                        echo "--- Detected DEV Server (or MY_ENV not set): Pushing to Docker Hub ---"
 
-                    // Push latest image tag
-                    sh "docker push ${IMAGE_NAME}:latest"
+                        withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
+                                         passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                            sh "echo \$PASS | docker login -u \$USER --password-stdin"
+                            sh "docker tag ${env.REPO_NAME}:latest ${env.DH_USER}/${env.REPO_NAME}:${env.VERSION}"
+                            sh "docker tag ${env.REPO_NAME}:latest ${env.DH_USER}/${env.REPO_NAME}:latest"
+                            sh "docker push ${env.DH_USER}/${env.REPO_NAME}:${env.VERSION}"
+                            sh "docker push ${env.DH_USER}/${env.REPO_NAME}:latest"
+                        }
+                    }
                 }
             }
         }
     }
 
     post {
-
-        // Always executed regardless of success or failure
         always {
-            // Logout from Docker Hub
             sh "docker logout || true"
-
-            // Clean up local Docker images to save space
-            sh "docker rmi ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest || true"
+            sh "docker logout ${env.ECR_URL} || true"
+            // Cleanup to save space
+            sh "docker rmi ${env.REPO_NAME}:latest || true"
         }
     }
 }
