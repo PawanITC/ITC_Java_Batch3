@@ -97,7 +97,7 @@ services:
   # --- 4. MICROSERVICES ---
   api-gateway:
     container_name: api-gateway
-    image: ${DOCKER_HUB_USER}/api-gateway:latest
+    image: abbasgureitc/api-gateway:latest
     pull_policy: always
     ports:
       - "8060:8060"
@@ -114,7 +114,7 @@ services:
 
   user-service:
     container_name: user-service
-    image: ${DOCKER_HUB_USER}/user-service:latest
+    image: abbasgureitc/user-service:latest
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       DB_URL: jdbc:postgresql://postgres-db:5432/mydb
@@ -127,7 +127,7 @@ services:
 
   payment-service:
     container_name: payment-service
-    image: ${DOCKER_HUB_USER}/payment-service:latest
+    image: abbasgureitc/payment-service:latest
     ports:
       - "8082:8080"
     environment:
@@ -141,7 +141,7 @@ services:
 
   product-service:
     container_name: product-service
-    image: ${DOCKER_HUB_USER}/product-service:latest
+    image: abbasgureitc/product-service:latest
     ports:
       - "9090:9090"
     environment:
