@@ -361,12 +361,17 @@ spec:
                                 stage('Kaniko Push') {
                                     container('kaniko') {
                                         sh """
+                                        # Create the config file in a more standard location for the executor
+                                        mkdir -p /kaniko/.docker
                                         echo '{"credsStore":"ecr-login"}' > /kaniko/.docker/config.json
+
                                         /kaniko/executor \
                                             --context ${WORKSPACE}/${env.PROJECT_DIR} \
                                             --dockerfile ${WORKSPACE}/${env.PROJECT_DIR}/Dockerfile \
                                             --destination ${env.ECR_DEST} \
-                                            --destination ${env.ECR_LATEST}
+                                            --destination ${env.ECR_LATEST} \
+                                            --skip-unused-stages \
+                                            --verbosity=info
                                         """
                                     }
                                 }
