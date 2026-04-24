@@ -191,13 +191,118 @@
 // }
 
 
+// pipeline {
+//     agent {
+//         // If we are in PROD, we use the Kubernetes Pod. If not, we use the local node.
+//         node {
+//             label (env.MY_SERVER_ROLE == 'PRODUCTION' ? 'kubernetes' : '')
+//         }
+//     }
+//
+//     environment {
+//         SERVICE_NAME    = 'product-service'
+//         PROJECT_DIR     = 'backend/product-service'
+//         VERSION         = "1.0.${env.BUILD_NUMBER}"
+//         DH_USER         = 'ipenitcdocker'
+//         DH_CREDS        = 'DOCKER_HUB_CREDS'
+//         REPO_NAME       = 'ecr-java'
+//         AWS_REGION      = 'eu-west-2'
+//         AWS_ACCOUNT_ID  = '666127452756'
+//         ECR_URL         = "${AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
+//         ECR_DEST        = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-${VERSION}"
+//         ECR_LATEST      = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-latest"
+//     }
+//
+//     stages {
+//         stage('Build & Push') {
+//             steps {
+//                 script {
+//                     if (env.MY_SERVER_ROLE == 'PRODUCTION') {
+//                         // Define a Pod with Java 17 for building and Kaniko for pushing
+//                         podTemplate(yaml: """
+// apiVersion: v1
+// kind: Pod
+// spec:
+//   containers:
+//   - name: gradle
+//     image: gradle:8.5-jdk17
+//     command: ['sleep']
+//     args: ['99d']
+//   - name: kaniko
+//     image: gcr.io/kaniko-project/executor:debug
+//     command: ['sleep']
+//     args: ['99d']
+//     volumeMounts:
+//     - name: kaniko-secret
+//       mountPath: /kaniko/.docker
+//   volumes:
+//   - name: kaniko-secret
+//     emptyDir: {}
+// """) {
+//                             node(POD_LABEL) {
+//                                 // Step 1: Build JAR using the Gradle/Java 17 container
+//                                 stage('Gradle Build (Prod)') {
+//                                     container('gradle') {
+//                                         checkout scm
+//                                         dir("${env.PROJECT_DIR}") {
+//                                             sh "chmod +x gradlew"
+//                                             sh "./gradlew clean build -x test"
+//                                         }
+//                                     }
+//                                 }
+//
+//                                 // Step 2: Build & Push Image using Kaniko
+//                                 stage('Kaniko Push (Prod)') {
+//                                     container('kaniko') {
+//                                         sh """
+//                                         echo '{"credsStore":"ecr-login"}' > /kaniko/.docker/config.json
+//                                         /kaniko/executor \
+//                                             --context ${WORKSPACE}/${env.PROJECT_DIR} \
+//                                             --dockerfile ${WORKSPACE}/${env.PROJECT_DIR}/Dockerfile \
+//                                             --destination ${env.ECR_DEST} \
+//                                             --destination ${env.ECR_LATEST}
+//                                         """
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                     }
+//                     else {
+//                         // --- LOCAL DEV LOGIC ---
+//                         echo "--- DEV DETECTED: Using Local Java & Docker ---"
+//                         checkout scm
+//                         dir("${env.PROJECT_DIR}") {
+//                             sh "chmod +x gradlew"
+//                             sh "./gradlew clean build -x test"
+//                             sh "docker build -t ${env.SERVICE_NAME}:latest ."
+//
+//                             withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
+//                                              passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+//                                 sh "echo \$PASS | docker login -u \$USER --password-stdin"
+//                                 sh "docker tag ${env.SERVICE_NAME}:latest ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
+//                                 sh "docker push ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//
+//     post {
+//         always {
+//             script {
+//                 if (env.MY_SERVER_ROLE != 'PRODUCTION') {
+//                     sh "docker logout || true"
+//                     sh "docker rmi ${env.SERVICE_NAME}:latest || true"
+//                 }
+//             }
+//         }
+//     }
+// }
+
 pipeline {
-    agent {
-        // If we are in PROD, we use the Kubernetes Pod. If not, we use the local node.
-        node {
-            label (env.MY_SERVER_ROLE == 'PRODUCTION' ? 'kubernetes' : '')
-        }
-    }
+    agent any // This ensures the pipeline starts immediately without waiting for a label
 
     environment {
         SERVICE_NAME    = 'product-service'
@@ -218,7 +323,9 @@ pipeline {
             steps {
                 script {
                     if (env.MY_SERVER_ROLE == 'PRODUCTION') {
-                        // Define a Pod with Java 17 for building and Kaniko for pushing
+                        echo "--- PROD DETECTED: Launching EKS Pod Template ---"
+
+                        // We define the pod without a forced label to avoid the "waiting" error
                         podTemplate(yaml: """
 apiVersion: v1
 kind: Pod
@@ -239,9 +346,9 @@ spec:
   - name: kaniko-secret
     emptyDir: {}
 """) {
+                            // This block actually runs INSIDE the EKS cluster
                             node(POD_LABEL) {
-                                // Step 1: Build JAR using the Gradle/Java 17 container
-                                stage('Gradle Build (Prod)') {
+                                stage('Checkout & Build') {
                                     container('gradle') {
                                         checkout scm
                                         dir("${env.PROJECT_DIR}") {
@@ -251,8 +358,7 @@ spec:
                                     }
                                 }
 
-                                // Step 2: Build & Push Image using Kaniko
-                                stage('Kaniko Push (Prod)') {
+                                stage('Kaniko Push') {
                                     container('kaniko') {
                                         sh """
                                         echo '{"credsStore":"ecr-login"}' > /kaniko/.docker/config.json
@@ -268,14 +374,14 @@ spec:
                         }
                     }
                     else {
-                        // --- LOCAL DEV LOGIC ---
-                        echo "--- DEV DETECTED: Using Local Java & Docker ---"
+                        // --- LOCAL DEV LOGIC (Runs on your laptop) ---
+                        echo "--- DEV DETECTED: Building locally ---"
                         checkout scm
                         dir("${env.PROJECT_DIR}") {
                             sh "chmod +x gradlew"
                             sh "./gradlew clean build -x test"
-                            sh "docker build -t ${env.SERVICE_NAME}:latest ."
 
+                            sh "docker build -t ${env.SERVICE_NAME}:latest ."
                             withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
                                              passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                                 sh "echo \$PASS | docker login -u \$USER --password-stdin"
