@@ -1,43 +1,41 @@
-# --- Stage 1: Build & Test (The "Kitchen") ---
-FROM eclipse-temurin:17-jdk-jammy AS builder
-WORKDIR /app
+# ==================================================
+# Product Service Microservice
+# ==================================================
+# Author: Abbas
+# Description: Manages the product catalog, categories,
+#              and inventory for Funkart.
+# ==================================================
 
-# 1. Copy Gradle wrapper and configuration files
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle settings.gradle ./
-
-# 2. Fix permissions and download dependencies (cached layer)
-RUN chmod +x gradlew
-# Pre-download dependencies to speed up subsequent builds
-RUN ./gradlew dependencies --no-daemon
-
-# 3. Copy source code
-COPY src src
-
-# 4. RUN TESTS
-# If tests fail, the build stops here. No image is created.
-#RUN ./gradlew test --no-daemon
-
-# 5. Build the JAR
-# We already ran tests, so we can package it now
-RUN ./gradlew bootJar --no-daemon
-
-# --- Stage 2: Runtime (The "Serving Plate") ---
+# ---------------------------
+# Runtime Stage (Lean & Fast)
+# ---------------------------
+# We use 'jre' instead of 'jdk' for the runtime to keep the image small
 FROM eclipse-temurin:17-jre-jammy
+
 WORKDIR /app
 
-# 6. Security: Run as a non-root user
+# Metadata Labels
+LABEL maintainer="Abbas"
+LABEL service.name="product-service"
+LABEL service.description="Product Service - Catalog and Inventory Management"
+
+# 1. Security: Run as a non-root user (Best Practice)
+# Adding the user first so the COPY command can assign ownership
 RUN useradd -ms /bin/bash springuser
+RUN chown -R springuser:springuser /app
+
+# 2. Copy the JAR built by Jenkins
+# Jenkins runs './gradlew build', so we just grab the result from the workspace
+COPY --chown=springuser:springuser build/libs/*.jar app.jar
+
+# 3. Switch to the non-privileged user
 USER springuser
 
-# 7. Copy the built JAR from the builder stage
-COPY --from=builder /app/build/libs/*.jar app.jar
-
-# 8. Set the application port to 9090
-ENV SERVER_PORT=9090
+# 4. Networking
+# Product Service internal port
 EXPOSE 9090
 
-# 9. Optimized entrypoint
-# The -Dserver.port=9090 ensures Spring Boot overrides any internal defaults
-ENTRYPOINT ["java", "-Dserver.port=9090", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+# 5. JVM container-friendly settings
+# - UseContainerSupport: respects Docker memory limits
+# - MaxRAMPercentage: prevents JVM from "eating" all host memory
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

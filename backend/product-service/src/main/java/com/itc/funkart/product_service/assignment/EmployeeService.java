@@ -7,8 +7,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class EmployeeService {
-    public Map<String, Employee> getHighestSalary(List<Employee> employees){
-        return   employees.stream()
+    public Map<String, Employee> getHighestSalary(List<Employee> employees) {
+        return employees.stream()
                 .collect(Collectors.groupingBy(
                         Employee::getDepartment,
                         Collectors.collectingAndThen(

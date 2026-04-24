@@ -1,21 +1,20 @@
 package com.itc.funkart.product_service.dto.events;
 
 import com.itc.funkart.product_service.enums.OrderEventType;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+/**
+ * Event received from the Order Service via Kafka.
+ * Used to trigger stock updates and cart clearing.
+ */
 @Builder
-public class OrderEvent {
-    private OrderEventType eventType; // "ORDER_CREATED"
-    private Long userId;
-    private BigDecimal totalAmount;
-    private List<Long> productIds;
+public record OrderEvent(
+        OrderEventType eventType,
+        Long userId,
+        BigDecimal totalAmount,
+        List<Long> productIds
+) {
 }

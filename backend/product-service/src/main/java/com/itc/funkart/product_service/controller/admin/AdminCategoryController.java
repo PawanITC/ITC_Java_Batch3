@@ -1,30 +1,54 @@
 package com.itc.funkart.product_service.controller.admin;
 
 import com.itc.funkart.product_service.dto.request.CategoryRequest;
-import com.itc.funkart.product_service.dto.request.CategoryResponse;
+import com.itc.funkart.product_service.dto.response.CategoryResponse;
+import com.itc.funkart.product_service.response.ApiResponse;
 import com.itc.funkart.product_service.service.CategoryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Administrative endpoints for managing product categories.
+ * <p>
+ * Access is restricted to users with {@code ROLE_ADMIN} authority.
+ * </p>
+ */
 @RestController
-@RequestMapping("/api/admin/categories")
+@RequestMapping("/admin/categories")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
+@Tag(name = "Admin Categories", description = "Administrative Category Management")
 public class AdminCategoryController {
 
     private final CategoryService categoryService;
 
+    /**
+     * Creates a new product category.
+     *
+     * @param request The category details.
+     * @return Standardized response containing the created category.
+     */
     @PostMapping
-    public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.createCategory(request));
+    @Operation(summary = "Create a new category")
+    public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(categoryService.createCategory(request), "Category created successfully"));
     }
 
+    /**
+     * Deletes an existing category.
+     *
+     * @param id The unique identifier of the category.
+     * @return Empty success response.
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+    @Operation(summary = "Delete a category")
+    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new ApiResponse<>(null, "Category deleted successfully"));
     }
 }

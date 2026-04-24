@@ -1,7 +1,7 @@
 package com.itc.funkart.product_service.serviceImpl;
 
 import com.itc.funkart.product_service.dto.request.CategoryRequest;
-import com.itc.funkart.product_service.dto.request.CategoryResponse;
+import com.itc.funkart.product_service.dto.response.CategoryResponse;
 import com.itc.funkart.product_service.entity.Category;
 import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
 import com.itc.funkart.product_service.mapper.CategoryMapper;
@@ -9,9 +9,14 @@ import com.itc.funkart.product_service.repository.CategoryRepository;
 import com.itc.funkart.product_service.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of {@link CategoryService}.
+ * Provides standard CRUD operations for organizing products into groups.
+ */
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
