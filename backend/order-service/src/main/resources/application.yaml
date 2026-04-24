@@ -5,9 +5,9 @@ spring:
     name: order-service
 
   datasource:
-    url: jdbc:postgresql://18.132.197.27:31369/order-service
+    url: jdbc:postgresql://18.132.197.27:32680/order-service
     username: postgres
-    password: pYOXcbv2aV
+    password: Ie422p9Cx8
     driver-class-name: org.postgresql.Driver
 
   jpa:
