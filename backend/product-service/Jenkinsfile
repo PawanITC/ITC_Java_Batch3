@@ -1,24 +1,112 @@
+// pipeline {
+//     agent any
+//
+//     environment {
+//         // Shared Config
+//         REPO_NAME       = 'product-service'
+//         PROJECT_DIR     = 'backend/product-service'
+//         VERSION         = "1.0.${env.BUILD_NUMBER}"
+//
+//         // Dev (Docker Hub) Config
+//         DH_USER         = 'ipenitcdocker'
+//         DH_CREDS        = 'DOCKER_HUB_CREDS'
+//
+//         // Prod (AWS ECR) Config - Replace with your actual AWS details
+//         AWS_REGION      = 'eu-west-2'
+//         AWS_ACCOUNT_ID  = '666127452756'
+//         ECR_URL         = "${AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
+//     }
+//
+//     stages {
+//         stage('Checkout & Build') {
+//             steps {
+//                 checkout scm
+//                 dir("${env.PROJECT_DIR}") {
+//                     sh "chmod +x gradlew"
+//                     sh "./gradlew clean build -x test"
+//                 }
+//             }
+//         }
+//
+//         stage('Build Docker Image') {
+//             steps {
+//                 dir("${env.PROJECT_DIR}") {
+//                     // Build a local base image first
+//                     sh "docker build -t ${env.REPO_NAME}:latest ."
+//                 }
+//             }
+//         }
+//
+//         stage('Push to Registry') {
+//             steps {
+//                 script {
+//                     // Logic check: 'MY_SERVER_ROLE' is defined in Jenkins Global Settings
+//                     if (env.MY_SERVER_ROLE == 'PRODUCTION') {
+//                         echo "--- Detected PRODUCTION Server: Pushing to AWS ECR ---"
+//
+//                         // Step 1: Login to ECR (Requires AWS CLI installed on server)
+//                         sh "aws ecr get-login-password --region ${env.AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_URL}"
+//
+//                         // Step 2: Tag and Push
+//                         sh "docker tag ${env.REPO_NAME}:latest ${env.ECR_URL}/${env.REPO_NAME}:${env.VERSION}"
+//                         sh "docker tag ${env.REPO_NAME}:latest ${env.ECR_URL}/${env.REPO_NAME}:latest"
+//                         sh "docker push ${env.ECR_URL}/${env.REPO_NAME}:${env.VERSION}"
+//                         sh "docker push ${env.ECR_URL}/${env.REPO_NAME}:latest"
+//                     }
+//                     else {
+//                         echo "--- Detected DEV Server (or MY_ENV not set): Pushing to Docker Hub ---"
+//
+//                         withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
+//                                          passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+//                             sh "echo \$PASS | docker login -u \$USER --password-stdin"
+//                             sh "docker tag ${env.REPO_NAME}:latest ${env.DH_USER}/${env.REPO_NAME}:${env.VERSION}"
+//                             sh "docker tag ${env.REPO_NAME}:latest ${env.DH_USER}/${env.REPO_NAME}:latest"
+//                             sh "docker push ${env.DH_USER}/${env.REPO_NAME}:${env.VERSION}"
+//                             sh "docker push ${env.DH_USER}/${env.REPO_NAME}:latest"
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//
+//     post {
+//         always {
+//             sh "docker logout || true"
+//             sh "docker logout ${env.ECR_URL} || true"
+//             // Cleanup to save space
+//             sh "docker rmi ${env.REPO_NAME}:latest || true"
+//         }
+//     }
+// }
 pipeline {
-    agent any
+    agent {
+        node {
+            label ''
+        }
+    }
 
     environment {
-        // Shared Config
-        REPO_NAME       = 'product-service'
+        SERVICE_NAME    = 'product-service'
         PROJECT_DIR     = 'backend/product-service'
         VERSION         = "1.0.${env.BUILD_NUMBER}"
 
-        // Dev (Docker Hub) Config
+        // Dev (Docker Hub)
         DH_USER         = 'ipenitcdocker'
         DH_CREDS        = 'DOCKER_HUB_CREDS'
 
-        // Prod (AWS ECR) Config - Replace with your actual AWS details
+        // Prod (AWS ECR via Kaniko)
+        REPO_NAME       = 'ecr-java'
         AWS_REGION      = 'eu-west-2'
         AWS_ACCOUNT_ID  = '666127452756'
         ECR_URL         = "${AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
+        // Tagging workaround: service-name-version
+        ECR_DEST        = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-${VERSION}"
+        ECR_LATEST      = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-latest"
     }
 
     stages {
-        stage('Checkout & Build') {
+        stage('Checkout & Gradle Build') {
             steps {
                 checkout scm
                 dir("${env.PROJECT_DIR}") {
@@ -28,41 +116,60 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                dir("${env.PROJECT_DIR}") {
-                    // Build a local base image first
-                    sh "docker build -t ${env.REPO_NAME}:latest ."
-                }
-            }
-        }
-
         stage('Push to Registry') {
             steps {
                 script {
-                    // Logic check: 'MY_SERVER_ROLE' is defined in Jenkins Global Settings
                     if (env.MY_SERVER_ROLE == 'PRODUCTION') {
-                        echo "--- Detected PRODUCTION Server: Pushing to AWS ECR ---"
+                        echo "--- PROD DETECTED: Using Kaniko for ECR ---"
 
-                        // Step 1: Login to ECR (Requires AWS CLI installed on server)
-                        sh "aws ecr get-login-password --region ${env.AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_URL}"
-
-                        // Step 2: Tag and Push
-                        sh "docker tag ${env.REPO_NAME}:latest ${env.ECR_URL}/${env.REPO_NAME}:${env.VERSION}"
-                        sh "docker tag ${env.REPO_NAME}:latest ${env.ECR_URL}/${env.REPO_NAME}:latest"
-                        sh "docker push ${env.ECR_URL}/${env.REPO_NAME}:${env.VERSION}"
-                        sh "docker push ${env.ECR_URL}/${env.REPO_NAME}:latest"
+                        // This block defines the Kaniko container dynamically for EKS
+                        podTemplate(yaml: """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command: ['sleep']
+    args: ['99d']
+    volumeMounts:
+    - name: kaniko-secret
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: kaniko-secret
+    emptyDir: {}
+""") {
+                            container('kaniko') {
+                                // Kaniko builds the image AND pushes it in one command
+                                sh """
+                                echo '{"credsStore":"ecr-login"}' > /kaniko/.docker/config.json
+                                /kaniko/executor \
+                                    --context ${WORKSPACE}/${env.PROJECT_DIR} \
+                                    --dockerfile ${WORKSPACE}/${env.PROJECT_DIR}/Dockerfile \
+                                    --destination ${env.ECR_DEST} \
+                                    --destination ${env.ECR_LATEST}
+                                """
+                            }
+                        }
                     }
                     else {
-                        echo "--- Detected DEV Server (or MY_ENV not set): Pushing to Docker Hub ---"
+                        echo "--- DEV DETECTED: Using Docker for Hub ---"
 
-                        withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
-                                         passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                            sh "echo \$PASS | docker login -u \$USER --password-stdin"
-                            sh "docker tag ${env.REPO_NAME}:latest ${env.DH_USER}/${env.REPO_NAME}:${env.VERSION}"
-                            sh "docker tag ${env.REPO_NAME}:latest ${env.DH_USER}/${env.REPO_NAME}:latest"
-                            sh "docker push ${env.DH_USER}/${env.REPO_NAME}:${env.VERSION}"
-                            sh "docker push ${env.DH_USER}/${env.REPO_NAME}:latest"
+                        dir("${env.PROJECT_DIR}") {
+                            // Standard Docker Build
+                            sh "docker build -t ${env.SERVICE_NAME}:latest ."
+
+                            withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
+                                             passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                                sh "echo \$PASS | docker login -u \$USER --password-stdin"
+
+                                // Tag and Push to Docker Hub
+                                sh "docker tag ${env.SERVICE_NAME}:latest ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
+                                sh "docker tag ${env.SERVICE_NAME}:latest ${env.DH_USER}/${env.SERVICE_NAME}:latest"
+
+                                sh "docker push ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
+                                sh "docker push ${env.DH_USER}/${env.SERVICE_NAME}:latest"
+                            }
                         }
                     }
                 }
@@ -72,10 +179,13 @@ pipeline {
 
     post {
         always {
-            sh "docker logout || true"
-            sh "docker logout ${env.ECR_URL} || true"
-            // Cleanup to save space
-            sh "docker rmi ${env.REPO_NAME}:latest || true"
+            script {
+                if (env.MY_SERVER_ROLE != 'PRODUCTION') {
+                    // Only clean up Docker if we actually used the Docker engine
+                    sh "docker logout || true"
+                    sh "docker rmi ${env.SERVICE_NAME}:latest || true"
+                }
+            }
         }
     }
 }
