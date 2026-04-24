@@ -1,11 +1,14 @@
 
-
 spring:
   application:
     name: order-service
 
   datasource:
+<<<<<<< HEAD
     url: jdbc:postgresql://18.132.197.27:32680/order-service
+=======
+    url: jdbc:postgresql://18.175.222.132:32680/order-service
+>>>>>>> d0373b1 (fixed the db issue)
     username: postgres
     password: Ie422p9Cx8
     driver-class-name: org.postgresql.Driver
@@ -42,5 +45,20 @@ server:
 
 management:
   tracing:
+<<<<<<< HEAD
     sampling:
       probability: 1.0
+=======
+    jaeger:
+      enabled: true
+      exporter:
+        jaeger:
+          endpoint: http://jaeger:14268/api/traces
+      sampler:
+        type: const
+        param: 1.0
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+>>>>>>> d0373b1 (fixed the db issue)
