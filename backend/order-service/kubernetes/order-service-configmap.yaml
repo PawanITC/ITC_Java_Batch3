@@ -4,7 +4,7 @@ metadata:
   name: order-service-config
   namespace: order-service
 data:
-  SPRING_DATASOURCE_URL: jdbc:postgresql://18.132.197.27:31369/order-service
+  SPRING_DATASOURCE_URL: jdbc:postgresql://18.132.197.27:32680/order-service
   SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
   SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka.kafka.svc.cluster.local:9092
   SPRING_KAFKA_CONSUMER_GROUP_ID: service-events
