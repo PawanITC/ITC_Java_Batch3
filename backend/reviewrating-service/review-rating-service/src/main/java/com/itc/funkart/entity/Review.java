@@ -1,58 +1,53 @@
-package com.itc.funkart.entity;
+ package com.itc.funkart.entity;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
-@Table(name = "reviews",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"product_id", "user_id"}))
+@Table(name = "reviews", indexes = {
+        @Index(name = "idx_reviews_product", columnList = "productId"),
+        @Index(name = "idx_reviews_user_product", columnList = "userId,productId", unique = true)
+})
 public class Review {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    private UUID id;
 
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    private String productId;
+    private String userId;
+    private int rating;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
 
-    @Column(nullable = false)
-    private int rating; // 1–5
+    @Column(length = 4000)
+    private String reviewText;
 
-    @Column(length = 2000)
-    private String comment;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
-
-    @Column(name = "updated_at")
     private Instant updatedAt;
 
-    // getters and setters
-
-    public Long getId() {
+    // getters/setters omitted for brevity
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
-    public Long getProductId() {
+    public String getProductId() {
         return productId;
     }
 
-    public void setProductId(Long productId) {
+    public void setProductId(String productId) {
         this.productId = productId;
     }
 
-    public Long getUserId() {
+    public String getUserId() {
         return userId;
     }
 
-    public void setUserId(Long userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 
@@ -64,12 +59,12 @@ public class Review {
         this.rating = rating;
     }
 
-    public String getComment() {
-        return comment;
+    public String getReviewText() {
+        return reviewText;
     }
 
-    public void setComment(String comment) {
-        this.comment = comment;
+    public void setReviewText(String reviewText) {
+        this.reviewText = reviewText;
     }
 
     public Instant getCreatedAt() {
@@ -87,4 +82,26 @@ public class Review {
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    // --- Add these lifecycle hooks here ---
+    @PrePersist
+    public void onCreate() {
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
+    public Review(Long productId, Long userId, Instant createdAt) {
+        this.productId = productId != null ? productId.toString() : null;
+        this.userId = userId != null ? userId.toString() : null;
+        this.createdAt = createdAt;
+        this.updatedAt = createdAt; // optional: set updatedAt same as createdAt
+    }
+
+
 }

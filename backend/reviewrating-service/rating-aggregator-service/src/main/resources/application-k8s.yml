@@ -6,7 +6,7 @@ spring:
     name: rating-aggregator-service
 
   kafka:
-    bootstrap-servers: kafka:9092   # ✅ NEW EXTERNAL KAFKA
+    bootstrap-servers: ${KAFKA_BOOTSTRAP}
     consumer:
       group-id: rating-aggregator-group
       auto-offset-reset: earliest
@@ -17,10 +17,11 @@ spring:
 
   data:
     redis:
-      host: redis
+      host: ${REDIS_HOST}
       port: 6379
 
-otel:
-  exporter:
-    otlp:
-      endpoint: http://otel-collector:4318
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

@@ -1,35 +1,39 @@
 package com.itc.funkart.serviceimpl;
 
-import com.itc.funkart.dto.ProductRatingSummaryResponse;
+
+
 import com.itc.funkart.entity.ProductRatingSummary;
+import com.itc.funkart.projection.RatingStats;
 import com.itc.funkart.repository.ProductRatingSummaryRepository;
+import com.itc.funkart.repository.ReviewRepository;
 import com.itc.funkart.service.RatingSummaryService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RatingSummaryServiceImpl implements com.itc.funkart.service.RatingSummaryService {
+@RequiredArgsConstructor
+public class RatingSummaryServiceImpl implements RatingSummaryService {
 
-    private final com.itc.funkart.repository.ProductRatingSummaryRepository summaryRepository;
-
-    public RatingSummaryServiceImpl(ProductRatingSummaryRepository summaryRepository) {
-        this.summaryRepository = summaryRepository;
-    }
+    private final ReviewRepository reviewRepository;
+    private final ProductRatingSummaryRepository summaryRepository;
 
     @Override
-    public ProductRatingSummaryResponse getRatingSummary(Long productId) {
-        ProductRatingSummary summary = summaryRepository.findById(productId)
-                .orElseGet(() -> {
-                    ProductRatingSummary s = new ProductRatingSummary();
-                    s.setProductId(productId);
-                    s.setAverageRating(0.0);
-                    s.setRatingCount(0);
-                    return s;
-                });
+    public void recalculateSummary(Long productId) {
 
-        ProductRatingSummaryResponse resp = new ProductRatingSummaryResponse();
-        resp.setProductId(summary.getProductId());
-        resp.setAverageRating(summary.getAverageRating());
-        resp.setRatingCount(summary.getRatingCount());
-        return resp;
+        RatingStats stats = reviewRepository.getRatingStatsByProductId(productId);
+
+        if (stats == null || stats.getAvg() == null) {
+            summaryRepository.deleteById(productId);
+            return;
+        }
+
+        ProductRatingSummary summary = summaryRepository.findById(productId)
+                .orElseGet(() -> new ProductRatingSummary(productId));
+
+        summary.setAverageRating(stats.getAvg());
+        summary.setRatingCount(stats.getCount());
+
+        summaryRepository.save(summary);
     }
 }
+

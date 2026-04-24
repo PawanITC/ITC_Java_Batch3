@@ -10,6 +10,7 @@ version = '0.0.1-SNAPSHOT'
 
 
 repositories {
+	mavenLocal()
 	mavenCentral()
 }
 
@@ -32,11 +33,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'io.lettuce:lettuce-core'
 	implementation 'org.springframework.kafka:spring-kafka'
+	implementation("com.itc.funkart:review-events-schema:1.0.0")
 
 
 
 
-    // Kafka
+	// Kafka
 	implementation 'org.springframework.kafka:spring-kafka'
 
 	// Jackson

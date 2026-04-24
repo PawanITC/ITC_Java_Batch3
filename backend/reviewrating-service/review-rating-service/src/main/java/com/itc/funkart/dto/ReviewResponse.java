@@ -4,9 +4,10 @@ package com.itc.funkart.dto;
 import com.itc.funkart.entity.Review;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public class ReviewResponse {
-    private Long id;
+    private UUID id;
     private Long productId;
     private Long userId;
      int rating;
@@ -17,7 +18,7 @@ public class ReviewResponse {
     public ReviewResponse() {
     }
 
-    public ReviewResponse(Long id, Long productId, Long userId,
+    public ReviewResponse(UUID id, Long productId, Long userId,
                           int rating, String comment,
                           Instant createdAt, Instant updatedAt) {
         this.id = id;
@@ -30,11 +31,11 @@ public class ReviewResponse {
     }
 
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -85,5 +86,18 @@ public class ReviewResponse {
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public static ReviewResponse from(Review review) {
+        return new ReviewResponse(
+                review.getId(),
+                Long.valueOf(review.getProductId()),
+                Long.valueOf(review.getUserId()),
+                review.getRating(),
+                review.getReviewText(),
+                review.getCreatedAt(),
+                review.getUpdatedAt()
+        );
+    }
+
 }
 

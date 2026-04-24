@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://18.132.197.27:31369/reviews
+    url: jdbc:postgresql://18.175.222.132:32680/postgres
     username: postgres
-    password: pYOXcbv2aV
+    password: Ie422p9Cx8
   jpa:
     hibernate:
       ddl-auto: update
@@ -22,7 +22,13 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
+        enable.idempotence: true
+        acks: all
+        retries: 10
+        max.in.flight.requests.per.connection: 5
         spring.json.add.type.headers: false
+      template:
+        default-topic: review.events.v1
 
   management:
     endpoints:
@@ -52,13 +58,13 @@ spring:
           userService:
             timeoutDuration: 2s
 
-  rating-aggregator:
-  base-url: http://localhost:9091/aggregator
+rating-aggregator:
+  base-url: http://localhost:9096/aggregator
 
 app:
   kafka:
     topic:
-      review-created: review-created-topic
+      review-created: review.events.v1
 
 
 
