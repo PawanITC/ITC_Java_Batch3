@@ -5,6 +5,7 @@ import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
 import com.itc.funkart.product_service.dto.response.ProductResponse;
 import com.itc.funkart.product_service.entity.Product;
 import com.itc.funkart.product_service.entity.ProductImage;
+import com.itc.funkart.product_service.enums.ProductEventType;
 
 import java.util.ArrayList;
 import java.util.stream.Collectors;
@@ -78,11 +79,8 @@ public class ProductMapper {
                 .replaceAll("\\s+", "-");
     }
 
-    public static ProductEvent toEvent(Product product) {
-        return new ProductEvent(
-                "PRODUCT_CREATED",
-                product.getId(),
-                product.getName()
+    public static ProductEvent toEvent(Product product, ProductEventType eventType,long id) {
+        return new ProductEvent(eventType, toResponse(product),id
         );
     }
 }

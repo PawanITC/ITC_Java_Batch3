@@ -3,8 +3,9 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import OAuthSuccess from "./pages/OAuthSuccess.tsx";
-import {AuthProvider} from "./context/AuthProvider";
+import OAuthCallback from "./pages/OAuthCallback";
+import { AuthProvider } from "./context/AuthProvider";
+import ProductManagement from "./pages/product/ProductManagement";
 
 import UserProductStore from "./pages/product/UserProductStore";
 import AdminProductManagement from "./pages/product/AdminProductManagement";
@@ -26,10 +27,10 @@ function App() {
                         {/* <Route path="products" element={<ProductManagement />} /> */}
 
                         {/* USER STOREFRONT: List, View, and Cart logic */}
-                        <Route path="products" element={<UserProductStore/>}/>
-
+                        <Route path="products" element={<UserProductStore />} />
+                        
                         {/* ADMIN DASHBOARD: Create, Update, Delete logic */}
-                        <Route path="admin-products" element={<AdminProductManagement/>}/>
+                        <Route path="admin-products" element={<AdminProductManagement />} />
                         {/* <Route path="products" element={<UserProductStore />} /> */}
 
                         {/* ADMIN DASHBOARD: Create, Update, Delete logic */}

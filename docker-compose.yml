@@ -99,6 +99,10 @@ services:
       - redis
     networks:
       - db-network
+    depends_on:
+      - postgres
+      - kafka
+      - redis
 
   jenkins:
     user: root
