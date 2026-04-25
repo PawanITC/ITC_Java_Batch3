@@ -53,6 +53,7 @@ spec:
             - name: KAFKA_CONTROLLER_LISTENER_NAMES
               value: "CONTROLLER"
 
+            # FIX HERE 👇 (use localhost to prevent circular dependency during startup)
             - name: KAFKA_CONTROLLER_QUORUM_VOTERS
               value: "1@localhost:9093"
 

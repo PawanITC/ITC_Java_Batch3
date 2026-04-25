@@ -14,60 +14,15 @@ spring:
       group-id: catalogue-service
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-
-      properties:
-        spring.json.trusted.packages: "*"
-        spring.json.value.default.type: com.itc.catalogueservice.kafka.listener.dto.ProductEventDTO
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
+logging:
+  level:
+    org.springframework.kafka: DEBUG
+
 server:
   port: 8081
-  tomcat:
-    threads:
-      max: 400
-    accept-count: 1500
-
-resilience4j:
-  ratelimiter:
-    instances:
-      productService:
-        limitForPeriod: 1200
-        limitRefreshPeriod: 1s
-
-  timelimiter:
-    instances:
-      productService:
-        timeoutDuration: 2s
-        cancelRunningFuture: true
-
-  retry:
-    instances:
-      productService:
-        maxAttempts: 1
-        waitDuration: 500ms
-        enableExponentialBackoff: true
-        exponentialBackoffMultiplier: 1
-        retryExceptions:
-          - java.util.concurrent.TimeoutException
-        ignoreExceptions:
-          - io.github.resilience4j.ratelimiter.RequestNotPermitted
-
-  circuitbreaker:
-    instances:
-      productService:
-        slidingWindowSize: 20
-        minimumNumberOfCalls: 10
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 3
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,metrics
-

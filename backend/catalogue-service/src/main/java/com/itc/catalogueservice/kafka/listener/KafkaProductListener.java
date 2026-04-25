@@ -1,33 +1,38 @@
 package com.itc.catalogueservice.kafka.listener;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.itc.catalogueservice.exception.kafka.InvalidProductEventException;
 import com.itc.catalogueservice.kafka.listener.dto.ProductEventDTO;
 import com.itc.catalogueservice.service.CatalogueService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
-import org.springframework.kafka.retrytopic.TopicSuffixingStrategy;
-import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
-
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class KafkaProductListener {
 
     private final CatalogueService catalogueService;
-    @RetryableTopic(
-            attempts = "3",
-            backoff = @Backoff(delay = 3000),
-            topicSuffixingStrategy = TopicSuffixingStrategy.SUFFIX_WITH_INDEX_VALUE
-    )
+    private final ObjectMapper objectMapper;
 
     @KafkaListener(
             topics = "product-events",
             groupId = "catalogue-service"
     )
-    public void listen(ProductEventDTO event) {
+    public void listen(String message) {
+        log.info("RECEIVED EVENT MESSAGE: {}", message);
+
+        ProductEventDTO event;
+        try {
+            event = objectMapper.readValue(message, ProductEventDTO.class);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse event message: {}", message, e);
+            throw new InvalidProductEventException("Invalid JSON format");
+        }
+
 
         switch (event.getEventType()) {
 
@@ -37,8 +42,9 @@ public class KafkaProductListener {
                         event.getProduct().getId() == null ||
                         event.getProduct().getName() == null ||
                         event.getProduct().getCategory() == null) {
-                    throw new InvalidProductEventException("Product name is missing");
+                    throw new InvalidProductEventException("Invalid product data");
                 }
+
                 catalogueService.saveProductToCache(event.getProduct());
                 break;
 
@@ -55,5 +61,8 @@ public class KafkaProductListener {
                 );
                 break;
         }
+
+        log.info("Updated cache for product ID: {}",
+                event.getProduct() != null ? event.getProduct().getId() : "null");
     }
 }

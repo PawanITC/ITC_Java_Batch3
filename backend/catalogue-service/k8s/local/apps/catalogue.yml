@@ -22,6 +22,8 @@ spec:
           env:
             - name: SPRING_REDIS_HOST
               value: "redis"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka:9092"
 
 ---
 # Catalogue Service - (Service) - (exposes the app)
