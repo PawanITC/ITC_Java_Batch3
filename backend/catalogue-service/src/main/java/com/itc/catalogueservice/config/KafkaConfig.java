@@ -7,23 +7,21 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaRetryTopic;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.kafka.retrytopic.RetryTopicSchedulerWrapper;
 
 @Profile("!test")
 @Configuration
 @EnableKafka
 @EnableKafkaRetryTopic
-@EnableScheduling
 public class KafkaConfig {
 
     @Bean
-    public TaskScheduler taskScheduler() {
+    public RetryTopicSchedulerWrapper retryTopicSchedulerWrapper() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(2);
         scheduler.setThreadNamePrefix("kafka-retry-");
         scheduler.initialize();
-        return scheduler;
+        return new RetryTopicSchedulerWrapper(scheduler);
     }
 
 }
