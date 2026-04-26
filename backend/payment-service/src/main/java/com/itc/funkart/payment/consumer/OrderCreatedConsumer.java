@@ -9,27 +9,71 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+/**
+ * Kafka consumer responsible for handling {@code OrderCreatedEvent} messages.
+ *
+ * <p>This component listens to the {@code order_created_topic} and initiates
+ * the payment confirmation flow when a new order is created.</p>
+ *
+ * <p><b>Responsibilities:</b></p>
+ * <ul>
+ *     <li>Consume order creation events from Kafka</li>
+ *     <li>Perform basic validation on incoming event payloads</li>
+ *     <li>Transform event data into domain-specific DTOs</li>
+ *     <li>Delegate payment processing to {@link PaymentService}</li>
+ * </ul>
+ *
+ * <p><b>Notes:</b></p>
+ * <ul>
+ *     <li>This consumer assumes Kafka is a trusted internal source</li>
+ *     <li>Manual validation is used instead of {@code @Valid}</li>
+ *     <li>No retry or dead-letter handling is implemented here</li>
+ * </ul>
+ */
 @Component
 public class OrderCreatedConsumer {
 
     private static final Logger logger = LoggerFactory.getLogger(OrderCreatedConsumer.class);
     private final PaymentService paymentService;
 
+    /**
+     * Constructs the consumer with required dependencies.
+     *
+     * @param paymentService service responsible for confirming payments
+     */
     public OrderCreatedConsumer(PaymentService paymentService) {
         this.paymentService = paymentService;
     }
 
+    /**
+     * Kafka listener method triggered when an {@code OrderCreatedEvent} is published.
+     *
+     * <p>Processing flow:</p>
+     * <ol>
+     *     <li>Log receipt of the event</li>
+     *     <li>Validate required fields</li>
+     *     <li>Map event data to {@link JwtUserDto}</li>
+     *     <li>Construct {@link ConfirmPaymentRequest}</li>
+     *     <li>Invoke {@link PaymentService#confirmPayment(JwtUserDto, ConfirmPaymentRequest)}</li>
+     * </ol>
+     *
+     * @param event the incoming order creation event from Kafka
+     */
     @KafkaListener(topics = "order_created_topic", groupId = "payment-service-group")
     public void onOrderCreated(OrderCreatedEvent event) {
+
         logger.info("Received order_created_event {} for user {}", event.orderId(), event.userId());
 
-        // Manual validation check (The replacement for @Valid)
+        // Manual validation check (replacement for @Valid)
         if (event.paymentIntentId() == null || event.paymentMethodId() == null) {
             logger.error("Rejecting malformed Kafka event for Order: {}", event.orderId());
-            return; // Don't process garbage data
+            return;
         }
 
-        // 1. We manually hydrate the JwtUserDto because Kafka is an internal trusted source
+        /*
+         * Hydrate user context from event payload.
+         * Assumes event data is trustworthy (internal system communication).
+         */
         JwtUserDto user = JwtUserDto.builder()
                 .id(event.userId())
                 .name(event.userName())
@@ -37,11 +81,18 @@ public class OrderCreatedConsumer {
                 .role(event.userRole())
                 .build();
 
-        // 2. Build the request exactly like our controller would
+        /*
+         * Build payment confirmation request equivalent to HTTP controller input.
+         */
         ConfirmPaymentRequest request = new ConfirmPaymentRequest(
-                event.paymentIntentId(), event.paymentMethodId(), event.returnUrl());
+                event.paymentIntentId(),
+                event.paymentMethodId(),
+                event.returnUrl()
+        );
 
-        // 3. Call my existing services
+        /*
+         * Delegate to application service layer.
+         */
         paymentService.confirmPayment(user, request);
     }
 }
