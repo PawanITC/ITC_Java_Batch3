@@ -25,9 +25,13 @@ import static org.mockito.Mockito.*;
  * Validates that the service correctly listens to Kafka topics and
  * triggers the payment confirmation flow.
  */
-@SpringBootTest(properties = "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}")
+@SpringBootTest
 @ActiveProfiles("test")
-@EmbeddedKafka(partitions = 1, topics = {"order_created_topic"})
+@EmbeddedKafka(
+        partitions = 1,
+        topics = {"order_created_topic"},
+        bootstrapServersProperty = "spring.kafka.bootstrap-servers"
+)
 public class OrderCreatedConsumerIntegrationTest {
 
     @Autowired
