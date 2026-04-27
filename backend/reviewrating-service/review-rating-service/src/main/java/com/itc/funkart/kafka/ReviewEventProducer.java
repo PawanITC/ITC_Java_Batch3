@@ -1,45 +1,38 @@
 package com.itc.funkart.kafka;
-
-
-import com.itc.funkart.config.KafkaTopicConfig;
-import com.itc.funkart.event.ReviewCreatedEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itc.funkart.event.ReviewEvent;
+import com.itc.funkart.event.ReviewEventEnvelope;
+import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-@Component
-public class ReviewEventProducer {
+import java.nio.ByteBuffer;
 
-    private static final Logger log = LoggerFactory.getLogger(ReviewEventProducer.class);
+@Component
+@RequiredArgsConstructor
+public class ReviewEventProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Value("${app.kafka.topic.review-created}")
-    private String topic;
-
-    public ReviewEventProducer(KafkaTemplate<String, Object> kafkaTemplate) {
-        this.kafkaTemplate = kafkaTemplate;
+    public void send(ReviewEventEnvelope  event) {
+        ReviewEventEnvelope envelope = envelope(event);
+        kafkaTemplate.send("review.events.v1", envelope.getEventId(), envelope);
     }
 
+    private ReviewEventEnvelope envelope(ReviewEventEnvelope  event) {
+        return ReviewEventEnvelope.newBuilder()
+                .setEventId(event.getEventId())
+                .setOccurredAt(event.getOccurredAt().toString())   // ✔ String
+                .setEventType(event.getEventType())
+                .setEventData(ByteBuffer.wrap(serialize(event)))   // ✔ ByteBuffer
+                .build();
+    }
 
-    public void sendReviewCreatedEvent(ReviewCreatedEvent event) {
-        if (event == null) {
-            throw new IllegalArgumentException("ReviewCreatedEvent cannot be null");
+    private byte[] serialize(ReviewEventEnvelope  event) {
+        try {
+            return new ObjectMapper().writeValueAsBytes(event);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        // FIX 1: Convert Long → String
-        String key = String.valueOf(event.getProductId());
-
-        // FIX 2: Use correct getter
-        log.info("Sending ReviewCreatedEvent for productId={} reviewId={}",
-                event.getProductId(), event.getReviewId());
-
-        kafkaTemplate.send(topic, key, event);
-
-    }
-    public void publishReviewEvent(ReviewCreatedEvent event) {
-        sendReviewCreatedEvent(event);
     }
 }
-

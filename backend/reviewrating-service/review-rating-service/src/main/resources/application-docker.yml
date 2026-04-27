@@ -1,24 +1,36 @@
 server:
   address: 0.0.0.0
+  port: 9097
 
 spring:
   application:
     name: review-rating-service
 
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          secret-key: mysupersecretkeythatissupposedtobelong12345
+
+  datasource:
+    url: jdbc:postgresql://ep-falling-recipe-abxd40y0.eu-west-2.aws.neon.tech/neondb?sslmode=require&ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory
+    username: neondb_owner
+    password: npg_B1ILZK0QmaGc
+
+  jpa:
+    hibernate:
+      ddl-auto: none
     properties:
-      spring.json.add.type.headers: false
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  kafka:
+    bootstrap-servers: kafka:9092
 
   data:
     redis:
-      host: reviewrating-service-redis-1
+      host: redis
       port: 6379
 
 rating-aggregator:
-  base-url: http://rating-aggregator-service:9094/aggregator
-
-
+  base-url: http://rating-aggregator-service:9096/aggregator

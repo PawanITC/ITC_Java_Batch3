@@ -1,6 +1,6 @@
-package com.itc.funkart.entity;
+package com.itc.funkart.model;
 
-import jakarta.persistence.Column;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -14,6 +14,7 @@ public class ProductRatingSummary {
 
     private Double averageRating;
     private Long ratingCount;
+
 
 
     public ProductRatingSummary() {}
@@ -45,5 +46,4 @@ public class ProductRatingSummary {
     public void setRatingCount(Long ratingCount) {
         this.ratingCount = ratingCount;
     }
-
 }
