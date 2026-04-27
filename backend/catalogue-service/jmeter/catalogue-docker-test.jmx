@@ -21,14 +21,14 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Normal Load" enabled="true">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Normal Load">
           <stringProp name="IfController.condition">${__groovy(&quot;normal&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
           <stringProp name="TestPlan.comments">Runs normal load test when testType=normal</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products" enabled="true">
             <stringProp name="TestPlan.comments">Catalogue API call for normal load test</stringProp>
             <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -44,14 +44,14 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Rate Limit" enabled="true">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Rate Limit">
           <stringProp name="IfController.condition">${__groovy(&quot;ratelimit&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
           <stringProp name="TestPlan.comments">Triggers rate limiter when testType=ratelimit</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Rate Limit">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Rate Limit" enabled="true">
             <stringProp name="TestPlan.comments">Catalogue API call for rate limit test</stringProp>
             <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -67,14 +67,14 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Concurrency Load" enabled="true">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Concurrency Load">
           <stringProp name="IfController.condition">${__groovy(&quot;concurrency&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
           <stringProp name="TestPlan.comments">Triggers concurrency test when testType=concurrency</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Concurrency">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Concurrency" enabled="true">
             <stringProp name="TestPlan.comments">Catalogue API call for concurrency test</stringProp>
             <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -90,14 +90,14 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Timeout Load" enabled="true">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Timeout Load">
           <stringProp name="IfController.condition">${__groovy(&quot;timeout&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
           <stringProp name="TestPlan.comments">Triggers timeout test when testType=timeout</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Timeout">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Timeout" enabled="true">
             <stringProp name="TestPlan.comments">Catalogue API call for timeout test</stringProp>
             <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -113,7 +113,7 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Circuit Breaker" enabled="true">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Circuit Breaker">
           <stringProp name="IfController.condition">${__groovy(&quot;circuitbreaker&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
@@ -136,7 +136,7 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="High Load" enabled="true">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="High Load">
           <stringProp name="IfController.condition">${__groovy(&quot;high&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
@@ -159,7 +159,7 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Very High Load" enabled="true">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Very High Load">
           <stringProp name="IfController.condition">${__groovy(&quot;veryhigh&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
@@ -182,7 +182,30 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="Simple Data Writer" enabled="true">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Extreme High">
+          <stringProp name="IfController.condition">${__groovy(&quot;extremeHigh&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <boolProp name="IfController.useExpression">true</boolProp>
+          <stringProp name="TestPlan.comments">Triggers extreme high load test when testType=extremeHigh</stringProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Extreme High Load">
+            <stringProp name="TestPlan.comments">Catalogue API call for extreme high load test</stringProp>
+            <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
+            <stringProp name="HTTPSampler.port">8081</stringProp>
+            <stringProp name="HTTPSampler.protocol">http</stringProp>
+            <stringProp name="HTTPSampler.path">/catalogue/products</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
+        <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="Simple Data Writer">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>
@@ -226,7 +249,7 @@
             <stringProp name="Argument.name">testType</stringProp>
             <stringProp name="Argument.value">${__P(testType,normal)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
-            <stringProp name="Argument.desc">normal, ratelimit, concurrency, timeout, circuit, high, veryhigh</stringProp>
+            <stringProp name="Argument.desc">normal, ratelimit, concurrency, timeout, circuitbreaker, high, veryhigh, extremeHigh</stringProp>
           </elementProp>
         </collectionProp>
         <stringProp name="TestPlan.comments">Controls which resiliency test runs via CLI</stringProp>
@@ -243,7 +266,7 @@
         </elementProp>
       </SetupThreadGroup>
       <hashTree>
-        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Mapping" enabled="true">
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Mapping">
           <stringProp name="cacheKey">true</stringProp>
           <stringProp name="filename"></stringProp>
           <stringProp name="parameters"></stringProp>
@@ -275,6 +298,10 @@ if (&quot;normal&quot;.equals(type)) {
     props.put(&quot;loop&quot;, &quot;1&quot;)
 } else if (&quot;veryhigh&quot;.equals(type)) {
     props.put(&quot;threads&quot;, &quot;1200&quot;)
+    props.put(&quot;ramp&quot;, &quot;1&quot;)
+    props.put(&quot;loop&quot;, &quot;1&quot;)
+} else if (&quot;extremeHigh&quot;.equals(type)) {
+    props.put(&quot;threads&quot;, &quot;10000&quot;)
     props.put(&quot;ramp&quot;, &quot;1&quot;)
     props.put(&quot;loop&quot;, &quot;1&quot;)
 }
