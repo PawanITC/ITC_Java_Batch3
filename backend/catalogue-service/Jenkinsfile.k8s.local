@@ -120,7 +120,6 @@ spec:
             }
         }
 
-
         stage('Scale Up Pods') {
             steps {
                 container('kubectl') {
@@ -141,7 +140,7 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=veryHigh
+                      -JtestType=veryhigh
 
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -g /results.jtl \
