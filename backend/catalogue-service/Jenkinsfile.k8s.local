@@ -135,7 +135,7 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=veryhigh
+                      -JtestType=extremeHigh
 
                     # Generate report (FIXED)
                     kubectl exec jmeter -n catalogue-service -- jmeter \

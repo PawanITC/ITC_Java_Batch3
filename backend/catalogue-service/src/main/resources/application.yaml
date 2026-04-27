@@ -25,20 +25,20 @@ spring:
 
 logging:
   level:
-    org.springframework.kafka: DEBUG
+    org.springframework.kafka: INFO
 
 server:
   port: 8081
   tomcat:
     threads:
-      max: 400
-    accept-count: 1500
+      max: 1000
+    accept-count: 4000
 
 resilience4j:
   ratelimiter:
     instances:
       productService:
-        limitForPeriod: 1200
+        limitForPeriod: 10000
         limitRefreshPeriod: 1s
 
   timelimiter:
