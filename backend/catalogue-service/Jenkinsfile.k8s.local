@@ -124,7 +124,7 @@ spec:
         stage('Scale Up Pods') {
             steps {
                 container('kubectl') {
-                    sh 'kubectl scale deployment catalogue-service --replicas=5 -n catalogue-service'
+                    sh 'kubectl scale deployment catalogue-service --replicas=10 -n catalogue-service'
                 }
             }
         }
