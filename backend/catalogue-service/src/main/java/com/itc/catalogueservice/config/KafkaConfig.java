@@ -11,7 +11,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 @Profile("!test")
 @Configuration
 @EnableKafka
-@EnableKafkaRetryTopic
 public class KafkaConfig {
 
     @Bean
