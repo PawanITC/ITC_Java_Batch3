@@ -1,7 +1,5 @@
 package com.itc.catalogueservice.kafka.listener;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.itc.catalogueservice.exception.kafka.InvalidProductEventException;
 import com.itc.catalogueservice.kafka.listener.dto.ProductEventDTO;
 import com.itc.catalogueservice.service.CatalogueService;
@@ -16,23 +14,13 @@ import org.springframework.stereotype.Component;
 public class KafkaProductListener {
 
     private final CatalogueService catalogueService;
-    private final ObjectMapper objectMapper;
 
     @KafkaListener(
             topics = "product-events",
             groupId = "catalogue-service"
     )
-    public void listen(String message) {
-        log.info("RECEIVED EVENT MESSAGE: {}", message);
-
-        ProductEventDTO event;
-        try {
-            event = objectMapper.readValue(message, ProductEventDTO.class);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to parse event message: {}", message, e);
-            throw new InvalidProductEventException("Invalid JSON format");
-        }
-
+    public void listen(ProductEventDTO event) {
+        log.info("RECEIVED EVENT: {}", event);
 
         switch (event.getEventType()) {
 
