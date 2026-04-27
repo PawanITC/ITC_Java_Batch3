@@ -1,0 +1,38 @@
+server:
+  port: 9097
+
+spring:
+  application:
+    name: review-rating-service
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/reviews
+    username: postgres
+    password: ${DB_PASSWORD}
+
+  kafka:
+    bootstrap-servers: kafka.default.svc.cluster.local:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+  data:
+    redis:
+      host: redis.default.svc.cluster.local
+      port: 6379
+
+otel:
+  exporter:
+    otlp:
+      endpoint: http://otel-collector.default.svc.cluster.local:4318
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+rating-aggregator:
+  base-url: http://rating-aggregator-service.default.svc.cluster.local:9096/aggregator

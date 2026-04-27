@@ -1,8 +1,6 @@
 package com.itc.funkart.model;
 
 public interface ReviewProjection {
-    String getProductId();
+    Long getProductId();
     int getRating();
 }
-
-

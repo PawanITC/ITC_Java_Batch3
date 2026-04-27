@@ -1,6 +1,6 @@
 package com.itc.funkart.controller;
 
-import com.itc.funkart.model.RatingSummary;
+import com.itc.funkart.model.ProductRatingSummary;
 import com.itc.funkart.service.RatingAggregationService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,7 +18,7 @@ public class RatingSummaryController {
     }
 
     @GetMapping("/products/{productId}/rating-summary")
-    public RatingSummary getRatingSummary(@PathVariable String productId) {
+    public ProductRatingSummary getRatingSummary(@PathVariable Long productId) {
         return aggregationService.getFromCache(productId)
                 .orElseGet(() -> aggregationService.recomputeAndCache(productId));
     }

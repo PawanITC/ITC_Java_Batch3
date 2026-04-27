@@ -1,7 +1,7 @@
-package com.itc.funkart.kafka;
+package com.itc.funkart.consumer;
+
 
 import com.itc.funkart.avro.ReviewCreatedEvent;
-
 import com.itc.funkart.avro.ReviewDeletedEvent;
 import com.itc.funkart.event.ReviewUpdatedEvent;
 import com.itc.funkart.service.RatingAggregationService;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ReviewEventListener {
+public class ReviewEventConsumer {
 
     private final RatingAggregationService ratingAggregationService;
 

@@ -1,179 +1,121 @@
 package com.itc.funkart.serviceimpl;
 
-
-
+import com.example.events.common.ReviewPayload;
+import com.itc.funkart.avro.ReviewCreatedEvent;
+import com.itc.funkart.avro.ReviewDeletedEvent;
 import com.itc.funkart.dto.ReviewRequest;
 import com.itc.funkart.dto.ReviewResponse;
-import com.itc.funkart.entity.ProductRatingSummary;
 import com.itc.funkart.entity.Review;
-import com.itc.funkart.event.ReviewCreatedEvent;
-import com.itc.funkart.kafka.ReviewEventProducer;
-import com.itc.funkart.projection.RatingStats;
-import com.itc.funkart.repository.ProductRatingSummaryRepository;
+import com.itc.funkart.avro.ReviewDeletedEvent;
+import com.itc.funkart.event.ReviewUpdatedEvent;
+import com.itc.funkart.outbox.OutboxService;
 import com.itc.funkart.repository.ReviewRepository;
 import com.itc.funkart.service.ReviewService;
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
-import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-//import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewRepository reviewRepository;
-    private final ProductRatingSummaryRepository summaryRepository;
-    private final Tracer tracer = GlobalOpenTelemetry.getTracer("review-service");
-    private final ReviewEventProducer reviewEventProducer;
+    private final OutboxService outboxService;
     private final RedisTemplate<String, Object> redisTemplate;
-
-
-
-    public ReviewServiceImpl(ReviewRepository reviewRepository,
-                             ProductRatingSummaryRepository summaryRepository, ReviewEventProducer reviewEventProducer,RedisTemplate<String, Object> redisTemplate) {
-        this.reviewRepository = reviewRepository;
-        this.summaryRepository = summaryRepository;
-        this.reviewEventProducer = reviewEventProducer;
-        this.redisTemplate = redisTemplate;
-    }
 
     @Override
     @Transactional
     public ReviewResponse createOrUpdateReview(Long productId, Long userId, ReviewRequest request) {
-        Span span = tracer.spanBuilder("createOrUpdateReview").startSpan();
-        ReviewResponse resp;
 
-        try {
-            span.setAttribute("product.id", productId);
-            span.setAttribute("user.id", userId);
-            span.setAttribute("rating", request.getRating());
+        Review review = reviewRepository
+                .findByProductIdAndUserId(productId, userId)
+                .orElseGet(() -> new Review(productId, userId, Instant.now()));
 
-            // 1. Fetch or create review
-            Review review = reviewRepository
-                    .findByProductIdAndUserId(productId, userId)
-                    .orElseGet(() -> {
-                        Review r = new Review();
-                        r.setProductId(productId);
-                        r.setUserId(userId);
-                        r.setCreatedAt(Instant.now());
-                        return r;
-                    });
+        boolean isNew = review.getId() == null;
 
-            // 2. Update fields
-            review.setRating(request.getRating());
-            review.setComment(request.getComment());
-            review.setUpdatedAt(Instant.now());
+        review.setRating(request.getRating());
+        review.setReviewText(request.getComment());
+        review.setUpdatedAt(Instant.now());
 
-            // 3. Save to DB
-            Review saved = reviewRepository.save(review);
+        Review saved = reviewRepository.save(review);
 
-            // 4. Recalculate summary (local sync logic)
-            recalculateSummary(productId);
+        redisTemplate.delete("product:%s:rating-summary".formatted(productId));
 
-            // 5. Publish Kafka event (NEW)
-            ReviewCreatedEvent event = new ReviewCreatedEvent(
-                    saved.getId(),
-                    saved.getProductId(),
-                    saved.getUserId(),
-                    saved.getRating(),
-                    saved.getComment(),
-                    saved.getCreatedAt(),
-                    saved.getUpdatedAt()
-            );
+        ReviewPayload payload = ReviewPayload.newBuilder()
+                .setReviewId(saved.getId().toString())
+                .setProductId(Long.valueOf(saved.getProductId()))
+                .setUserId(Long.valueOf(saved.getUserId()))
+                .setRating(saved.getRating())
+                .setComment(saved.getReviewText())
+                .setCreatedAt(saved.getCreatedAt())
+                .build();
 
-            reviewEventProducer.sendReviewCreatedEvent(event);
+        if (isNew) {
+            ReviewCreatedEvent event = ReviewCreatedEvent.newBuilder()
+                    .setEventType("REVIEW_CREATED")
+                    .setPayload(payload)
+                    .build();
 
-            // 6. Build response
-            resp = new ReviewResponse(
-                    saved.getId(),
-                    saved.getProductId(),
-                    saved.getUserId(),
-                    saved.getRating(),
-                    saved.getComment(),
-                    saved.getCreatedAt(),
-                    saved.getUpdatedAt()
-            );
-            // 🔥 Invalidate cache for this product
-            String key = "product:%s:rating-summary".formatted(saved.getProductId());
-            redisTemplate.delete(key);
+            outboxService.saveEventToOutbox(event);
 
+        } else {
+            ReviewUpdatedEvent event = ReviewUpdatedEvent.newBuilder()
+                    .setEventType("REVIEW_UPDATED")
+                    .setPayload(payload)
+                    .build();
 
-
-        } finally {
-            span.end();
+            outboxService.saveEventToOutbox(event);
         }
 
-        return resp;
+        return ReviewResponse.from(saved);
     }
 
     @Override
     @Transactional
     public void deleteReview(Long productId, Long userId) {
+
         reviewRepository.findByProductIdAndUserId(productId, userId)
                 .ifPresent(review -> {
+
                     reviewRepository.delete(review);
-                    recalculateSummary(productId);
+
+                    redisTemplate.delete("product:%s:rating-summary".formatted(productId));
+                    ReviewDeletedEvent event = ReviewDeletedEvent.newBuilder()
+                            .setEventType("REVIEW_DELETED")
+                            .setPayload(
+                                    ReviewPayload.newBuilder()
+                                            .setReviewId(review.getId().toString())
+                                            .setProductId(Long.valueOf(review.getProductId()))
+                                            .setUserId(Long.valueOf(review.getUserId()))
+                                            .setRating(review.getRating())
+                                            .setComment(review.getReviewText())
+                                            .setCreatedAt(review.getCreatedAt())
+                                            .build()
+                            )
+                            .build();
+
+                    outboxService.saveEventToOutbox(event);
                 });
     }
 
     @Override
     public Page<ReviewResponse> getReviewsForProduct(Long productId, Pageable pageable) {
         return reviewRepository.findByProductId(productId, pageable)
-                .map(r -> {
-                    ReviewResponse resp = new ReviewResponse();
-                    resp.setId(r.getId());
-                    resp.setProductId(r.getProductId());
-                    resp.setUserId(r.getUserId());
-                    resp.setRating(r.getRating());
-                    resp.setComment(r.getComment());
-                    resp.setCreatedAt(r.getCreatedAt());
-                    resp.setUpdatedAt(r.getUpdatedAt());
-                    return resp;
-                });
-    }
-
-    private void recalculateSummary(Long productId) {
-        RatingStats stats = reviewRepository.getRatingStatsByProductId(productId);
-        if (stats == null || stats.getAvg() == null) {
-            summaryRepository.deleteById(productId);
-            return;
-        }
-
-
-
-        double avg =  stats.getAvg();
-        long count = stats.getCount();
-
-        ProductRatingSummary summary = summaryRepository.findById(productId)
-                .orElseGet(() -> {
-                    ProductRatingSummary s = new ProductRatingSummary();
-                    s.setProductId(productId);
-                    return s;
-                });
-
-        summary.setAverageRating(avg);
-        summary.setRatingCount(count);
-        summaryRepository.save(summary);
-    }
-
-    public ReviewCreatedEvent createReview(ReviewRequest request) {
-        // In real system: persist to DB first, then publish event
-        ReviewCreatedEvent event = new ReviewCreatedEvent(request.getId(),
-                Long.valueOf(request.getProductId()),
-                Long.valueOf(request.getUserId()),
-                request.getRating(),
-                request.getComment(),
-                Instant.now(),
-                Instant.now()
-        );
-
-        reviewEventProducer.sendReviewCreatedEvent(event);
-        return event;
+                .map(r -> new ReviewResponse(
+                        r.getId(),
+                        Long.valueOf(r.getProductId()),
+                        Long.valueOf(r.getUserId()),
+                        r.getRating(),
+                        r.getReviewText(),
+                        r.getCreatedAt(),
+                        r.getUpdatedAt()
+                ));
     }
 }
