@@ -31,7 +31,7 @@ server:
   port: 8081
   tomcat:
     threads:
-      max: 200
+      max: 250
     accept-count: 500
 resilience4j:
   ratelimiter:
