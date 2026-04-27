@@ -104,14 +104,11 @@ spec:
                     timeout=60
                     elapsed=0
 
-                    until kubectl run curl-test --rm -i --restart=Never --image=curlimages/curl:latest -n catalogue-service -- \
-                      curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
-
+                    until kubectl run curl-test --rm -i --restart=Never --image=curlimages/curl:latest -n catalogue-service -- curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
                         if [ $elapsed -ge $timeout ]; then
-                            echo "App failed to become healthy"
+                            echo "App failed to start"
                             exit 1
                         fi
-
                         sleep 3
                         elapsed=$((elapsed+3))
                     done
@@ -126,14 +123,9 @@ spec:
                     sh '''
                     kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/jmeter:/catalogue-docker-test.jmx
 
-                    kubectl exec jmeter -n catalogue-service -- \
-                    jmeter -n -t /catalogue-docker-test.jmx -l /results.jtl -JtestType=veryhigh
+                    kubectl exec jmeter -n catalogue-service -- jmeter -n -t /catalogue-docker-test.jmx -l /results.jtl -JtestType=veryhigh
 
-                    kubectl exec jmeter -n catalogue-service -- \
-                    jmeter -g /results.jtl -o /report
-
-                    kubectl cp catalogue-service/jmeter:/results.jtl backend/catalogue-service/jmeter/results.jtl
-                    kubectl cp catalogue-service/jmeter:/report backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
+                    kubectl exec jmeter -n catalogue-service -- sh -c "rm -rf /report-${BUILD_NUMBER} && jmeter -g /results.jtl -o /report-${BUILD_NUMBER}"
                     '''
                 }
             }
