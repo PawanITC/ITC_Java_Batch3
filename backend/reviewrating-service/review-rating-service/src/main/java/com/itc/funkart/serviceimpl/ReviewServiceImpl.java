@@ -35,7 +35,7 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewResponse createOrUpdateReview(Long productId, Long userId, ReviewRequest request) {
 
         Review review = reviewRepository
-                .findByProductIdAndUserId(productId.toString(), userId.toString())
+                .findByProductIdAndUserId(productId, userId)
                 .orElseGet(() -> new Review(productId, userId, Instant.now()));
 
         boolean isNew = review.getId() == null;
@@ -49,7 +49,7 @@ public class ReviewServiceImpl implements ReviewService {
         redisTemplate.delete("product:%s:rating-summary".formatted(productId));
 
         ReviewPayload payload = ReviewPayload.newBuilder()
-                .setReviewId(Long.valueOf(saved.getId().toString()))
+                .setReviewId(saved.getId().toString())
                 .setProductId(Long.valueOf(saved.getProductId()))
                 .setUserId(Long.valueOf(saved.getUserId()))
                 .setRating(saved.getRating())
@@ -81,7 +81,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public void deleteReview(Long productId, Long userId) {
 
-        reviewRepository.findByProductIdAndUserId(productId.toString(), userId.toString())
+        reviewRepository.findByProductIdAndUserId(productId, userId)
                 .ifPresent(review -> {
 
                     reviewRepository.delete(review);
@@ -91,7 +91,7 @@ public class ReviewServiceImpl implements ReviewService {
                             .setEventType("REVIEW_DELETED")
                             .setPayload(
                                     ReviewPayload.newBuilder()
-                                            .setReviewId(Long.valueOf(review.getId().toString()))
+                                            .setReviewId(review.getId().toString())
                                             .setProductId(Long.valueOf(review.getProductId()))
                                             .setUserId(Long.valueOf(review.getUserId()))
                                             .setRating(review.getRating())

@@ -1,72 +1,36 @@
+server:
+  address: 0.0.0.0
+  port: 9097
+
 spring:
+  application:
+    name: review-rating-service
+
   datasource:
-    url: jdbc:postgresql://18.175.222.132:32680/postgres
-    username: postgres
-    password: Ie422p9Cx8
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+    url: jdbc:postgresql://ep-falling-recipe-abxd40y0.eu-west-2.aws.neon.tech/neondb?sslmode=require&ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory
+    username: neondb_owner
+    password: npg_B1ILZK0QmaGc
+
   security:
     oauth2:
       resourceserver:
         jwt:
-          secret-key: your256bitsecretkeymustbeatleast32chars!!
+          secret-key: mysupersecretkeythatissupposedtobelong12345
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   kafka:
     bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        enable.idempotence: true
-        acks: all
-        retries: 10
-        max.in.flight.requests.per.connection: 5
-        spring.json.add.type.headers: false
-      template:
-        default-topic: review.events.v1
 
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: health,info,prometheus
-
-  resilience4j:
-    circuitbreaker:
-      instances:
-        userService:
-          registerHealthIndicator: true
-          slidingWindowSize: 10
-          minimumNumberOfCalls: 5
-          failureRateThreshold: 50
-          waitDurationInOpenState: 10s
-          permittedNumberOfCallsInHalfOpenState: 3
-
-    retry:
-      instances:
-        userService:
-          maxAttempts: 3
-          waitDuration: 500ms
-
-      timelimiter:
-        instances:
-          userService:
-            timeoutDuration: 2s
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 rating-aggregator:
   base-url: http://localhost:9096/aggregator
-
-app:
-  kafka:
-    topic:
-      review-created: review.events.v1
-
-
-
-
-

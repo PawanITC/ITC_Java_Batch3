@@ -1,5 +1,6 @@
 package com.itc.funkart.user.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,10 +16,12 @@ import lombok.Setter;
  */
 @Setter
 @Getter
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorDetails {
     // Getters and setters
     private String code;
     private String message;
+    private String field;
 
 
     // No-args constructor (required for Jackson/Gson)
@@ -30,5 +33,11 @@ public class ErrorDetails {
         this.message = message;
     }
 
+    // Constructor for validation errors
+    public ErrorDetails(String code, String message, String field) {
+        this.code = code;
+        this.message = message;
+        this.field = field;
+    }
 }
 

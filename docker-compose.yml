@@ -1,6 +1,5 @@
-version: '3.9'
-
 services:
+  # --- 1. DATABASE & UI ---
   postgres:
     container_name: postgres-db
     image: postgres:15
@@ -16,53 +15,157 @@ services:
     networks:
       - db-network
 
-  pgAdmin:
-    container_name: pgadmin-ui
+  pgadmin:
+    container_name: funkart-pgadmin
     image: dpage/pgadmin4
     restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
     ports:
       - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@funkart.com
+      PGADMIN_DEFAULT_PASSWORD: admin
     depends_on:
       - postgres
+    networks:
+      - db-network
+
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - db-network
+
+  # --- 2. KAFKA (KRaft Mode) ---
+  kafka:
+    container_name: kafka-kraft
+    image: confluentinc/cp-kafka:7.5.0
+    restart: always
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,OUTSIDE://0.0.0.0:9094,CONTROLLER://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,OUTSIDE://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - db-network
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: funkart-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      - kafka
+    networks:
+      - db-network
+
+  # --- 3. CI/CD (Your custom Jenkins) ---
+  jenkins:
+    container_name: funkart-jenkins
+    user: root
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - gradle_cache:/root/.gradle
+    networks:
+      - db-network
+
+  # --- 4. MICROSERVICES ---
+  api-gateway:
+    container_name: api-gateway
+    image: abbasgureitc/api-gateway:latest
+    pull_policy: always
+    ports:
+      - "8060:8060"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      - redis
+      - user-service
+      - payment-service
+      - product-service
     networks:
       - db-network
 
   user-service:
     container_name: user-service
-    build:
-      context: ./backend/user-service
-      dockerfile: Dockerfile
-    env_file:
-      - ./backend/user-service/.env
-    ports:
-      - "8081:8080"
+    image: abbasgureitc/user-service:latest
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      DB_URL: jdbc:postgresql://postgres-db:5432/mydb
+      SPRING_DATA_REDIS_HOST: redis
     depends_on:
       - postgres
+      - kafka
     networks:
       - db-network
-    restart: on-failure:3
 
-  api-gateway:
-    container_name: api-gateway
-    build:
-      context: ./backend/api-gateway
-      dockerfile: Dockerfile
-    env_file:
-      - ./backend/api-gateway/.env
+  payment-service:
+    container_name: payment-service
+    image: abbasgureitc/payment-service:latest
     ports:
-      - "8080:8080"
+      - "8082:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      DB_URL: jdbc:postgresql://postgres-db:5432/mydb
     depends_on:
-      - user-service
+      - postgres
+      - kafka
     networks:
       - db-network
-    restart: on-failure:3
 
-volumes:
-  postgres_data:
+  product-service:
+    container_name: product-service
+    image: abbasgureitc/product-service:latest
+    ports:
+      - "9090:9090"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/mydb
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: secret
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+    networks:
+      - db-network
 
+# --- STORAGE ---
 networks:
   db-network:
     driver: bridge
+
+volumes:
+  jenkins_home:
+  gradle_cache:
+  postgres_data:
+  redis_data:
+  kafka_data:
+  pgadmin_data:

@@ -1,24 +1,29 @@
 package com.itc.funkart.user.dto.user;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Builder;
 
 /**
- * UserDto for internal service-to-service communication
- * Used by gateway to receive user data after OAuth processing
+ * <h2>User Data Transfer Object</h2>
+ *
+ * <p>
+ * Minimal representation of a user exposed through standard API responses.
+ * Designed for lightweight usage in authentication responses and listings.
+ * </p>
+ *
+ * <p>
+ * This DTO intentionally excludes relational or sensitive metadata
+ * such as OAuth providers or security context information.
+ * </p>
+ *
+ * @param id    Unique identifier of the user
+ * @param name  Display name
+ * @param email Email address
+ * @param role  Assigned system role
  */
-@Setter
-@Getter
-public class UserDto {
-    private Long id;
-    private String name;
-    private String email;
-
-    public UserDto() {}
-
-    public UserDto(Long id, String name, String email) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-    }
-}
+@Builder
+public record UserDto(
+        Long id,
+        String name,
+        String email,
+        String role
+) {}

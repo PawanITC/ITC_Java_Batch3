@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - ProductController Tests</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>ProductController Tests</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/com.itc.funkart.product_service.controller.html">com.itc.funkart.product_service.controller</a> &gt; ProductControllerTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">11</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.470s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a href="#">Tests</a>
+</li>
+<li>
+<a href="#">Standard output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Method name</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">Should get all products successfully</td>
+<td class="success">shouldGetAllProductsSuccessfully()</td>
+<td class="success">0.048s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should get product by id successfully</td>
+<td class="success">shouldGetProductByIdSuccessfully()</td>
+<td class="success">0.023s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should get products by ids successfully</td>
+<td class="success">shouldGetProductsByIdsSuccessfully()</td>
+<td class="success">0.035s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should handle bad request for empty ids list</td>
+<td class="success">shouldHandleBadRequestForEmptyIdsList()</td>
+<td class="success">0.048s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should handle multiple product requests</td>
+<td class="success">shouldHandleMultipleProductRequests()</td>
+<td class="success">0.041s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should handle post request with valid json</td>
+<td class="success">shouldHandlePostRequestWithValidJson()</td>
+<td class="success">0.067s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should return 404 when product not found</td>
+<td class="success">shouldReturn404WhenProductNotFound()</td>
+<td class="success">0.034s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should return correct content type for products</td>
+<td class="success">shouldReturnCorrectContentTypeForProducts()</td>
+<td class="success">0.093s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should return empty list when no products exist</td>
+<td class="success">shouldReturnEmptyListWhenNoProductsExist()</td>
+<td class="success">0.027s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should return missing ids in products response</td>
+<td class="success">shouldReturnMissingIdsInProductsResponse()</td>
+<td class="success">0.028s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Should return valid product fields in response</td>
+<td class="success">shouldReturnValidProductFieldsInResponse()</td>
+<td class="success">0.026s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>2026-04-13T12:45:01.477+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.itc.funkart.product_service.controller.ProductControllerTest]: ProductControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-04-13T12:45:01.554+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.itc.funkart.product_service.ProductServiceApplication for test class com.itc.funkart.product_service.controller.ProductControllerTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.5)
+
+2026-04-13T12:45:01.738+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.c.ProductControllerTest          : Starting ProductControllerTest using Java 17.0.12 with PID 2252 (started by hamal in C:\ITC project\Funkart E-commerce-app\ITC_Java_Batch3\backend\product-service)
+2026-04-13T12:45:01.739+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.c.ProductControllerTest          : The following 1 profile is active: &quot;prod&quot;
+2026-04-13T12:45:03.474+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-04-13T12:45:03.474+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-04-13T12:45:03.482+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 7 ms
+2026-04-13T12:45:03.536+01:00  INFO [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.c.ProductControllerTest          : Started ProductControllerTest in 1.97 seconds (process running for 88.247)
+2026-04-13T12:45:03.744+01:00  WARN [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.e.GlobalExceptionHandler         : Bad Request: ID list cannot be empty
+2026-04-13T12:45:03.823+01:00  WARN [product-service,,] 2252 --- [product-service] [    Test worker] [                                                 ] c.i.f.p.e.GlobalExceptionHandler         : Resource not found: Product not found with id: 999
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 9.0.0</a> at 13 Apr 2026, 12:46:03</p>
+</div>
+</div>
+</body>
+</html>

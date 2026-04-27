@@ -3,6 +3,15 @@ spring:
     activate:
       on-profile: dev
 
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+    cache:
+      type: redis
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -16,3 +25,34 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      # Connection & Serialization
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+      # The Banker Logic (Reliability)
+      acks: all
+      retries: 2147483647 # Integer.MAX_VALUE for infinite retries on transient errors
+
+      properties:
+        # Ensures exactly-once delivery and prevents duplicates
+        enable.idempotence: true
+
+        # Speed & Stall Tactics (Optimized for performance)
+        linger.ms: 5
+        batch.size: 16384
+
+        # Connection stability
+        reconnect.backoff.ms: 50
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus  # minimal for prod
+  endpoint:
+    health:
+      show-details: always

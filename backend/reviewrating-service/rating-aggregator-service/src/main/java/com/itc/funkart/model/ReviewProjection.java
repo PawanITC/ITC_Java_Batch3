@@ -4,5 +4,3 @@ public interface ReviewProjection {
     Long getProductId();
     int getRating();
 }
-
-

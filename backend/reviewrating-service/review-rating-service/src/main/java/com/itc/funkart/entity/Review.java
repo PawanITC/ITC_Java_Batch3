@@ -1,22 +1,26 @@
- package com.itc.funkart.entity;
+package com.itc.funkart.entity;
 
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "reviews", indexes = {
-        @Index(name = "idx_reviews_product", columnList = "productId"),
-        @Index(name = "idx_reviews_user_product", columnList = "userId,productId", unique = true)
-})
+@Table(
+        name = "reviews",
+        indexes = {
+                @Index(name = "idx_reviews_product", columnList = "product_id"),
+                @Index(name = "idx_reviews_user_product", columnList = "user_id,product_id", unique = true)
+        }
+)
+
 public class Review {
 
     @Id
     @GeneratedValue
     private UUID id;
 
-    private String productId;
-    private String userId;
+    private Long productId;
+    private Long userId;
     private int rating;
 
 
@@ -35,19 +39,19 @@ public class Review {
         this.id = id;
     }
 
-    public String getProductId() {
+    public Long getProductId() {
         return productId;
     }
 
-    public void setProductId(String productId) {
+    public void setProductId(Long productId) {
         this.productId = productId;
     }
 
-    public String getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 
@@ -97,8 +101,8 @@ public class Review {
     }
 
     public Review(Long productId, Long userId, Instant createdAt) {
-        this.productId = productId != null ? productId.toString() : null;
-        this.userId = userId != null ? userId.toString() : null;
+        this.productId = productId != null ? productId : null;
+        this.userId = userId != null ? userId : null;
         this.createdAt = createdAt;
         this.updatedAt = createdAt; // optional: set updatedAt same as createdAt
     }

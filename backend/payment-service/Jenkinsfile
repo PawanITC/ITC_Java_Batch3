@@ -1,0 +1,99 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk17'
+    }
+
+    environment {
+        DOCKER_HUB_USER = 'abbasgureitc'
+        IMAGE_NAME = 'payment-service'
+        REGISTRY_CREDENTIALS_ID = 'docker-hub-credentials'
+        SNYK_TOKEN = credentials('snyk-token')
+        dockerImage = ''
+    }
+
+    stages {
+        stage('Check Environment') {
+            steps {
+                sh 'java -version'
+                sh 'docker version'
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                dir('backend/payment-service') {
+                    script {
+                        def jdkPath = tool name: 'jdk17', type: 'jdk'
+                        withEnv(["JAVA_HOME=${jdkPath}", "PATH+JDK=${jdkPath}/bin"]) {
+                            sh 'chmod +x gradlew'
+                            // Using --no-daemon for CI stability and cleanliness
+                            sh "./gradlew clean build jacocoTestReport --no-daemon -Dorg.gradle.java.home=${jdkPath}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                // Modernized coverage tracking replacing the deprecated Jacoco plugin
+                jacoco(
+                    execPattern: '**/build/jacoco/*.exec',
+                    classPattern: '**/build/classes/java/main',
+                    sourcePattern: '**/src/main/java',
+                    inclusionPattern: '**/*.class',
+                    // Jacoco plugin uses these for the health report (Quality Gates)
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '80',
+                    buildOverBuild: false
+                )
+            }
+        }
+
+        stage('Security Scan (Snyk)') {
+            steps {
+                dir('backend/payment-service') {
+                    script {
+                        sh 'chmod +x gradlew'
+                        sh "snyk auth ${SNYK_TOKEN}"
+                        // Severity threshold remains high; logs will echo if issues found
+                        sh 'snyk test --severity-threshold=high || echo "Snyk found high-severity issues in Payment Service"'
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('backend/payment-service') {
+                    script {
+                        sh 'ls -R build/libs/'
+                        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                        dockerImage = docker.build("${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
+                    }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('', REGISTRY_CREDENTIALS_ID) {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo "SUCCESS: ${IMAGE_NAME} is live on Docker Hub." }
+        failure { echo "FAILURE: Build failed. Check Stripe mock logs or Jackson dependency alignment." }
+        always {
+            cleanWs()
+        }
+    }
+}
