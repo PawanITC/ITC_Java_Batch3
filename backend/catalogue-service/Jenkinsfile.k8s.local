@@ -88,11 +88,9 @@ spec:
         stage('Wait for Deployments Ready') {
             steps {
                 container('kubectl') {
-                    sh '''
-                    kubectl rollout status deployment kafka -n catalogue-service
-                    kubectl rollout status deployment redis -n catalogue-service
-                    kubectl rollout status deployment catalogue-service -n catalogue-service
-                    '''
+                    sh 'kubectl rollout status deployment kafka -n catalogue-service'
+                    sh 'kubectl rollout status deployment redis -n catalogue-service'
+                    sh 'kubectl rollout status deployment catalogue-service -n catalogue-service'
                 }
             }
         }
@@ -104,11 +102,16 @@ spec:
                     timeout=60
                     elapsed=0
 
-                    until kubectl run curl-test --rm -i --restart=Never --image=curlimages/curl:latest -n catalogue-service -- curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
+                    until kubectl run curl-test --rm -i --restart=Never \
+                      --image=curlimages/curl:latest \
+                      -n catalogue-service \
+                      -- curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
+
                         if [ $elapsed -ge $timeout ]; then
-                            echo "App failed to start"
+                            echo "App failed to become healthy"
                             exit 1
                         fi
+
                         sleep 3
                         elapsed=$((elapsed+3))
                     done
@@ -121,11 +124,27 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
+                    # Copy test file into pod
                     kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/jmeter:/catalogue-docker-test.jmx
 
-                    kubectl exec jmeter -n catalogue-service -- jmeter -n -t /catalogue-docker-test.jmx -l /results.jtl -JtestType=veryhigh
+                    # Clean old results
+                    kubectl exec jmeter -n catalogue-service -- rm -rf /results.jtl /report* || true
 
-                    kubectl exec jmeter -n catalogue-service -- sh -c "rm -rf /report-${BUILD_NUMBER} && jmeter -g /results.jtl -o /report-${BUILD_NUMBER}"
+                    # Run test
+                    kubectl exec jmeter -n catalogue-service -- jmeter \
+                      -n \
+                      -t /catalogue-docker-test.jmx \
+                      -l /results.jtl \
+                      -JtestType=veryhigh
+
+                    # Generate report (FIXED)
+                    kubectl exec jmeter -n catalogue-service -- jmeter \
+                      -g /results.jtl \
+                      -o /report-${BUILD_NUMBER}
+
+                    # Copy results + report back to Jenkins
+                    kubectl cp catalogue-service/jmeter:/results.jtl backend/catalogue-service/jmeter/results-${BUILD_NUMBER}.jtl
+                    kubectl cp catalogue-service/jmeter:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
                     '''
                 }
             }
@@ -138,6 +157,21 @@ spec:
                     sh 'kubectl get svc -n catalogue-service'
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
+
+            publishHTML([
+                reportDir: "backend/catalogue-service/jmeter/report-${env.BUILD_NUMBER}",
+                reportFiles: 'index.html',
+                reportName: 'JMeter Report',
+                keepAll: true,
+                alwaysLinkToLastBuild: true,
+                allowMissing: false
+            ])
         }
     }
 }
