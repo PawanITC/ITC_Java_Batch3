@@ -120,32 +120,44 @@ spec:
             }
         }
 
+        // ✅ ADDED
+        stage('Scale Up Pods') {
+            steps {
+                container('kubectl') {
+                    sh 'kubectl scale deployment catalogue-service --replicas=5 -n catalogue-service'
+                }
+            }
+        }
+
         stage('Performance Test (JMeter)') {
             steps {
                 container('kubectl') {
                     sh '''
-                    # Copy test file into pod
                     kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/jmeter:/catalogue-docker-test.jmx
 
-                    # Clean old results
                     kubectl exec jmeter -n catalogue-service -- rm -rf /results.jtl /report* || true
 
-                    # Run test
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
                       -JtestType=extremeHigh
 
-                    # Generate report (FIXED)
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -g /results.jtl \
                       -o /report-${BUILD_NUMBER}
 
-                    # Copy results + report back to Jenkins
                     kubectl cp catalogue-service/jmeter:/results.jtl backend/catalogue-service/jmeter/results-${BUILD_NUMBER}.jtl
                     kubectl cp catalogue-service/jmeter:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
                     '''
+                }
+            }
+        }
+
+        stage('Scale Down Pods') {
+            steps {
+                container('kubectl') {
+                    sh 'kubectl scale deployment catalogue-service --replicas=1 -n catalogue-service'
                 }
             }
         }
