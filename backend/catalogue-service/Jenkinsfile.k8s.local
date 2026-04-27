@@ -120,11 +120,11 @@ spec:
             }
         }
 
-        // ✅ ADDED
+
         stage('Scale Up Pods') {
             steps {
                 container('kubectl') {
-                    sh 'kubectl scale deployment catalogue-service --replicas=10 -n catalogue-service'
+                    sh 'kubectl scale deployment catalogue-service --replicas=2 -n catalogue-service'
                 }
             }
         }
@@ -141,7 +141,7 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=extremeHigh
+                      -JtestType=veryHigh
 
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -g /results.jtl \
