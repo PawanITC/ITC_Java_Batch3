@@ -2,15 +2,16 @@ package com.itc.funkart.product_service.dto.events;
 
 import com.itc.funkart.product_service.dto.response.ProductResponse;
 import com.itc.funkart.product_service.enums.ProductEventType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Builder;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class ProductEvent {
-    private ProductEventType eventType; // e.g., "PRODUCT_CREATED"
-    private ProductResponse product; // The product data associated with the event
-    private long id;
+/**
+ * Event published by the Product Service to notify other services
+ * of changes in the product catalog.
+ */
+@Builder
+public record ProductEvent(
+        ProductEventType eventType,
+        ProductResponse product,
+        long id
+) {
 }

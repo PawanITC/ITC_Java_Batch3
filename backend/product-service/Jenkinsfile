@@ -1,399 +1,94 @@
-// pipeline {
-//     agent any
-//
-//     environment {
-//         // Shared Config
-//         REPO_NAME       = 'product-service'
-//         PROJECT_DIR     = 'backend/product-service'
-//         VERSION         = "1.0.${env.BUILD_NUMBER}"
-//
-//         // Dev (Docker Hub) Config
-//         DH_USER         = 'ipenitcdocker'
-//         DH_CREDS        = 'DOCKER_HUB_CREDS'
-//
-//         // Prod (AWS ECR) Config - Replace with your actual AWS details
-//         AWS_REGION      = 'eu-west-2'
-//         AWS_ACCOUNT_ID  = '666127452756'
-//         ECR_URL         = "${AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
-//     }
-//
-//     stages {
-//         stage('Checkout & Build') {
-//             steps {
-//                 checkout scm
-//                 dir("${env.PROJECT_DIR}") {
-//                     sh "chmod +x gradlew"
-//                     sh "./gradlew clean build -x test"
-//                 }
-//             }
-//         }
-//
-//         stage('Build Docker Image') {
-//             steps {
-//                 dir("${env.PROJECT_DIR}") {
-//                     // Build a local base image first
-//                     sh "docker build -t ${env.REPO_NAME}:latest ."
-//                 }
-//             }
-//         }
-//
-//         stage('Push to Registry') {
-//             steps {
-//                 script {
-//                     // Logic check: 'MY_SERVER_ROLE' is defined in Jenkins Global Settings
-//                     if (env.MY_SERVER_ROLE == 'PRODUCTION') {
-//                         echo "--- Detected PRODUCTION Server: Pushing to AWS ECR ---"
-//
-//                         // Step 1: Login to ECR (Requires AWS CLI installed on server)
-//                         sh "aws ecr get-login-password --region ${env.AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_URL}"
-//
-//                         // Step 2: Tag and Push
-//                         sh "docker tag ${env.REPO_NAME}:latest ${env.ECR_URL}/${env.REPO_NAME}:${env.VERSION}"
-//                         sh "docker tag ${env.REPO_NAME}:latest ${env.ECR_URL}/${env.REPO_NAME}:latest"
-//                         sh "docker push ${env.ECR_URL}/${env.REPO_NAME}:${env.VERSION}"
-//                         sh "docker push ${env.ECR_URL}/${env.REPO_NAME}:latest"
-//                     }
-//                     else {
-//                         echo "--- Detected DEV Server (or MY_ENV not set): Pushing to Docker Hub ---"
-//
-//                         withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
-//                                          passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-//                             sh "echo \$PASS | docker login -u \$USER --password-stdin"
-//                             sh "docker tag ${env.REPO_NAME}:latest ${env.DH_USER}/${env.REPO_NAME}:${env.VERSION}"
-//                             sh "docker tag ${env.REPO_NAME}:latest ${env.DH_USER}/${env.REPO_NAME}:latest"
-//                             sh "docker push ${env.DH_USER}/${env.REPO_NAME}:${env.VERSION}"
-//                             sh "docker push ${env.DH_USER}/${env.REPO_NAME}:latest"
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//
-//     post {
-//         always {
-//             sh "docker logout || true"
-//             sh "docker logout ${env.ECR_URL} || true"
-//             // Cleanup to save space
-//             sh "docker rmi ${env.REPO_NAME}:latest || true"
-//         }
-//     }
-// }
-// pipeline {
-//     agent {
-//         node {
-//             label ''
-//         }
-//     }
-//
-//     environment {
-//         SERVICE_NAME    = 'product-service'
-//         PROJECT_DIR     = 'backend/product-service'
-//         VERSION         = "1.0.${env.BUILD_NUMBER}"
-//
-//         // Dev (Docker Hub)
-//         DH_USER         = 'ipenitcdocker'
-//         DH_CREDS        = 'DOCKER_HUB_CREDS'
-//
-//         // Prod (AWS ECR via Kaniko)
-//         REPO_NAME       = 'ecr-java'
-//         AWS_REGION      = 'eu-west-2'
-//         AWS_ACCOUNT_ID  = '666127452756'
-//         ECR_URL         = "${AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
-//         // Tagging workaround: service-name-version
-//         ECR_DEST        = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-${VERSION}"
-//         ECR_LATEST      = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-latest"
-//     }
-//
-//     stages {
-//         stage('Checkout & Gradle Build') {
-//             steps {
-//                 checkout scm
-//                 dir("${env.PROJECT_DIR}") {
-//                     sh "chmod +x gradlew"
-//                     sh "./gradlew clean build -x test"
-//                 }
-//             }
-//         }
-//
-//         stage('Push to Registry') {
-//             steps {
-//                 script {
-//                     if (env.MY_SERVER_ROLE == 'PRODUCTION') {
-//                         echo "--- PROD DETECTED: Using Kaniko for ECR ---"
-//
-//                         // This block defines the Kaniko container dynamically for EKS
-//                         podTemplate(yaml: """
-// apiVersion: v1
-// kind: Pod
-// spec:
-//   containers:
-//   - name: kaniko
-//     image: gcr.io/kaniko-project/executor:debug
-//     command: ['sleep']
-//     args: ['99d']
-//     volumeMounts:
-//     - name: kaniko-secret
-//       mountPath: /kaniko/.docker
-//   volumes:
-//   - name: kaniko-secret
-//     emptyDir: {}
-// """) {
-//                             container('kaniko') {
-//                                 // Kaniko builds the image AND pushes it in one command
-//                                 sh """
-//                                 echo '{"credsStore":"ecr-login"}' > /kaniko/.docker/config.json
-//                                 /kaniko/executor \
-//                                     --context ${WORKSPACE}/${env.PROJECT_DIR} \
-//                                     --dockerfile ${WORKSPACE}/${env.PROJECT_DIR}/Dockerfile \
-//                                     --destination ${env.ECR_DEST} \
-//                                     --destination ${env.ECR_LATEST}
-//                                 """
-//                             }
-//                         }
-//                     }
-//                     else {
-//                         echo "--- DEV DETECTED: Using Docker for Hub ---"
-//
-//                         dir("${env.PROJECT_DIR}") {
-//                             // Standard Docker Build
-//                             sh "docker build -t ${env.SERVICE_NAME}:latest ."
-//
-//                             withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
-//                                              passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-//                                 sh "echo \$PASS | docker login -u \$USER --password-stdin"
-//
-//                                 // Tag and Push to Docker Hub
-//                                 sh "docker tag ${env.SERVICE_NAME}:latest ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
-//                                 sh "docker tag ${env.SERVICE_NAME}:latest ${env.DH_USER}/${env.SERVICE_NAME}:latest"
-//
-//                                 sh "docker push ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
-//                                 sh "docker push ${env.DH_USER}/${env.SERVICE_NAME}:latest"
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//
-//     post {
-//         always {
-//             script {
-//                 if (env.MY_SERVER_ROLE != 'PRODUCTION') {
-//                     // Only clean up Docker if we actually used the Docker engine
-//                     sh "docker logout || true"
-//                     sh "docker rmi ${env.SERVICE_NAME}:latest || true"
-//                 }
-//             }
-//         }
-//     }
-// }
-
-
-// pipeline {
-//     agent {
-//         // If we are in PROD, we use the Kubernetes Pod. If not, we use the local node.
-//         node {
-//             label (env.MY_SERVER_ROLE == 'PRODUCTION' ? 'kubernetes' : '')
-//         }
-//     }
-//
-//     environment {
-//         SERVICE_NAME    = 'product-service'
-//         PROJECT_DIR     = 'backend/product-service'
-//         VERSION         = "1.0.${env.BUILD_NUMBER}"
-//         DH_USER         = 'ipenitcdocker'
-//         DH_CREDS        = 'DOCKER_HUB_CREDS'
-//         REPO_NAME       = 'ecr-java'
-//         AWS_REGION      = 'eu-west-2'
-//         AWS_ACCOUNT_ID  = '666127452756'
-//         ECR_URL         = "${AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
-//         ECR_DEST        = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-${VERSION}"
-//         ECR_LATEST      = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-latest"
-//     }
-//
-//     stages {
-//         stage('Build & Push') {
-//             steps {
-//                 script {
-//                     if (env.MY_SERVER_ROLE == 'PRODUCTION') {
-//                         // Define a Pod with Java 17 for building and Kaniko for pushing
-//                         podTemplate(yaml: """
-// apiVersion: v1
-// kind: Pod
-// spec:
-//   containers:
-//   - name: gradle
-//     image: gradle:8.5-jdk17
-//     command: ['sleep']
-//     args: ['99d']
-//   - name: kaniko
-//     image: gcr.io/kaniko-project/executor:debug
-//     command: ['sleep']
-//     args: ['99d']
-//     volumeMounts:
-//     - name: kaniko-secret
-//       mountPath: /kaniko/.docker
-//   volumes:
-//   - name: kaniko-secret
-//     emptyDir: {}
-// """) {
-//                             node(POD_LABEL) {
-//                                 // Step 1: Build JAR using the Gradle/Java 17 container
-//                                 stage('Gradle Build (Prod)') {
-//                                     container('gradle') {
-//                                         checkout scm
-//                                         dir("${env.PROJECT_DIR}") {
-//                                             sh "chmod +x gradlew"
-//                                             sh "./gradlew clean build -x test"
-//                                         }
-//                                     }
-//                                 }
-//
-//                                 // Step 2: Build & Push Image using Kaniko
-//                                 stage('Kaniko Push (Prod)') {
-//                                     container('kaniko') {
-//                                         sh """
-//                                         echo '{"credsStore":"ecr-login"}' > /kaniko/.docker/config.json
-//                                         /kaniko/executor \
-//                                             --context ${WORKSPACE}/${env.PROJECT_DIR} \
-//                                             --dockerfile ${WORKSPACE}/${env.PROJECT_DIR}/Dockerfile \
-//                                             --destination ${env.ECR_DEST} \
-//                                             --destination ${env.ECR_LATEST}
-//                                         """
-//                                     }
-//                                 }
-//                             }
-//                         }
-//                     }
-//                     else {
-//                         // --- LOCAL DEV LOGIC ---
-//                         echo "--- DEV DETECTED: Using Local Java & Docker ---"
-//                         checkout scm
-//                         dir("${env.PROJECT_DIR}") {
-//                             sh "chmod +x gradlew"
-//                             sh "./gradlew clean build -x test"
-//                             sh "docker build -t ${env.SERVICE_NAME}:latest ."
-//
-//                             withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
-//                                              passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-//                                 sh "echo \$PASS | docker login -u \$USER --password-stdin"
-//                                 sh "docker tag ${env.SERVICE_NAME}:latest ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
-//                                 sh "docker push ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//
-//     post {
-//         always {
-//             script {
-//                 if (env.MY_SERVER_ROLE != 'PRODUCTION') {
-//                     sh "docker logout || true"
-//                     sh "docker rmi ${env.SERVICE_NAME}:latest || true"
-//                 }
-//             }
-//         }
-//     }
-// }
-
 pipeline {
-    agent any // This ensures the pipeline starts immediately without waiting for a label
+    agent any
+
+    tools {
+        jdk 'jdk17'
+    }
 
     environment {
-        SERVICE_NAME    = 'product-service'
-        PROJECT_DIR     = 'backend/product-service'
-        VERSION         = "1.0.${env.BUILD_NUMBER}"
-        DH_USER         = 'ipenitcdocker'
-        DH_CREDS        = 'DOCKER_HUB_CREDS'
-        REPO_NAME       = 'ecr-java'
-        AWS_REGION      = 'eu-west-2'
-        AWS_ACCOUNT_ID  = '666127452756'
-        ECR_URL         = "${AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
-        ECR_DEST        = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-${VERSION}"
-        ECR_LATEST      = "${ECR_URL}/${REPO_NAME}:${SERVICE_NAME}-latest"
+        // Product Service Specific Configs
+        SERVICE_NAME             = 'product-service'
+        PROJECT_DIR              = 'backend/product-service'
+        VERSION                  = "1.0.${env.BUILD_NUMBER}"
+
+        // Docker Hub Config (Aligning with your 'user-service' naming)
+        DOCKER_HUB_USER          = 'abbasgureitc'
+        REGISTRY_CREDENTIALS_ID  = 'docker-hub-credentials'
+
+        // Security
+        SNYK_TOKEN               = credentials('snyk-token')
+        dockerImage              = ''
     }
 
     stages {
-        stage('Build & Push') {
+        stage('Check Environment') {
+            steps {
+                sh 'java -version'
+                sh 'docker version'
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                // Ensure we are in the product-service directory
+                dir("${env.PROJECT_DIR}") {
+                    script {
+                        sh "chmod +x gradlew"
+                        // Note: We include the tests here unlike your older files
+                        // because we finally fixed the 'forever hang'!
+                        sh "./gradlew clean build jacocoTestReport \
+                            -Dspring.profiles.active=test \
+                            --no-daemon --stacktrace"
+                    }
+                }
+            }
+        }
+
+        stage('Security Scan (Snyk)') {
+            steps {
+                dir("${env.PROJECT_DIR}") {
+                    script {
+                        sh "snyk auth ${env.SNYK_TOKEN}"
+                        // We catch the error so the build doesn't die on non-critical vulnerabilities
+                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                            sh 'snyk test --severity-threshold=critical'
+                        }
+                        sh 'snyk monitor'
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                // This will fail the build if coverage is below 70%
+                jacoco(
+                    execPattern: "${env.PROJECT_DIR}/**/build/jacoco/*.exec",
+                    classPattern: "${env.PROJECT_DIR}/**/build/classes/java/main",
+                    sourcePattern: "${env.PROJECT_DIR}**/src/main/java",
+                    minimumLineCoverage: '70'
+                )
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir("${env.PROJECT_DIR}") {
+                    script {
+                        // Tagging with build number for traceability
+                        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${env.SERVICE_NAME}"
+                        dockerImage = docker.build("${env.DOCKER_HUB_USER}/${env.SERVICE_NAME}:${env.VERSION}", ".")
+                    }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
             steps {
                 script {
-                    if (env.MY_SERVER_ROLE == 'PRODUCTION') {
-                        echo "--- PROD DETECTED: Launching EKS Pod Template ---"
-
-                        // We define the pod without a forced label to avoid the "waiting" error
-                        podTemplate(yaml: """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: gradle
-    image: gradle:8.5-jdk17
-    command: ['sleep']
-    args: ['99d']
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:debug
-    command: ['sleep']
-    args: ['99d']
-    volumeMounts:
-    - name: kaniko-secret
-      mountPath: /kaniko/.docker
-  volumes:
-  - name: kaniko-secret
-    emptyDir: {}
-""") {
-                            // This block actually runs INSIDE the EKS cluster
-                            node(POD_LABEL) {
-                                stage('Checkout & Build') {
-                                    container('gradle') {
-                                        checkout scm
-                                        dir("${env.PROJECT_DIR}") {
-                                            sh "chmod +x gradlew"
-                                            sh "./gradlew clean build -x test"
-                                        }
-                                    }
-                                }
-
-                                stage('Kaniko Push') {
-                                    container('kaniko') {
-                                        sh """
-                                        # Create the config file in a more standard location for the executor
-                                        mkdir -p /kaniko/.docker
-                                        echo '{"credsStore":"ecr-login"}' > /kaniko/.docker/config.json
-
-                                        /kaniko/executor \
-                                            --context ${WORKSPACE}/${env.PROJECT_DIR} \
-                                            --dockerfile ${WORKSPACE}/${env.PROJECT_DIR}/Dockerfile \
-                                            --destination ${env.ECR_DEST} \
-                                            --destination ${env.ECR_LATEST} \
-                                            --skip-unused-stages \
-                                            --verbosity=info
-                                        """
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        // --- LOCAL DEV LOGIC (Runs on your laptop) ---
-                        echo "--- DEV DETECTED: Building locally ---"
-                        checkout scm
-                        dir("${env.PROJECT_DIR}") {
-                            sh "chmod +x gradlew"
-                            sh "./gradlew clean build -x test"
-
-                            sh "docker build -t ${env.SERVICE_NAME}:latest ."
-                            withCredentials([usernamePassword(credentialsId: "${env.DH_CREDS}",
-                                             passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                                sh "echo \$PASS | docker login -u \$USER --password-stdin"
-                                sh "docker tag ${env.SERVICE_NAME}:latest ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
-                                sh "docker push ${env.DH_USER}/${env.SERVICE_NAME}:${env.VERSION}"
-                            }
-                        }
+                    docker.withRegistry('', env.REGISTRY_CREDENTIALS_ID) {
+                        dockerImage.push()
+                        dockerImage.push('latest')
                     }
                 }
             }
@@ -401,13 +96,16 @@ spec:
     }
 
     post {
+        success {
+            echo "SUCCESS: ${env.SERVICE_NAME} v${env.VERSION} is live on Docker Hub."
+        }
+        failure {
+            echo "FAILURE: Check Jacoco reports or Snyk logs."
+        }
         always {
-            script {
-                if (env.MY_SERVER_ROLE != 'PRODUCTION') {
-                    sh "docker logout || true"
-                    sh "docker rmi ${env.SERVICE_NAME}:latest || true"
-                }
-            }
+            // Housekeeping: remove local images to save Jenkins disk space
+            sh "docker rmi ${env.DOCKER_HUB_USER}/${env.SERVICE_NAME}:${env.VERSION} || true"
+            cleanWs()
         }
     }
 }

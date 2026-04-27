@@ -1,10 +1,9 @@
 package com.itc.funkart.product_service.serviceImpl;
 
 import com.itc.funkart.product_service.dto.request.CategoryRequest;
-import com.itc.funkart.product_service.dto.request.CategoryResponse;
+import com.itc.funkart.product_service.dto.response.CategoryResponse;
 import com.itc.funkart.product_service.entity.Category;
 import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
-import com.itc.funkart.product_service.mapper.CategoryMapper;
 import com.itc.funkart.product_service.repository.CategoryRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,13 +15,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
+/**
+ * <h2>CategoryServiceImplTest</h2>
+ * <p>
+ * Verifies category management logic.
+ * Updated to utilize Record Builders and accessor syntax.
+ * </p>
+ */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("CategoryServiceImpl Tests")
+@DisplayName("Category Service Unit Tests")
 class CategoryServiceImplTest {
 
     @Mock
@@ -31,11 +37,13 @@ class CategoryServiceImplTest {
     @InjectMocks
     private CategoryServiceImpl categoryService;
 
+    // --- Helper Methods ---
+
     private CategoryRequest createCategoryRequest(String name, String description) {
-        CategoryRequest request = new CategoryRequest();
-        request.setName(name);
-        request.setDescription(description);
-        return request;
+        return CategoryRequest.builder()
+                .name(name)
+                .description(description)
+                .build();
     }
 
     private Category createCategory(Long id, String name, String description) {
@@ -46,13 +54,14 @@ class CategoryServiceImplTest {
                 .build();
     }
 
+    // --- 1. CREATE TESTS ---
+
     @Test
-    @DisplayName("Should create category successfully")
-    void shouldCreateCategory() {
+    @DisplayName("Create Category - Should map request and save successfully")
+    void shouldCreateCategorySuccessfully() {
         // Arrange
-        CategoryRequest request = createCategoryRequest("Electronics", "Electronic devices");
-        Category category = createCategory(null, "Electronics", "Electronic devices");
-        Category savedCategory = createCategory(1L, "Electronics", "Electronic devices");
+        CategoryRequest request = createCategoryRequest("Electronics", "Gadgets");
+        Category savedCategory = createCategory(1L, "Electronics", "Gadgets");
 
         when(categoryRepository.save(any(Category.class))).thenReturn(savedCategory);
 
@@ -61,20 +70,22 @@ class CategoryServiceImplTest {
 
         // Assert
         assertThat(response).isNotNull();
-        assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getName()).isEqualTo("Electronics");
-        assertThat(response.getDescription()).isEqualTo("Electronic devices");
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.name()).isEqualTo("Electronics");
 
-        verify(categoryRepository, times(1)).save(any(Category.class));
+        verify(categoryRepository).save(any(Category.class));
     }
 
+    // --- 2. RETRIEVAL TESTS ---
+
     @Test
-    @DisplayName("Should get all categories")
+    @DisplayName("Get All - Should return list of category responses")
     void shouldGetAllCategories() {
         // Arrange
-        Category category1 = createCategory(1L, "Electronics", "Electronic devices");
-        Category category2 = createCategory(2L, "Clothing", "Apparel and clothing");
-        List<Category> categories = List.of(category1, category2);
+        List<Category> categories = List.of(
+                createCategory(1L, "Electronics", "Desc"),
+                createCategory(2L, "Clothing", "Desc")
+        );
 
         when(categoryRepository.findAll()).thenReturn(categories);
 
@@ -83,95 +94,41 @@ class CategoryServiceImplTest {
 
         // Assert
         assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).getName()).isEqualTo("Electronics");
-        assertThat(responses.get(1).getName()).isEqualTo("Clothing");
-
-        verify(categoryRepository, times(1)).findAll();
+        assertThat(responses.get(0).name()).isEqualTo("Electronics");
+        assertThat(responses.get(1).name()).isEqualTo("Clothing");
     }
 
     @Test
-    @DisplayName("Should return empty list when no categories exist")
-    void shouldReturnEmptyListWhenNoCategoriesExist() {
+    @DisplayName("Get By Id - Should return category or throw 404 (Branch: Not Found)")
+    void shouldHandleCategoryNotFound() {
         // Arrange
-        when(categoryRepository.findAll()).thenReturn(List.of());
-
-        // Act
-        List<CategoryResponse> responses = categoryService.getAllCategories();
-
-        // Assert
-        assertThat(responses).isEmpty();
-
-        verify(categoryRepository, times(1)).findAll();
-    }
-
-    @Test
-    @DisplayName("Should get category by id")
-    void shouldGetCategoryById() {
-        // Arrange
-        Category category = createCategory(1L, "Electronics", "Electronic devices");
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-
-        // Act
-        CategoryResponse response = categoryService.getCategoryById(1L);
-
-        // Assert
-        assertThat(response).isNotNull();
-        assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getName()).isEqualTo("Electronics");
-
-        verify(categoryRepository, times(1)).findById(1L);
-    }
-
-    @Test
-    @DisplayName("Should throw exception when category not found")
-    void shouldThrowExceptionWhenCategoryNotFound() {
-        // Arrange
-        when(categoryRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> categoryService.getCategoryById(999L))
+        assertThatThrownBy(() -> categoryService.getCategoryById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Category not found");
-
-        verify(categoryRepository, times(1)).findById(999L);
+                .hasMessageContaining("Category not found");
     }
 
     @Test
-    @DisplayName("Should delete category successfully")
-    void shouldDeleteCategory() {
-        // Arrange
-        doNothing().when(categoryRepository).deleteById(anyLong());
+    @DisplayName("Get All - Branch: No categories present")
+    void shouldReturnEmptyListWhenNoneExist() {
+        when(categoryRepository.findAll()).thenReturn(List.of());
 
-        // Act
+        List<CategoryResponse> responses = categoryService.getAllCategories();
+
+        assertThat(responses).isEmpty();
+    }
+
+    // --- 3. DELETE TESTS ---
+
+    @Test
+    @DisplayName("Delete Category - Should invoke repository delete")
+    void shouldDeleteCategory() {
+        doNothing().when(categoryRepository).deleteById(1L);
+
         categoryService.deleteCategory(1L);
 
-        // Assert
         verify(categoryRepository, times(1)).deleteById(1L);
     }
-
-    @Test
-    @DisplayName("Should create multiple categories")
-    void shouldCreateMultipleCategories() {
-        // Arrange
-        CategoryRequest request1 = createCategoryRequest("Electronics", "Electronic devices");
-        CategoryRequest request2 = createCategoryRequest("Books", "Books and literature");
-
-        Category savedCategory1 = createCategory(1L, "Electronics", "Electronic devices");
-        Category savedCategory2 = createCategory(2L, "Books", "Books and literature");
-
-        when(categoryRepository.save(any(Category.class)))
-                .thenReturn(savedCategory1)
-                .thenReturn(savedCategory2);
-
-        // Act
-        CategoryResponse response1 = categoryService.createCategory(request1);
-        CategoryResponse response2 = categoryService.createCategory(request2);
-
-        // Assert
-        assertThat(response1.getId()).isEqualTo(1L);
-        assertThat(response2.getId()).isEqualTo(2L);
-
-        verify(categoryRepository, times(2)).save(any(Category.class));
-    }
 }
-

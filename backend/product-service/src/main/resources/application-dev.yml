@@ -2,35 +2,39 @@ spring:
   config:
     activate:
       on-profile: dev
+
   datasource:
-    # Uses DB_HOST if present, otherwise defaults to localhost
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/product_service_db
-    username: product_user
-    password: product_password
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:mydb}
+    username: ${DB_USER:admin}
+    password: ${DB_PASS:secret}
     driver-class-name: org.postgresql.Driver
+
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
   kafka:
-    # Uses KAFKA_HOST if present, otherwise defaults to localhost
     bootstrap-servers: ${KAFKA_HOST:localhost}:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
   data:
     redis:
-      # Uses REDIS_HOST if present, otherwise defaults to localhost
       host: ${REDIS_HOST:localhost}
       port: 6379
 
-  cache:
-    redis:
-      time-to-live: 3600000 # 10 minutes
+# Correct this in application.yml
+jwt:
+  secret: ${JWT_SECRET:Ym9yZGVyLXJlbmRlci1zZWNyZXQta2V5LTMyLWNoYXJhY3RlcnMtbG9uZw==}
+  expiration-ms: ${JWT_EXPIRATION:3600000} # Note: changed to expiration-ms to match your config class
 
 management:
   otlp:
     tracing:
-      # Uses OTLP_HOST if present, otherwise defaults to localhost
-      endpoint: http://${OTLP_HOST:localhost}:4317/v1/traces
+      endpoint: http://${OTLP_HOST:localhost}:4317

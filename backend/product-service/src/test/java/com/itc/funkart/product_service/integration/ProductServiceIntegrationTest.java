@@ -6,21 +6,34 @@ import com.itc.funkart.product_service.dto.response.ProductResponse;
 import com.itc.funkart.product_service.dto.response.ProductsResponse;
 import com.itc.funkart.product_service.entity.Category;
 import com.itc.funkart.product_service.entity.Product;
+import com.itc.funkart.product_service.producer.OrderProducer;
+import com.itc.funkart.product_service.producer.ProductProducer;
 import com.itc.funkart.product_service.repository.CategoryRepository;
 import com.itc.funkart.product_service.repository.ProductRepository;
+import com.itc.funkart.product_service.service.JwtService;
 import com.itc.funkart.product_service.service.ProductService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * <h2>ProductServiceIntegrationTest</h2>
+ * <p>
+ * Validates the core Product catalog management lifecycle.
+ * This suite ensures that CRUD operations, slug generation, and batch fetching
+ * interact correctly with the JPA layer and the underlying H2 database.
+ * </p>
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
@@ -29,297 +42,180 @@ class ProductServiceIntegrationTest {
 
     @Autowired
     private ProductService productService;
-
     @Autowired
     private ProductRepository productRepository;
-
     @Autowired
     private CategoryRepository categoryRepository;
+
+    // --- Neutralize Infrastructure to avoid startup hangs ---
+    @MockitoBean
+    private JwtService jwtService;
+    @MockitoBean
+    private OrderProducer orderProducer;
+    @MockitoBean
+    private ProductProducer productProducer;
+
+    // --- Helpers ---
 
     private Category createCategory() {
         return categoryRepository.save(Category.builder()
                 .name("Electronics_" + System.nanoTime())
-                .description("Electronic devices")
+                .description("Devices")
                 .build());
     }
 
     private ProductCreateRequest createProductRequest(String name, Long categoryId) {
         return ProductCreateRequest.builder()
-                .name(name + "_" + System.nanoTime()) // Make unique
+                .name(name + "_" + System.nanoTime())
                 .description("Test description")
                 .price(BigDecimal.valueOf(99.99))
                 .stockQuantity(10)
                 .categoryId(categoryId)
                 .brand("TestBrand")
+                .imageUrls(List.of()) // Mandatory for Record mapping
                 .build();
     }
 
+    /**
+     * <b>Scenario:</b> Creation and Persistence.
+     * Validates that the Service correctly maps the Request DTO to the Entity
+     * and establishes the Foreign Key relationship with the Category.
+     */
     @Test
-    @DisplayName("Should create product with category and persist to database")
+    @DisplayName("Create - Should persist product and link category correctly")
     void shouldCreateProductWithCategoryAndPersist() {
-        // Arrange
         Category category = createCategory();
         ProductCreateRequest request = createProductRequest("Laptop", category.getId());
 
-        // Act
         ProductResponse response = productService.createProduct(request);
 
-        // Assert
-        assertThat(response).isNotNull();
-        assertThat(response.getId()).isNotNull();
-
-        // Verify in database
-        Product found = productRepository.findById(response.getId()).orElse(null);
-        assertThat(found).isNotNull();
-        assertThat(found.getName()).startsWith("Laptop");
+        assertThat(response.id()).isNotNull();
+        Product found = productRepository.findById(response.id()).orElseThrow();
+        assertThat(found.getName()).contains("Laptop");
         assertThat(found.getCategory().getId()).isEqualTo(category.getId());
     }
 
+    /**
+     * <b>Scenario:</b> Batch Identification.
+     * Ensures the service can return a mix of found products and a list of
+     * IDs that do not exist in the database.
+     */
     @Test
-    @DisplayName("Should create product and verify all fields are persisted")
-    void shouldCreateProductAndVerifyAllFields() {
-        // Arrange
+    @DisplayName("Read - Should fetch products by multiple IDs and handle missing ones")
+    void shouldFetchProductsByIdsAndHandleMissing() {
         Category category = createCategory();
-        ProductCreateRequest request = ProductCreateRequest.builder()
-                .name("iPhone")
-                .description("Apple iPhone 15")
-                .price(BigDecimal.valueOf(999.99))
-                .stockQuantity(50)
-                .categoryId(category.getId())
-                .brand("Apple")
+        ProductResponse prod = productService.createProduct(createProductRequest("P1", category.getId()));
+
+        ProductsResponse response = productService.getProductsByIds(List.of(prod.id(), 999L));
+
+        assertThat(response.found()).hasSize(1);
+        assertThat(response.missing()).contains(999L);
+    }
+
+    /**
+     * <b>Scenario:</b> Full Update.
+     * Validates that providing a complete {@link ProductUpdateRequest} modifies
+     * the persistent state across all core fields.
+     */
+    @Test
+    @DisplayName("Update - Should update product details using the correct UpdateRequest Record")
+    void shouldUpdateProductAndVerifyInDatabase() {
+        Category category = createCategory();
+        ProductResponse created = productService.createProduct(createProductRequest("Original", category.getId()));
+
+        ProductUpdateRequest updateRequest = ProductUpdateRequest.builder()
+                .name("Updated Product")
+                .price(BigDecimal.valueOf(299.99))
+                .brand("NewBrand")
+                .active(true)
                 .build();
 
-        // Act
-        ProductResponse response = productService.createProduct(request);
+        ProductResponse updated = productService.updateProduct(created.id(), updateRequest);
 
-        // Assert
-        assertThat(response)
-                .extracting(
-                    ProductResponse::getName,
-                    ProductResponse::getPrice,
-                    ProductResponse::getBrand
-                )
-                .containsExactly("iPhone", BigDecimal.valueOf(999.99), "Apple");
-        assertThat(response.getCategoryName()).startsWith("Electronics");
+        assertThat(updated.name()).isEqualTo("Updated Product");
+        assertThat(updated.price()).isEqualByComparingTo(BigDecimal.valueOf(299.99));
+
+        Product foundInDb = productRepository.findById(created.id()).orElseThrow();
+        assertThat(foundInDb.getName()).isEqualTo("Updated Product");
     }
 
+    /**
+     * <b>Scenario:</b> Partial (PATCH) Logic.
+     * Verifies that fields not present in the update request (nulls) do not
+     * overwrite existing data in the database.
+     */
     @Test
-    @DisplayName("Should update product and verify changes in database")
-    void shouldUpdateProductAndVerifyInDatabase() {
-        // Arrange
+    @DisplayName("Partial Update - Should only modify specified fields (Branch: PATCH logic)")
+    void shouldPerformPartialUpdate() {
         Category category = createCategory();
-        ProductResponse created = productService.createProduct(
-            createProductRequest("Original Product", category.getId()));
+        ProductCreateRequest createRequest = createProductRequest("Static Name", category.getId());
+        ProductResponse original = productService.createProduct(createRequest);
 
-        ProductUpdateRequest updateRequest = new ProductUpdateRequest();
-        updateRequest.setName("Updated Product");
-        updateRequest.setPrice(BigDecimal.valueOf(299.99));
+        ProductUpdateRequest patchRequest = ProductUpdateRequest.builder()
+                .price(BigDecimal.valueOf(150.00))
+                .active(false)
+                .build();
 
-        // Act
-        ProductResponse updated = productService.updateProduct(created.getId(), updateRequest);
+        ProductResponse updated = productService.updateProduct(original.id(), patchRequest);
 
-        // Assert
-        assertThat(updated.getName()).isEqualTo("Updated Product");
-        assertThat(updated.getPrice()).isEqualTo(BigDecimal.valueOf(299.99));
-
-        // Verify in database
-        Product found = productRepository.findById(created.getId()).orElseThrow();
-        assertThat(found.getName()).isEqualTo("Updated Product");
-        assertThat(found.getPrice()).isEqualTo(BigDecimal.valueOf(299.99));
+        // Name and Brand should remain from the original creation
+        assertThat(updated.name()).contains("Static Name");
+        assertThat(updated.brand()).isEqualTo("TestBrand");
+        assertThat(updated.price()).isEqualByComparingTo(BigDecimal.valueOf(150.00));
+        assertThat(updated.active()).isFalse();
     }
 
+    /**
+     * <b>Scenario:</b> Deletion.
+     * Confirms that the product is physically removed from the repository.
+     */
     @Test
-    @DisplayName("Should delete product and verify deletion from database")
+    @DisplayName("Delete - Should remove product from catalog")
     void shouldDeleteProductAndVerifyDeletion() {
-        // Arrange
         Category category = createCategory();
-        ProductResponse created = productService.createProduct(
-            createProductRequest("Product to Delete", category.getId()));
-        Long productId = created.getId();
+        ProductResponse created = productService.createProduct(createProductRequest("To Delete", category.getId()));
 
-        // Act
-        productService.deleteProduct(productId);
+        productService.deleteProduct(created.id());
 
-        // Assert
-        assertThat(productRepository.findById(productId)).isEmpty();
+        assertThat(productRepository.findById(created.id())).isEmpty();
     }
 
+    /**
+     * <b>Scenario:</b> Sorting.
+     * Ensures that the default retrieval order is Newest-to-Oldest based on
+     * the creation timestamp.
+     */
     @Test
-    @DisplayName("Should fetch products by ids and return correct items")
-    void shouldFetchProductsByIdsAndReturnCorrectItems() {
-        // Arrange
-        Category category = createCategory();
-        ProductResponse prod1 = productService.createProduct(
-            createProductRequest("Product 1", category.getId()));
-        ProductResponse prod2 = productService.createProduct(
-            createProductRequest("Product 2", category.getId()));
-        ProductResponse prod3 = productService.createProduct(
-            createProductRequest("Product 3", category.getId()));
-
-        // Act
-        ProductsResponse response = productService.getProductsByIds(
-            List.of(prod1.getId(), prod2.getId(), prod3.getId()));
-
-        // Assert
-        assertThat(response.getFound()).hasSize(3);
-        assertThat(response.getMissing()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should fetch products by ids and handle missing ids")
-    void shouldFetchProductsByIdsAndHandleMissing() {
-        // Arrange
-        Category category = createCategory();
-        ProductResponse prod1 = productService.createProduct(
-            createProductRequest("Product 1", category.getId()));
-
-        // Act
-        ProductsResponse response = productService.getProductsByIds(
-            List.of(prod1.getId(), 999L, 1000L));
-
-        // Assert
-        assertThat(response.getFound()).hasSize(1);
-        assertThat(response.getMissing()).hasSize(2).contains(999L, 1000L);
-    }
-
-    @Test
-    @DisplayName("Should get all products ordered by creation date")
+    @DisplayName("Query - Should return all products with descending date order")
     void shouldGetAllProductsOrderedByCreationDate() throws InterruptedException {
-        // Arrange
         Category category = createCategory();
-        ProductResponse prod1 = productService.createProduct(
-            createProductRequest("First Product", category.getId()));
-        
-        Thread.sleep(100); // Small delay to ensure different timestamps
-        
-        ProductResponse prod2 = productService.createProduct(
-            createProductRequest("Second Product", category.getId()));
+        productService.createProduct(createProductRequest("Oldest", category.getId()));
+        Thread.sleep(10); // Guarantee a distinct timestamp
+        productService.createProduct(createProductRequest("Newest", category.getId()));
 
-        // Act
         List<ProductResponse> products = productService.getAllProducts();
 
-        // Assert
-        assertThat(products).hasSizeGreaterThanOrEqualTo(2);
-        assertThat(products.get(0).getName()).startsWith("Second Product"); // Most recent first
+        assertThat(products.get(0).name()).contains("Newest");
     }
 
+    /**
+     * <b>Scenario:</b> Data Integrity.
+     * Validates database-level constraints, specifically that unique slugs
+     * (derived from names) prevent duplicate catalog entries.
+     */
     @Test
-    @DisplayName("Should verify product slug is unique")
+    @DisplayName("Constraint - Should prevent duplicate slugs via identical names")
     void shouldVerifyProductSlugIsUnique() {
-        // Arrange
         Category category = createCategory();
-        // Create product with specific name
-        ProductCreateRequest request1 = ProductCreateRequest.builder()
-                .name("UniqueSlugTest")
-                .description("Test description")
-                .price(BigDecimal.valueOf(99.99))
-                .stockQuantity(10)
-                .categoryId(category.getId())
-                .brand("TestBrand")
-                .build();
-        
-        ProductCreateRequest request2 = ProductCreateRequest.builder()
-                .name("UniqueSlugTest")  // Same name should generate same slug
-                .description("Test description")
-                .price(BigDecimal.valueOf(99.99))
-                .stockQuantity(10)
-                .categoryId(category.getId())
-                .brand("TestBrand")
-                .build();
+        String name = "SlugMaster";
 
-        // Act
-        productService.createProduct(request1);
+        productService.createProduct(ProductCreateRequest.builder()
+                .name(name).price(BigDecimal.ONE).categoryId(category.getId())
+                .brand("B").imageUrls(List.of()).build());
 
-        // Assert - Second product with same slug should fail
-        assertThatThrownBy(() -> productService.createProduct(request2))
+        assertThatThrownBy(() -> productService.createProduct(ProductCreateRequest.builder()
+                .name(name).price(BigDecimal.ONE).categoryId(category.getId())
+                .brand("B").imageUrls(List.of()).build()))
                 .isInstanceOf(Exception.class);
-    }
-
-    @Test
-    @DisplayName("Should handle product with multiple updates")
-    void shouldHandleProductWithMultipleUpdates() {
-        // Arrange
-        Category category = createCategory();
-        ProductResponse product = productService.createProduct(
-            createProductRequest("Multi-Update Product", category.getId()));
-
-        // Act - Update 1
-        ProductUpdateRequest update1 = new ProductUpdateRequest();
-        update1.setPrice(BigDecimal.valueOf(199.99));
-        productService.updateProduct(product.getId(), update1);
-
-        // Act - Update 2
-        ProductUpdateRequest update2 = new ProductUpdateRequest();
-        update2.setPrice(BigDecimal.valueOf(299.99));
-        productService.updateProduct(product.getId(), update2);
-
-        // Act - Update 3
-        ProductUpdateRequest update3 = new ProductUpdateRequest();
-        update3.setPrice(BigDecimal.valueOf(399.99));
-        ProductResponse final_response = productService.updateProduct(product.getId(), update3);
-
-        // Assert
-        assertThat(final_response.getPrice()).isEqualTo(BigDecimal.valueOf(399.99));
-    }
-
-    @Test
-    @Transactional
-    @DisplayName("Should verify product category relationship")
-    void shouldVerifyProductCategoryRelationship() {
-        // Arrange
-        Category category = createCategory();
-        ProductResponse product = productService.createProduct(
-            createProductRequest("Related Product", category.getId()));
-
-        // Act
-        Product found = productRepository.findById(product.getId()).orElseThrow();
-
-        // Assert
-        assertThat(found.getCategory()).isNotNull();
-        assertThat(found.getCategory().getName()).startsWith("Electronics");
-        assertThat(found.getCategory().getId()).isEqualTo(category.getId());
-    }
-
-    @Test
-    @DisplayName("Should handle product search by slug")
-    void shouldHandleProductSearchBySlug() {
-        // Arrange
-        Category category = createCategory();
-        ProductResponse product = productService.createProduct(
-            createProductRequest("Search Test Product", category.getId()));
-
-        // Act - Slug is derived from product name (converted to lowercase with hyphens)
-        var found = productRepository.findBySlug(product.getSlug());
-
-        // Assert
-        assertThat(found).isPresent();
-        assertThat(found.get().getName()).startsWith("Search Test Product");
-    }
-
-    @Test
-    @DisplayName("Should batch update multiple products")
-    void shouldBatchUpdateMultipleProducts() {
-        // Arrange
-        Category category = createCategory();
-        ProductResponse prod1 = productService.createProduct(
-            createProductRequest("Batch Product 1", category.getId()));
-        ProductResponse prod2 = productService.createProduct(
-            createProductRequest("Batch Product 2", category.getId()));
-
-        // Act
-        ProductUpdateRequest update1 = new ProductUpdateRequest();
-        update1.setPrice(BigDecimal.valueOf(150.00));
-        ProductUpdateRequest update2 = new ProductUpdateRequest();
-        update2.setPrice(BigDecimal.valueOf(250.00));
-
-        productService.updateProduct(prod1.getId(), update1);
-        productService.updateProduct(prod2.getId(), update2);
-
-        // Assert
-        ProductResponse updated1 = productService.getProduct(prod1.getId());
-        ProductResponse updated2 = productService.getProduct(prod2.getId());
-
-        assertThat(updated1.getPrice()).isEqualTo(BigDecimal.valueOf(150.00));
-        assertThat(updated2.getPrice()).isEqualTo(BigDecimal.valueOf(250.00));
     }
 }

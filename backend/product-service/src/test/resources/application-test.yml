@@ -1,11 +1,80 @@
+# 1. GLOBAL ENVIRONMENT OVERRIDES (Mocking System Env Vars)
+DB_HOST: localhost
+DB_NAME: testdb
+DB_USER: sa
+DB_PASS: password
+JWT_SECRET: Ym9yZGVyLXJlbmRlci1zZWNyZXQta2V5LTMyLWNoYXJhY3RlcnMtbG9uZw==
+JWT_EXPIRATION: 3600000
+
+---
 spring:
+  config:
+    activate:
+      on-profile: test
+
+  main:
+    allow-bean-definition-overriding: true
+
+  # --- DATABASE CONFIGURATION (H2 "Dummy" DB) ---
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
-    driverClassName: org.h2.Driver
-    username: sa
-    password:
+    # MODE=PostgreSQL ensures H2 accepts Postgres-specific syntax
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    driver-class-name: org.h2.Driver
+    username: ${DB_USER}
+    password: ${DB_PASS}
+
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: create-drop
     show-sql: true
-    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        format_sql: true
+        # Helps with PostgreSQL-style ID generation in H2
+        jdbc.batch_size: 10
+        order_inserts: true
+        order_updates: true
+
+  # --- INFRASTRUCTURE NEUTRALIZATION ---
+  kafka:
+    bootstrap-servers: localhost:9092
+    listener:
+      auto-startup: false # Prevents test from waiting for a Kafka connection
+    producer:
+      retries: 0
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      repositories:
+        enabled: false # Disables Redis repositories for unit/integration slices
+
+  cache:
+    type: none # Disables caching so tests always hit the DB directly
+
+# 2. JWT CONFIGURATION (Matches your JwtConfig class)
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION} # Matching the @Value("${jwt.expiration-ms}") field
+
+# 3. OBSERVABILITY SILENCING (Keeps logs clean)
+management:
+  tracing:
+    enabled: false
+  metrics:
+    export:
+      otlp:
+        enabled: false
+  otlp:
+    tracing:
+      endpoint: http://localhost:4317
+
+logging:
+  level:
+    root: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.apache.kafka: ERROR
+    com.itc.funkart: DEBUG

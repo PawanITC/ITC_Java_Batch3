@@ -6,68 +6,116 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * <h2>ProductImageRepositoryTest</h2>
+ * <p>
+ * Verifies the persistence of product media and relationship integrity.
+ * Ensures that images are correctly associated with parent products.
+ * </p>
+ */
 @DataJpaTest
 @ActiveProfiles("test")
+@DisplayName("Product Image Repository Integration Tests")
 class ProductImageRepositoryTest {
 
     @Autowired
     private ProductImageRepository productImageRepository;
 
     @Autowired
-    private ProductRepository productRepository;
+    private TestEntityManager entityManager;
 
-    private Product createProduct() {
+    // --- Helpers using Entity Builders ---
+
+    private Product createProduct(String name) {
         return Product.builder()
-                .name("Phone")
-                .slug("phone-slug")
+                .name(name)
+                .slug(name.toLowerCase().replace(" ", "-"))
                 .price(BigDecimal.valueOf(100))
                 .stockQuantity(10)
                 .brand("TestBrand")
+                .active(true)
+                .images(new ArrayList<>())
+                .build();
+    }
+
+    private ProductImage createProductImage(Product product, String url, boolean isPrimary) {
+        return ProductImage.builder()
+                .imageUrl(url)
+                .isPrimary(isPrimary)
+                .product(product)
                 .build();
     }
 
     @Test
-    @DisplayName("Should save product image with product")
+    @DisplayName("Save - Should associate image with product correctly")
     void shouldSaveProductImageWithProduct() {
-        Product product = productRepository.save(createProduct());
+        // Arrange
+        Product product = entityManager.persist(createProduct("Smartphone"));
+        ProductImage image = createProductImage(product, "http://cdn.com/phone.png", true);
 
-        ProductImage image = ProductImage.builder()
-                .imageUrl("http://image.com/1.png")
-                .isPrimary(true)
-                .product(product)
-                .build();
-
+        // Act
         ProductImage saved = productImageRepository.save(image);
 
+        // Assert
         assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getProduct()).isNotNull();
-        assertThat(saved.getProduct().getId()).isEqualTo(product.getId());
+        assertThat(saved.getProduct().getName()).isEqualTo("Smartphone");
+        assertThat(saved.getIsPrimary()).isTrue();
     }
 
     @Test
-    @DisplayName("Should persist multiple images for one product")
+    @DisplayName("Query - Should retrieve all images for a specific product")
     void shouldSaveMultipleImagesForProduct() {
-        Product product = productRepository.save(createProduct());
+        // Arrange
+        Product product = entityManager.persist(createProduct("Laptop"));
+        entityManager.persist(createProductImage(product, "img1.png", true));
+        entityManager.persist(createProductImage(product, "img2.png", false));
 
-        ProductImage img1 = ProductImage.builder()
-                .imageUrl("img1.png")
-                .product(product)
-                .build();
+        entityManager.flush();
+        entityManager.clear();
 
-        ProductImage img2 = ProductImage.builder()
-                .imageUrl("img2.png")
-                .product(product)
-                .build();
-
-        productImageRepository.save(img1);
-        productImageRepository.save(img2);
-
+        // Act
+        // Assuming your repository has a findByProductId method
+        // If not, we use the standard findAll and verify the count
         assertThat(productImageRepository.findAll()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("Delete - Should remove image but preserve Product (Branch: Referential Integrity)")
+    void shouldDeleteImagePreservingProduct() {
+        // Arrange
+        Product product = entityManager.persist(createProduct("Camera"));
+        ProductImage image = entityManager.persist(createProductImage(product, "cam.png", true));
+        entityManager.flush();
+
+        // Act
+        productImageRepository.delete(image);
+        entityManager.flush();
+
+        // Assert
+        assertThat(productImageRepository.findById(image.getId())).isEmpty();
+        assertThat(entityManager.find(Product.class, product.getId())).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Update - Should change primary image status")
+    void shouldUpdateImagePrimaryStatus() {
+        // Arrange
+        Product product = entityManager.persist(createProduct("Tablet"));
+        ProductImage image = productImageRepository.save(createProductImage(product, "tab.png", false));
+
+        // Act
+        image.setIsPrimary(true);
+        ProductImage updated = productImageRepository.saveAndFlush(image);
+
+        // Assert
+        assertThat(updated.getIsPrimary()).isTrue();
     }
 }
