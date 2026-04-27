@@ -15,12 +15,11 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 public class KafkaConfig {
 
     @Bean
-    public RetryTopicSchedulerWrapper retryTopicSchedulerWrapper() {
+    public ThreadPoolTaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(2);
         scheduler.setThreadNamePrefix("kafka-retry-");
         scheduler.initialize();
-        return new RetryTopicSchedulerWrapper(scheduler);
+        return scheduler;
     }
-
 }
