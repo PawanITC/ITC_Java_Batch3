@@ -4,8 +4,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.annotation.EnableKafka;
-import org.springframework.kafka.annotation.EnableKafkaRetryTopic;
-import org.springframework.kafka.retrytopic.RetryTopicSchedulerWrapper;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 @Profile("!test")
