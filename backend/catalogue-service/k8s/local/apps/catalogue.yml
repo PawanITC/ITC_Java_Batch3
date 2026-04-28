@@ -19,6 +19,14 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8081
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 7
+            periodSeconds: 5
+
           env:
             - name: SPRING_REDIS_HOST
               value: "redis"
