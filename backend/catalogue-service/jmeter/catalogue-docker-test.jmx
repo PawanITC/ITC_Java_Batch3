@@ -315,11 +315,11 @@
           <stringProp name="IfController.condition">${__groovy(&quot;ultimate&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
-          <stringProp name="TestPlan.comments">Triggers extreme high load test when testType=extremehigh</stringProp>
+          <stringProp name="TestPlan.comments">Triggers ultimate high load test when testType=ultimate</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Extreme High Load">
-            <stringProp name="TestPlan.comments">Catalogue API call for extreme high load test</stringProp>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - ultimate Load">
+            <stringProp name="TestPlan.comments">Catalogue API call for ultimate load test</stringProp>
             <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
