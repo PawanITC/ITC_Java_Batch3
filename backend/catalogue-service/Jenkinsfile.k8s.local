@@ -149,7 +149,10 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=veryhigh
+                      -JtestType=veryhigh \
+                      -Jthreads=1200 \
+                      -Jramp=10 \
+                      -Jloop=1
 
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -g /results.jtl \

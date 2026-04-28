@@ -6,17 +6,15 @@
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
-      <boolProp name="TestPlan.functional_mode">false</boolProp>
-      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group">
-        <stringProp name="ThreadGroup.num_threads">${__P(threads)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(ramp)}</stringProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(threads, 1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(ramp, 1)}</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
-          <stringProp name="LoopController.loops">${__P(loop)}</stringProp>
+          <stringProp name="LoopController.loops">${__P(loop, 1)}</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
@@ -44,7 +42,7 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Rate Limit">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Rate Limit" enabled="true">
           <stringProp name="IfController.condition">${__groovy(&quot;ratelimit&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
@@ -90,7 +88,7 @@
           </HTTPSamplerProxy>
           <hashTree/>
         </hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Timeout Load">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Timeout Load" enabled="true">
           <stringProp name="IfController.condition">${__groovy(&quot;timeout&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
@@ -120,7 +118,7 @@
           <stringProp name="TestPlan.comments">Triggers circuit breaker test when testType=circuit</stringProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Circuit Breaker">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Get Products - Circuit Breaker" enabled="true">
             <stringProp name="TestPlan.comments">Catalogue API call for circuit breaker test</stringProp>
             <stringProp name="HTTPSampler.domain">catalogue-service</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -255,63 +253,6 @@
         <stringProp name="TestPlan.comments">Controls which resiliency test runs via CLI</stringProp>
       </Arguments>
       <hashTree/>
-      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="setUp Thread Group">
-        <intProp name="ThreadGroup.num_threads">1</intProp>
-        <intProp name="ThreadGroup.ramp_time">1</intProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
-        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
-          <stringProp name="LoopController.loops">1</stringProp>
-          <boolProp name="LoopController.continue_forever">false</boolProp>
-        </elementProp>
-      </SetupThreadGroup>
-      <hashTree>
-        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Mapping">
-          <stringProp name="cacheKey">true</stringProp>
-          <stringProp name="filename"></stringProp>
-          <stringProp name="parameters"></stringProp>
-          <stringProp name="script">def type = props.get(&quot;testType&quot;)
-
-if (&quot;normal&quot;.equals(type)) {
-    props.put(&quot;threads&quot;, &quot;5&quot;)
-    props.put(&quot;ramp&quot;, &quot;2&quot;)
-    props.put(&quot;loop&quot;, &quot;1&quot;)
-} else if (&quot;concurrency&quot;.equals(type)) {
-    props.put(&quot;threads&quot;, &quot;50&quot;)
-    props.put(&quot;ramp&quot;, &quot;0&quot;)
-    props.put(&quot;loop&quot;, &quot;1&quot;)
-} else if (&quot;ratelimit&quot;.equals(type)) {
-    props.put(&quot;threads&quot;, &quot;800&quot;)
-    props.put(&quot;ramp&quot;, &quot;1&quot;)
-    props.put(&quot;loop&quot;, &quot;1&quot;)
-} else if (&quot;timeout&quot;.equals(type)) {
-    props.put(&quot;threads&quot;, &quot;1&quot;)
-    props.put(&quot;ramp&quot;, &quot;1&quot;)
-    props.put(&quot;loop&quot;, &quot;1&quot;)
-} else if (&quot;circuitbreaker&quot;.equals(type)) {
-    props.put(&quot;threads&quot;, &quot;20&quot;)
-    props.put(&quot;ramp&quot;, &quot;1&quot;)
-    props.put(&quot;loop&quot;, &quot;3&quot;)
-} else if (&quot;high&quot;.equals(type)) {
-    props.put(&quot;threads&quot;, &quot;800&quot;)
-    props.put(&quot;ramp&quot;, &quot;1&quot;)
-    props.put(&quot;loop&quot;, &quot;1&quot;)
-} else if (&quot;veryhigh&quot;.equals(type)) {
-    props.put(&quot;threads&quot;, &quot;1200&quot;)
-    props.put(&quot;ramp&quot;, &quot;1&quot;)
-    props.put(&quot;loop&quot;, &quot;1&quot;)
-} else if (&quot;extremeHigh&quot;.equals(type)) {
-    props.put(&quot;threads&quot;, &quot;10000&quot;)
-    props.put(&quot;ramp&quot;, &quot;1&quot;)
-    props.put(&quot;loop&quot;, &quot;1&quot;)
-}
-
-log.info(&quot;TYPE=&quot; + props.get(&quot;testType&quot;))
-log.info(&quot;THREADS=&quot; + props.get(&quot;threads&quot;))</stringProp>
-          <stringProp name="scriptLanguage">groovy</stringProp>
-        </JSR223Sampler>
-        <hashTree/>
-      </hashTree>
     </hashTree>
   </hashTree>
 </jmeterTestPlan>
