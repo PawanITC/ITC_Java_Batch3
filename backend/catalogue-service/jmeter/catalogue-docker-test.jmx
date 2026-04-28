@@ -311,7 +311,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Extreme High">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Ultimate">
           <stringProp name="IfController.condition">${__groovy(&quot;ultimate&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
