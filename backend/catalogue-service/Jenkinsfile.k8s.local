@@ -108,7 +108,6 @@ spec:
                       -- curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
 
                         if [ $elapsed -ge $timeout ]; then
-                            echo "App failed to become healthy"
                             exit 1
                         fi
 
@@ -149,10 +148,7 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=veryhigh \
-                      -Jthreads=1200 \
-                      -Jramp=10 \
-                      -Jloop=1
+                      -JtestType=veryhigh
 
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -g /results.jtl \
