@@ -58,7 +58,7 @@ COPY gradle ./gradle
 RUN gradle dependencies --no-daemon || true
 
 # Copy source and build
-COPY src ./src
+COPY src1 ./src
 RUN gradle clean bootJar --no-daemon -x test
 
 # Run stage
