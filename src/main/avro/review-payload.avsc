@@ -3,7 +3,7 @@
   "name": "ReviewPayload",
   "namespace": "com.example.events.common",
   "fields": [
-    { "name": "reviewId", "type": "long" },
+    { "name": "reviewId", "type": "string" },
     { "name": "productId", "type": "long" },
     { "name": "userId", "type": "long" },
     { "name": "rating", "type": "int" },

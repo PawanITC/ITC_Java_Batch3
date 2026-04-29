@@ -4,6 +4,13 @@
   "namespace": "com.itc.funkart.event",
   "fields": [
     { "name": "eventType", "type": "string", "default": "REVIEW_UPDATED" },
+    { "name": "reviewId", "type": "string" },
+    { "name": "productId", "type": "long" },
+    { "name": "userId", "type": "long" },
+    { "name": "rating", "type": "int" },
+    { "name": "comment", "type": "string" },
+    { "name": "createdAt", "type": { "type": "long", "logicalType": "timestamp-millis" } },
+    { "name": "updatedAt", "type": { "type": "long", "logicalType": "timestamp-millis" } },
     { "name": "payload", "type": "com.example.events.common.ReviewPayload" }
   ]
 }

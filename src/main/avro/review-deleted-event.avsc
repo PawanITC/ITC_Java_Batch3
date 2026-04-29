@@ -4,7 +4,7 @@
   "namespace": "com.itc.funkart.avro",
   "fields": [
     { "name": "eventType", "type": "string", "default": "REVIEW_DELETED" },
-    { "name": "reviewId", "type": "long" },
+    { "name": "reviewId", "type": "string" },
     { "name": "productId", "type": "long" },
     { "name": "userId", "type": "long" },
     { "name": "rating", "type": "int" },
