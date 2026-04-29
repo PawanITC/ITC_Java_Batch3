@@ -45,42 +45,35 @@ public class CatalogueService {
     //Service to return Top Selling Products
     public CompletableFuture<List<ProductDTO>> getTopSellingProducts(
             Integer limit, String category) {
+
         String key = getRedisKey(category);
         List<String> productIds = getTopProductIdsFromRedis(key, limit);
 
+        // 1. Try Redis first
         if (productIds != null && !productIds.isEmpty()) {
             List<ProductDTO> products = productIds.stream()
                     .map(this::getProductFromCache)
                     .filter(p -> p != null)
                     .toList();
 
-            if (products.isEmpty()) {
-                throw new NoTopSellingProductsException();
+            if (!products.isEmpty()) {
+                return CompletableFuture.completedFuture(products);
             }
-
-            return CompletableFuture.completedFuture(products);
-            //return productApiClient.getProductsByIds(productIds);
         }
 
-
-        //Fallback to get products and give default value
+        // 2. Fallback ALWAYS runs if Redis fails/empty
         return productApiClient.getProducts()
                 .thenApply(products -> {
-                    //Try using a stream API to understand what's going on
                     List<ProductDTO> result = products.stream()
                             .filter(p -> category == null ||
-                                    (p.getCategory() != null && p.getCategory().equalsIgnoreCase(category)))
+                                    (p.getCategory() != null &&
+                                            p.getCategory().equalsIgnoreCase(category)))
                             .limit(limit)
                             .toList();
-
-                    if (result.isEmpty()) {
-                        throw new NoTopSellingProductsException();
-                    }
 
                     return result;
                 });
     }
-
 
 
     //Method for returning the key for either global or with category
