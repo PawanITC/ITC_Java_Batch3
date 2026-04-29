@@ -54,6 +54,15 @@ public class User {
     @Column(updatable = false)
     private Instant createdAt;
 
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private boolean isActive = true;
+
+
+    // Helper to check if the user can log in
+    public boolean isAccountNonLocked() {
+        return this.isActive;
+    }
 
     @PrePersist
     public void onCreate() {

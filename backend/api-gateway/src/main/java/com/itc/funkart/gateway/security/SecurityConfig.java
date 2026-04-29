@@ -60,12 +60,19 @@ public class SecurityConfig {
                         .pathMatchers(
                                 "/api/v1/users/login",
                                 "/api/v1/users/signup",
+                                "/api/v1/admin/users/**",
                                 "/api/v1/users/oauth/**",   // For your internal user service oauth paths
                                 "/api/v1/oauth/**",         // For the direct gateway oauth paths
                                 "/api/v1/users/health",
                                 "/actuator/**",             // Allow health checks
                                 "/api/v1/payments/webhook/**", // 1. External facing path
-                                "/payments/webhook/**"         // 2. Internal/Direct path (Just in case)
+                                "/payments/webhook/**",         // 2. Internal/Direct path (Just in case)
+                                "/api/v1/products/**",
+                                "/api/v1/admin/products/**",
+                                "/api/v1/categories/**",
+                                "/api/v1/admin/categories/**",
+                                "/api/v1/products/by-ids",
+                                "/api/v1/cart"
                         ).permitAll()
 
                         // PROTECTED ENDPOINTS: Requires valid JWT (e.g., /api/v1/users/me)

@@ -58,6 +58,7 @@ public class JwtWebFilter extends OncePerRequestFilter {
                 String subject = claims.getSubject();
                 String role = claims.get(JwtClaims.ROLE, String.class);
 
+
                 if (subject != null && role != null) {
                     // Build the user DTO from claims
                     JwtUserDto user = JwtUserDto.builder()
@@ -81,7 +82,7 @@ public class JwtWebFilter extends OncePerRequestFilter {
 
             } catch (Exception ex) {
                 // Log and continue - the SecurityFilterChain will block if the endpoint requires auth
-                log.debug("JWT validation failed: {}", ex.getMessage());
+                log.error("JWT validation failed: {}", ex.getMessage());
             }
         }
 

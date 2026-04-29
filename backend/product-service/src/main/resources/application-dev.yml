@@ -4,9 +4,9 @@ spring:
       on-profile: dev
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:mydb}
-    username: ${DB_USER:admin}
-    password: ${DB_PASS:secret}
+    url: jdbc:postgresql://${DB_HOST:postgres-db}:5432/${DB_NAME:mydb}
+    username: ${DB_USER}
+    password: ${DB_PASS}
     driver-class-name: org.postgresql.Driver
 
 
@@ -19,7 +19,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   kafka:
-    bootstrap-servers: ${KAFKA_HOST:localhost}:9092
+    bootstrap-servers: ${KAFKA_HOST}:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -31,7 +31,7 @@ spring:
 
 # Correct this in application.yml
 jwt:
-  secret: ${JWT_SECRET:Ym9yZGVyLXJlbmRlci1zZWNyZXQta2V5LTMyLWNoYXJhY3RlcnMtbG9uZw==}
+  secret: ${JWT_SECRET:mXxbssTvw7Am8gAlzYhTCP4IyxMeOK2tDqSDPQAv6Qk0}
   expiration-ms: ${JWT_EXPIRATION:3600000} # Note: changed to expiration-ms to match your config class
 
 management:

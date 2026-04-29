@@ -1,9 +1,6 @@
 package com.itc.funkart.user.mapper;
 
-import com.itc.funkart.user.dto.user.OAuthResponse;
-import com.itc.funkart.user.dto.user.SuccessfulLoginResponse;
-import com.itc.funkart.user.dto.user.UserDto;
-import com.itc.funkart.user.dto.user.UserProfileDto;
+import com.itc.funkart.user.dto.user.*;
 import com.itc.funkart.user.entity.OAuthAccount;
 import com.itc.funkart.user.entity.User;
 import org.springframework.stereotype.Component;
@@ -19,11 +16,6 @@ public class UserMapper {
 
     /**
      * Converts a {@link User} entity into a public-facing {@link UserDto}.
-     *
-     * <p>Includes derived OAuth provider information extracted from linked accounts.</p>
-     *
-     * @param user persisted user entity
-     * @return API-safe user representation, or null if input is null
      */
     public UserDto toDto(User user) {
         if (user == null) return null;
@@ -37,11 +29,22 @@ public class UserMapper {
     }
 
     /**
+     * Converts a User entity into an admin-specific summary.
+     * Maps the new isActive field for administrative oversight.
+     */
+    public UserAdminSummary toAdminSummary(User user) {
+        if (user == null) return null;
+
+        return new UserAdminSummary(
+                user.getId(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.isActive()
+        );
+    }
+
+    /**
      * Wraps a user DTO into a login response with JWT token.
-     *
-     * @param user  authenticated user entity
-     * @param token generated JWT token
-     * @return login response payload
      */
     public SuccessfulLoginResponse toResponse(User user, String token) {
         return SuccessfulLoginResponse.builder()
@@ -52,10 +55,6 @@ public class UserMapper {
 
     /**
      * Wraps a user DTO into an OAuth login response with JWT token.
-     *
-     * @param user  authenticated/created OAuth user entity
-     * @param token generated JWT token
-     * @return OAuth response payload
      */
     public OAuthResponse toOAuthResponse(User user, String token) {
         return OAuthResponse.builder()
@@ -65,29 +64,7 @@ public class UserMapper {
     }
 
     /**
-     * Extracts OAuth provider names from linked accounts.
-     *
-     * @param user user entity
-     * @return list of provider names or empty list if none exist
-     */
-    private List<String> extractProviders(User user) {
-        if (user == null || user.getOauthAccounts() == null || user.getOauthAccounts().isEmpty()) {
-            return List.of();
-        }
-
-        return user.getOauthAccounts()
-                .stream()
-                .map(OAuthAccount::getProvider)
-                .distinct()
-                .toList();
-    }
-
-
-    /**
-     * Converts a User entity into a full profile representation including OAuth providers.
-     *
-     * @param user persisted user entity
-     * @return extended profile DTO for account-related endpoints
+     * Converts a User entity into a full profile representation.
      */
     public UserProfileDto toProfile(User user) {
         if (user == null) return null;
@@ -98,5 +75,17 @@ public class UserMapper {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .build();
+    }
+
+    private List<String> extractProviders(User user) {
+        if (user == null || user.getOauthAccounts() == null || user.getOauthAccounts().isEmpty()) {
+            return List.of();
+        }
+
+        return user.getOauthAccounts()
+                .stream()
+                .map(OAuthAccount::getProvider)
+                .distinct()
+                .toList();
     }
 }

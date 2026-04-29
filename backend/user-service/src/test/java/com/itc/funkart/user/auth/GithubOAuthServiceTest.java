@@ -47,10 +47,14 @@ class GithubOAuthServiceTest {
 
     private static MockWebServer mockServer;
 
-    @Mock private GithubOAuthConfig    config;
-    @Mock private OAuthAccountService  oAuthAccountService;
-    @Mock private UserService          userService;
-    @Mock private KafkaEventPublisher  kafkaEventPublisher;
+    @Mock
+    private GithubOAuthConfig config;
+    @Mock
+    private OAuthAccountService oAuthAccountService;
+    @Mock
+    private UserService userService;
+    @Mock
+    private KafkaEventPublisher kafkaEventPublisher;
 
     private GithubOAuthService service;
 

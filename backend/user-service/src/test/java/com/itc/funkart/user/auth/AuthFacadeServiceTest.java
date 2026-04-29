@@ -15,8 +15,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * <h2>AuthFacadeService — Unit Tests</h2>
@@ -40,19 +42,28 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthFacadeServiceTest {
 
-    @Mock private GithubOAuthService githubOAuthService;
-    @Mock private UserService        userService;
-    @Mock private JwtService         jwtService;
-    @Mock private UserMapper         userMapper;
-    @Mock private PrincipalFactory   principalFactory;
+    @Mock
+    private GithubOAuthService githubOAuthService;
+    @Mock
+    private UserService userService;
+    @Mock
+    private JwtService jwtService;
+    @Mock
+    private UserMapper userMapper;
+    @Mock
+    private PrincipalFactory principalFactory;
 
     @InjectMocks
     private AuthFacadeService authFacadeService;
 
-    /** A reusable domain user returned by mocked service calls. */
+    /**
+     * A reusable domain user returned by mocked service calls.
+     */
     private User testUser;
 
-    /** The principal that PrincipalFactory would derive from testUser. */
+    /**
+     * The principal that PrincipalFactory would derive from testUser.
+     */
     private UserPrincipalDto testPrincipal;
 
     @BeforeEach

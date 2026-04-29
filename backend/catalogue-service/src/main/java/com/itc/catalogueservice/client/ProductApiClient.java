@@ -48,7 +48,7 @@ public class ProductApiClient {
             }*/
 
 
-            List<ProductDTO> products = List.of(
+            return List.of(
                     new ProductDTO(1L,"iPhone 15","Apple smartphone",new BigDecimal("999.99"),"iphone.jpg",4.7,10,"Electronics"),
                     new ProductDTO(2L,"Samsung TV","4K Smart TV",new BigDecimal("799.99"),"tv.jpg",4.5,5,"Electronics"),
                     new ProductDTO(3L,"MacBook Air","Apple laptop",new BigDecimal("1199.99"),"macbook.jpg",4.8,7,"Electronics"),
@@ -70,8 +70,6 @@ public class ProductApiClient {
                     new ProductDTO(19L,"Fitness Tracker","Health monitoring device",new BigDecimal("149.99"),"fitness.jpg",4.5,14,"Wearables"),
                     new ProductDTO(20L,"VR Headset","Virtual reality headset",new BigDecimal("399.99"),"vr.jpg",4.6,9,"Gaming")
             );
-
-            return products;
         }, productExecutor);
     }
 

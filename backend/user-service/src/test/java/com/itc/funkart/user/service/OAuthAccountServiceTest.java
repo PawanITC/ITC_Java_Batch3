@@ -37,16 +37,15 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class OAuthAccountServiceTest {
 
+    private static final String PROVIDER = "github";
+    private static final String PROVIDER_ID = "gh_12345";
     @Mock
     private OAuthAccountRepository oauthAccountRepository;
-
     @InjectMocks
     private OAuthAccountService oauthAccountService;
-
-    private static final String PROVIDER    = "github";
-    private static final String PROVIDER_ID = "gh_12345";
-
-    /** Shared user entity — note we use the full object, not just an ID. */
+    /**
+     * Shared user entity — note we use the full object, not just an ID.
+     */
     private User testUser;
 
     @BeforeEach
@@ -59,7 +58,9 @@ class OAuthAccountServiceTest {
                 .build();
     }
 
-    /** Builds a realistic OAuthAccount entity backed by the shared user. */
+    /**
+     * Builds a realistic OAuthAccount entity backed by the shared user.
+     */
     private OAuthAccount buildAccount() {
         return OAuthAccount.builder()
                 .id(1L)

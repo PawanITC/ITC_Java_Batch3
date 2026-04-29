@@ -30,7 +30,7 @@ public class CorsConfig implements WebMvcConfigurer {
     private static final List<String> ALLOWED_ORIGINS = List.of(
             "http://localhost:5173",      // Frontend dev server (Vite)
             "http://localhost:9090",      // Local API (Swagger/Gateway)
-            "http://127.0.0.1:9090",
+            "http://localhost:8060",
             "http://funkart.local",       // Local custom domain
             "https://funkart.com"         // Production domain
     );

@@ -16,7 +16,8 @@ import org.springframework.kafka.support.SendResult;
 
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -51,7 +52,9 @@ class KafkaEventPublisherTest {
     @InjectMocks
     private KafkaEventPublisher publisher;
 
-    /** Reusable domain user for all test cases. */
+    /**
+     * Reusable domain user for all test cases.
+     */
     private User testUser;
 
     @BeforeEach

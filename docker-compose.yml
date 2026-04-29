@@ -77,7 +77,7 @@ services:
     networks:
       - db-network
 
-  # --- 3. CI/CD (Your custom Jenkins) ---
+  # --- 3. CI/CD ---
   jenkins:
     container_name: funkart-jenkins
     user: root
@@ -97,28 +97,25 @@ services:
   # --- 4. MICROSERVICES ---
   api-gateway:
     container_name: api-gateway
-    image: abbasgureitc/api-gateway:latest
-    pull_policy: always
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/api-gateway/.env
     ports:
       - "8060:8060"
-    environment:
-      SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATA_REDIS_HOST: redis
     depends_on:
       - redis
-      - user-service
-      - payment-service
-      - product-service
     networks:
       - db-network
 
   user-service:
     container_name: user-service
-    image: abbasgureitc/user-service:latest
-    environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      DB_URL: jdbc:postgresql://postgres-db:5432/mydb
-      SPRING_DATA_REDIS_HOST: redis
+    build:
+      context: ./backend/user-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/user-service/.env
     depends_on:
       - postgres
       - kafka
@@ -127,12 +124,13 @@ services:
 
   payment-service:
     container_name: payment-service
-    image: abbasgureitc/payment-service:latest
+    build:
+      context: ./backend/payment-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/payment-service/.env
     ports:
       - "8082:8080"
-    environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      DB_URL: jdbc:postgresql://postgres-db:5432/mydb
     depends_on:
       - postgres
       - kafka
@@ -141,15 +139,13 @@ services:
 
   product-service:
     container_name: product-service
-    image: abbasgureitc/product-service:latest
+    build:
+      context: ./backend/product-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/product-service/.env
     ports:
       - "9090:9090"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/mydb
-      SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: secret
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_DATA_REDIS_HOST: redis
     depends_on:
       - postgres
       - kafka

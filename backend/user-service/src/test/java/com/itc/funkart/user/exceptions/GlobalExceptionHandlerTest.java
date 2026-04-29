@@ -14,7 +14,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * <h2>GlobalExceptionHandler — Unit Tests</h2>
@@ -43,6 +44,22 @@ class GlobalExceptionHandlerTest {
 
     // -------------------------------------------------------------------------
     // Validation
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Generic Exception → 500 with generic user-safe message")
+    void handleGeneric_returns500() {
+        ResponseEntity<ApiResponse<Void>> response =
+                handler.handleGeneric(new RuntimeException("DB connection dropped"));
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Internal server error", response.getBody().getError().getMessage());
+        assertNull(response.getBody().getError().getField());
+    }
+
+    // -------------------------------------------------------------------------
+    // Business exceptions
     // -------------------------------------------------------------------------
 
     @Nested
@@ -98,7 +115,7 @@ class GlobalExceptionHandlerTest {
     }
 
     // -------------------------------------------------------------------------
-    // Business exceptions
+    // JWT / Security handlers
     // -------------------------------------------------------------------------
 
     @Nested
@@ -184,7 +201,7 @@ class GlobalExceptionHandlerTest {
     }
 
     // -------------------------------------------------------------------------
-    // JWT / Security handlers
+    // Infrastructure / messaging handlers
     // -------------------------------------------------------------------------
 
     @Nested
@@ -216,7 +233,7 @@ class GlobalExceptionHandlerTest {
     }
 
     // -------------------------------------------------------------------------
-    // Infrastructure / messaging handlers
+    // Fallback
     // -------------------------------------------------------------------------
 
     @Nested
@@ -250,21 +267,5 @@ class GlobalExceptionHandlerTest {
             assertEquals("UNPROCESSABLE_ENTITY", response.getBody().getError().getCode());
             assertEquals("User ID is required", response.getBody().getError().getMessage());
         }
-    }
-
-    // -------------------------------------------------------------------------
-    // Fallback
-    // -------------------------------------------------------------------------
-
-    @Test
-    @DisplayName("Generic Exception → 500 with generic user-safe message")
-    void handleGeneric_returns500() {
-        ResponseEntity<ApiResponse<Void>> response =
-                handler.handleGeneric(new RuntimeException("DB connection dropped"));
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("Internal server error", response.getBody().getError().getMessage());
-        assertNull(response.getBody().getError().getField());
     }
 }
