@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(OrderController.class)
+@WebMvcTest(value = OrderController.class, properties = "spring.kafka.listener.auto-startup=false")
 class OrderControllerTest {
 
     @Autowired
@@ -138,12 +138,41 @@ class OrderControllerTest {
     void deleteOrder_shouldReturnConfirmation() throws Exception {
         UUID orderId = UUID.randomUUID();
 
-        doNothing().when(service).deleteOrder(orderId);
+        when(service.deleteOrder(orderId)).thenReturn("Order deleted successfully");
 
         mockMvc.perform(delete("/api/v1/orders/{id}", orderId))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Order deleted"));
+                .andExpect(content().string("Order deleted successfully"));
 
         verify(service, times(1)).deleteOrder(orderId);
+    }
+
+    @Test
+    void getOrdersByUser_shouldReturnList() throws Exception {
+        UUID userId = UUID.randomUUID();
+        OrderResponse first = OrderResponse.builder()
+                .orderId(UUID.randomUUID())
+                .customerId(userId)
+                .productId(UUID.randomUUID())
+                .quantity(1)
+                .price(5.0)
+                .orderStatus("CREATED")
+                .build();
+        OrderResponse second = OrderResponse.builder()
+                .orderId(UUID.randomUUID())
+                .customerId(userId)
+                .productId(UUID.randomUUID())
+                .quantity(2)
+                .price(12.0)
+                .orderStatus("CREATED")
+                .build();
+
+        when(service.getAllOrdersByUserId(userId)).thenReturn(List.of(first, second));
+
+        mockMvc.perform(get("/api/v1/orders/user/{userId}", userId))
+                .andExpect(status().isOk())
+                .andExpect(content().json(objectMapper.writeValueAsString(List.of(first, second))));
+
+        verify(service, times(1)).getAllOrdersByUserId(userId);
     }
 }

@@ -15,6 +15,7 @@ import java.util.UUID;
         OrderResponse getOrder(UUID id);
 
         List<OrderResponse> getAllOrders();
+        List<OrderResponse> getAllOrdersByUserId(UUID userId);
 
         OrderResponse updateOrder(UUID id, OrderRequest request);
 

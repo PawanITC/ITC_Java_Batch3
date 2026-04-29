@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '3.2.0'
     id 'io.spring.dependency-management' version '1.1.0'
     id 'java'
+    id 'jacoco'
 }
 
 group = 'com.itc.funkart'
@@ -56,4 +57,44 @@ tasks.withType(JavaCompile) {
 
 test {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
 }
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+
+    // Focus coverage on executable business logic; exclude wiring/DTOs/configs.
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: [
+                'com/itc/funkart/config/**',
+                'com/itc/funkart/constants/**',
+                'com/itc/funkart/dto/**',
+                'com/itc/funkart/entity/**',
+                'com/itc/funkart/repository/**',
+                'com/itc/funkart/OrderServiceApplication*'
+        ])
+    }))
+}
+
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+
+    // Match the report's filtered classes so verification aligns with what we report.
+    classDirectories.setFrom(jacocoTestReport.classDirectories)
+
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.90
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification

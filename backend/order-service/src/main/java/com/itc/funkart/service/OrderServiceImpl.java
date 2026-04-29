@@ -1,3 +1,4 @@
+
 package com.itc.funkart.service;
 
 import com.itc.funkart.dto.OrderRequest;
@@ -13,12 +14,15 @@ import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,28 +41,47 @@ public class OrderServiceImpl implements OrderService {
     @CircuitBreaker(name = "orderServiceCircuitBreaker", fallbackMethod = "fallbackCreateOrder")
     @RateLimiter(name = "orderServiceRateLimiter")
     @CacheEvict(value = "allOrders", allEntries = true)
+    @Transactional
     public OrderResponse createOrder(OrderRequest request) {
-        log.info("Creating order for customerId={} and productId={}", request.getCustomerId(), request.getProductId());
+        // === NEW: Generate Correlation ID for tracing ===
+        String correlationId = UUID.randomUUID().toString();
+        MDC.put("correlationId", correlationId);
 
-        UUID customerId = parseUUID(request.getCustomerId());
-        UUID productId = parseUUID(request.getProductId());
+        try {
+            log.info("Creating order for customerId={} and productId={}",
+                    request.getCustomerId(), request.getProductId());
 
-        Order order = mapper.toEntity(request);
-        order.setCustomerId(customerId);
-        order.setProductId(productId);
-        order.setOrderStatus("CREATED");
-        order.setCreatedAt(LocalDateTime.now());
-        order.setUpdatedAt(LocalDateTime.now());
+            UUID customerId = parseUUID(request.getCustomerId());
+            UUID productId = parseUUID(request.getProductId());
 
-        Order saved = repository.save(order);
+            Order order = mapper.toEntity(request);
+            order.setCustomerId(customerId);
+            order.setProductId(productId);
+            order.setOrderStatus("CREATED");
+            order.setCreatedAt(LocalDateTime.now());
+            order.setUpdatedAt(LocalDateTime.now());
+            order.setCorrelationId(correlationId);  // === NEW ===
 
-        boolean eventPublished = sendKafkaEvent(() -> producer.publishOrderCreated(saved), saved.getOrderId());
+            Order saved = repository.save(order);
 
-        OrderResponse response = mapper.toResponse(saved);
-        response.setEventStatus(eventPublished ? "PUBLISHED" : "NOT_PUBLISHED");
+            // === NEW: Pass correlationId to producer ===
+            boolean eventPublished = sendKafkaEvent(
+                    () -> producer.publishOrderCreated(saved, correlationId),
+                    saved.getOrderId(),
+                    correlationId
+            );
 
-        log.info("Order created successfully: orderId={} | eventStatus={}", saved.getOrderId(), response.getEventStatus());
-        return response;
+            OrderResponse response = mapper.toResponse(saved);
+            response.setEventStatus(eventPublished ? "PUBLISHED" : "NOT_PUBLISHED");
+
+            log.info("Order created successfully: orderId={} | correlationId={} | eventStatus={}",
+                    saved.getOrderId(), correlationId, response.getEventStatus());
+
+            return response;
+
+        } finally {
+            MDC.remove("correlationId");
+        }
     }
 
     public OrderResponse fallbackCreateOrder(OrderRequest request, Throwable t) {
@@ -100,6 +123,35 @@ public class OrderServiceImpl implements OrderService {
         return response;
     }
 
+    @Override
+    @CircuitBreaker(name = "orderServiceCircuitBreaker", fallbackMethod = "fallbackgetgetAllOrdersByUserId")
+    @RateLimiter(name = "orderServiceRateLimiter")
+    @Cacheable(value = "orderByID", key = "#id")
+    public List<OrderResponse> getAllOrdersByUserId(UUID id) {
+
+        log.info("Fetching orders for customerId={}", id);
+
+        List<Order> orders = repository.findByCustomerId(id);
+
+        return orders.stream()
+                .map(order -> {
+                    OrderResponse response = mapper.toResponse(order);
+                    response.setEventStatus("UNKNOWN");
+                    return response;
+                })
+                .toList();
+    }
+
+    public List<OrderResponse> fallbackgetgetAllOrdersByUserId(UUID id, Throwable t) {
+
+        if (t instanceof RequestNotPermitted) throw (RequestNotPermitted) t;
+        if (t instanceof CallNotPermittedException) throw (CallNotPermittedException) t;
+
+        log.error("Fallback triggered for getAllOrdersByUserId due to: {}", t.getMessage());
+
+        return Collections.emptyList();
+    }
+
     // ================= Get All Orders =================
     @Override
     @CircuitBreaker(name = "orderServiceCircuitBreaker", fallbackMethod = "fallbackGetAllOrders")
@@ -132,27 +184,43 @@ public class OrderServiceImpl implements OrderService {
             @CacheEvict(value = "orders", key = "#id"),
             @CacheEvict(value = "allOrders", allEntries = true)
     })
+    @Transactional
     public OrderResponse updateOrder(UUID id, OrderRequest request) {
-        log.info("Updating order with id={}", id);
-        Order order = repository.findById(id)
-                .orElseThrow(() -> new OrderNotFound("Order with id " + id + " not found for Update"));
+        String correlationId = UUID.randomUUID().toString();
+        MDC.put("correlationId", correlationId);
 
-        if (request.getCustomerId() != null) order.setCustomerId(parseUUID(request.getCustomerId()));
-        if (request.getProductId() != null) order.setProductId(parseUUID(request.getProductId()));
+        try {
+            log.info("Updating order with id={}", id);
+            Order order = repository.findById(id)
+                    .orElseThrow(() -> new OrderNotFound("Order with id " + id + " not found for Update"));
 
-        order.setQuantity(request.getQuantity());
-        order.setPrice(request.getPrice());
-        order.setUpdatedAt(LocalDateTime.now());
+            if (request.getCustomerId() != null) order.setCustomerId(parseUUID(request.getCustomerId()));
+            if (request.getProductId() != null) order.setProductId(parseUUID(request.getProductId()));
 
-        repository.save(order);
+            order.setQuantity(request.getQuantity());
+            order.setPrice(request.getPrice());
+            order.setUpdatedAt(LocalDateTime.now());
+            order.setCorrelationId(correlationId);  // === NEW ===
 
-        boolean eventPublished = sendKafkaEvent(() -> producer.publishOrderUpdated(order), id);
+            repository.save(order);
 
-        OrderResponse response = mapper.toResponse(order);
-        response.setEventStatus(eventPublished ? "PUBLISHED" : "NOT_PUBLISHED");
+            boolean eventPublished = sendKafkaEvent(
+                    () -> producer.publishOrderUpdated(order, correlationId),
+                    id,
+                    correlationId
+            );
 
-        log.info("Order updated successfully: orderId={} | eventStatus={}", id, response.getEventStatus());
-        return response;
+            OrderResponse response = mapper.toResponse(order);
+            response.setEventStatus(eventPublished ? "PUBLISHED" : "NOT_PUBLISHED");
+
+            log.info("Order updated successfully: orderId={} | correlationId={} | eventStatus={}",
+                    id, correlationId, response.getEventStatus());
+
+            return response;
+
+        } finally {
+            MDC.remove("correlationId");
+        }
     }
 
     public OrderResponse fallbackUpdateOrder(UUID id, OrderRequest request, Throwable t) {
@@ -176,16 +244,32 @@ public class OrderServiceImpl implements OrderService {
             @CacheEvict(value = "orders", key = "#id"),
             @CacheEvict(value = "allOrders", allEntries = true)
     })
-    public String deleteOrder(UUID id) {
-        log.info("Deleting order with id={}", id);
-        if (!repository.existsById(id)) {
-            throw new OrderNotFound("Order with id " + id + " not found for deletion");
-        }
-        repository.deleteById(id);
+    @Transactional
+    public String deleteOrder(UUID id) throws OrderNotFound {
+        String correlationId = UUID.randomUUID().toString();
+        MDC.put("correlationId", correlationId);
 
-        boolean eventPublished = sendKafkaEvent(() -> producer.publishOrderCancelled(id), id);
-        log.info("Order deleted successfully: orderId={} | eventStatus={}", id, eventPublished ? "PUBLISHED" : "NOT_PUBLISHED");
-        return "Order deleted successfully";
+        try {
+            log.info("Deleting order with id={}", id);
+            if (!repository.existsById(id)) {
+                throw new OrderNotFound("Order with id " + id + " not found for deletion");
+            }
+            repository.deleteById(id);
+
+            boolean eventPublished = sendKafkaEvent(
+                    () -> producer.publishOrderCancelled(id, correlationId),
+                    id,
+                    correlationId
+            );
+
+            log.info("Order deleted successfully: orderId={} | correlationId={} | eventStatus={}",
+                    id, correlationId, eventPublished ? "PUBLISHED" : "NOT_PUBLISHED");
+
+            return "Order deleted successfully";
+
+        } finally {
+            MDC.remove("correlationId");
+        }
     }
 
     public void fallbackDeleteOrder(UUID id, Throwable t) {
@@ -203,11 +287,13 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    private boolean sendKafkaEvent(KafkaCall call, UUID key) {
+    // === NEW: Enhanced error handling with correlation ID ===
+    private boolean sendKafkaEvent(KafkaCall call, UUID key, String correlationId) {
         try {
             return call.send();
         } catch (Exception e) {
-            log.error("Kafka event failed for key={}: {}", key, e.getMessage(), e);
+            log.error("[{}] Kafka event failed for key={}: {}",
+                    correlationId, key, e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
