@@ -1,32 +1,24 @@
- package com.itc.funkart.entity;
+// com/itc/funkart/entity/ProductRatingSummary.java
+package com.itc.funkart.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 @Entity
-@Table(name = "reviews")
-public class Review {
+@Table(name = "product_rating_summary")
+@Getter
+@Setter
+@NoArgsConstructor
+public class ProductRatingSummary {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     private Long productId;
-    private Long userId;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
+    private Double averageRating = 0.0;
 
     public Long getProductId() {
         return productId;
@@ -36,69 +28,25 @@ public class Review {
         this.productId = productId;
     }
 
-    public Long getUserId() {
-        return userId;
+    public Double getAverageRating() {
+        return averageRating;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
     }
 
-    public Integer getRating() {
-        return rating;
+    public Long getRatingCount() {
+        return ratingCount;
     }
 
-    public void setRating(Integer rating) {
-        this.rating = rating;
+    public void setRatingCount(Long ratingCount) {
+        this.ratingCount = ratingCount;
     }
 
-    public String getReviewText() {
-        return reviewText;
-    }
+    private Long ratingCount = 0L;
 
-    public void setReviewText(String reviewText) {
-        this.reviewText = reviewText;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    private Integer rating;
-    @Column(name = "review_text")
-    private String reviewText;
-    public Review() {
-    }
-    public Review(Long productId, Long userId, LocalDateTime now) {
+    public ProductRatingSummary(Long productId) {
         this.productId = productId;
-        this.userId = userId;
-        this.createdAt = now;
-        this.updatedAt = now;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    private LocalDateTime createdAt = LocalDateTime.now();
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @PrePersist
-    public void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
     }
 }

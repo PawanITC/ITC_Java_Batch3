@@ -4,13 +4,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.annotation.EnableKafka;
-import org.springframework.kafka.annotation.EnableKafkaRetryTopic;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+@Profile("!test")
 @Configuration
 @EnableKafka
-@EnableKafkaRetryTopic
-@Profile("!test")
 public class KafkaConfig {
 
     @Bean
@@ -22,4 +20,3 @@ public class KafkaConfig {
         return scheduler;
     }
 }
-

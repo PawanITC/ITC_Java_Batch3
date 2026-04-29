@@ -84,4 +84,10 @@ public class CatalogueController {
         return ResponseEntity.ok("Redis updated");
     }
 
+    @PostMapping("/test/cache-update")
+    public ResponseEntity<String> testCacheUpdate(@RequestBody com.itc.catalogueservice.kafka.listener.dto.ProductEventDTO event) {
+        catalogueService.saveProductToCache(event.getProduct());
+        return ResponseEntity.ok("Saved directly to Redis cache without Kafka! You can now check /top-selling.");
+    }
+
 }

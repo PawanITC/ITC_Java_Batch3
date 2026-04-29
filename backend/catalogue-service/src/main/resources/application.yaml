@@ -4,40 +4,40 @@ spring:
 
   data:
     redis:
-      host: redis
+      host: ${SPRING_DATA_REDIS_HOST:redis}
       port: 6379
 
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
 
     consumer:
-      bootstrap-servers: kafka:9092
       group-id: catalogue-service
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-
       properties:
         spring.json.trusted.packages: "*"
         spring.json.value.default.type: com.itc.catalogueservice.kafka.listener.dto.ProductEventDTO
 
     producer:
-      bootstrap-servers: kafka:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+logging:
+  level:
+    org.springframework.kafka: INFO
 
 server:
   port: 8081
   tomcat:
     threads:
       max: 400
-    accept-count: 1500
-
+    accept-count: 800
 resilience4j:
   ratelimiter:
     instances:
       productService:
-        limitForPeriod: 1200
+        limitForPeriod: 10000
         limitRefreshPeriod: 1s
 
   timelimiter:

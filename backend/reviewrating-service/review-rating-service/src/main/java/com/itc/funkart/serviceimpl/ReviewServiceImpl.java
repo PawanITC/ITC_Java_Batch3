@@ -10,7 +10,6 @@ import com.itc.funkart.event.ReviewUpdatedEvent;
 import com.itc.funkart.outbox.OutboxService;
 import com.itc.funkart.repository.ReviewRepository;
 import com.itc.funkart.service.ReviewService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,10 +29,11 @@ public class ReviewServiceImpl implements ReviewService {
     //private final ReviewRepository reviewRepository;
     private final OutboxService outboxService;
     private final RedisTemplate<String, Object> redisTemplate;
-    public ReviewServiceImpl(ReviewRepository reviewRepository,OutboxService outboxService,RedisTemplate<String, Object> redisTemplate) {
+
+    public ReviewServiceImpl(ReviewRepository reviewRepository, OutboxService outboxService, RedisTemplate<String, Object> redisTemplate) {
         this.reviewRepository = reviewRepository;
-        this.redisTemplate= redisTemplate;
-        this.outboxService =outboxService;
+        this.redisTemplate = redisTemplate;
+        this.outboxService = outboxService;
     }
 
 
@@ -69,7 +69,7 @@ public class ReviewServiceImpl implements ReviewService {
         redisTemplate.delete("product:%s:rating-summary".formatted(productId));
 
         ReviewPayload payload = ReviewPayload.newBuilder()
-                .setReviewId(Long.valueOf(saved.getId().toString()))
+                .setReviewId(saved.getId().toString())
                 .setProductId(Long.valueOf(saved.getProductId()))
                 .setUserId(Long.valueOf(saved.getUserId()))
                 .setRating(saved.getRating())
@@ -114,13 +114,11 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
 
-    @Override
     public Review createReview(Review review) {
         review.setCreatedAt(LocalDateTime.now());
         return reviewRepository.save(review);
     }
 
-    @Override
     public Review getReview(Long productId, Long userId) {
         return reviewRepository.findByProductIdAndUserId(productId, userId)
                 .orElseThrow(() -> new RuntimeException("Review not found"));
@@ -155,19 +153,23 @@ public class ReviewServiceImpl implements ReviewService {
                             .setDeletedAt(Instant.now())
                             .setPayload(
                                     ReviewPayload.newBuilder()
-                                            .setReviewId(Long.valueOf(review.getId().toString()))
-                                            .setProductId(Long.valueOf(review.getProductId()))
-                                            .setUserId(Long.valueOf(review.getUserId()))
+                                            .setReviewId(review.getId().toString())
+                                            .setProductId(review.getProductId())
+                                            .setUserId(review.getUserId())
                                             .setRating(review.getRating())
                                             .setComment(review.getReviewText())
-                                            .setCreatedAt(review.getCreatedAt().atZone(ZoneId.systemDefault())
-                                            .toInstant())
-                                            .build())
-                            .build();
+                                            .setCreatedAt(
+                                                    review.getCreatedAt()
+                                                            .atZone(ZoneId.systemDefault())
+                                                            .toInstant()
+                                            )
+                                            .build()
+                            )
+                            .build();   // ✅ REQUIRED — you were missing this!
 
                     outboxService.saveEventToOutbox(event);
                 });
+
+
     }
-
-
 }
