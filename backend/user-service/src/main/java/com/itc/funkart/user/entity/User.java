@@ -3,8 +3,14 @@ package com.itc.funkart.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Core User entity representing a registered user in the Funkart system.
+ * <p>
+ * Holds authentication credentials and authorization roles.
  */
 @Entity
 @Table(name = "users")
@@ -13,7 +19,6 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SuppressWarnings("JpaDataSourceORMInspection")
 public class User {
 
     @Id
@@ -29,4 +34,29 @@ public class User {
 
     /** The display name of the user. */
     private String name;
+
+    /** The security clearance level of the user.
+     * Defaults to ROLE_USER to follow the Principle of Least Privilege.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private Role role = Role.ROLE_USER;
+
+    /**
+     * One User can have multiple OAuth providers (GitHub, Google, etc.)
+     * 'mappedBy' points to the field name in the OAuthAccount class.
+     */
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<OAuthAccount> oauthAccounts = new ArrayList<>();
+
+    @Column(updatable = false)
+    private Instant createdAt;
+
+
+    @PrePersist
+    public void onCreate() {
+        this.createdAt = Instant.now();
+    }
 }

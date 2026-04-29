@@ -1,18 +1,17 @@
 package com.itc.funkart.product_service.dto.response;
 
 import com.itc.funkart.product_service.entity.Product;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Builder;
 
 import java.util.List;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@ToString
-public class ProductsResponse {
-    private List<Product> found;
-    private List<Long> missing;
+/**
+ * Wraps a bulk product query response, identifying missing IDs.
+ * Annotated with @Builder for clean instantiation in service logic and tests.
+ */
+@Builder
+public record ProductsResponse(
+        List<Product> found,
+        List<Long> missing
+) {
 }

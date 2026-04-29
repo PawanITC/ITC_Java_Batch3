@@ -1,11 +1,13 @@
 package com.itc.funkart.product_service.dto.request;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.Builder;
 
-@Data
-public class CartItemUpdateDto {
-    @NotNull(message = "Quantity adjustment is required")
-    // This allows -1 or 1
-    private Integer quantityChange;
+/**
+ * DTO for incrementing or decrementing cart item quantity.
+ */
+@Builder
+public record CartItemUpdateDto(
+        @NotNull(message = "Quantity adjustment is required") Integer quantityChange
+) {
 }

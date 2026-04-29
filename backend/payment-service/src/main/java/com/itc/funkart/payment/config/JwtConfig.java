@@ -5,10 +5,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration Properties for JSON Web Tokens.
+ * <h2>JwtConfig</h2>
  * <p>
- * This class maps properties from application.yaml into a type-safe Java object.
- * It provides the raw materials (Secret and TTL) required for token validation.
+ * Secure configuration for JWT processing.
+ * </p>
+ * <p>
+ * <b>Security Note:</b> The 'secret' should ideally be stored in a
+ * Secure Vault or Environment Variable, never hardcoded in YAML.
  * </p>
  */
 @Configuration

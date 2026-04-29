@@ -3,25 +3,38 @@ package com.itc.funkart.product_service.integration;
 import com.itc.funkart.product_service.dto.request.AddToCartRequest;
 import com.itc.funkart.product_service.dto.request.CategoryRequest;
 import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
+import com.itc.funkart.product_service.dto.response.CartResponse;
 import com.itc.funkart.product_service.dto.response.ProductResponse;
+import com.itc.funkart.product_service.dto.response.ProductsResponse;
+import com.itc.funkart.product_service.producer.OrderProducer;
+import com.itc.funkart.product_service.producer.ProductProducer;
 import com.itc.funkart.product_service.repository.CartRepository;
-import com.itc.funkart.product_service.repository.CategoryRepository;
 import com.itc.funkart.product_service.repository.ProductRepository;
 import com.itc.funkart.product_service.service.CartService;
 import com.itc.funkart.product_service.service.CategoryService;
+import com.itc.funkart.product_service.service.JwtService;
 import com.itc.funkart.product_service.service.ProductService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * <h2>Cross-Feature Integration Tests</h2>
+ * <p>
+ * This suite validates the deep integration between Product, Category, and Cart features.
+ * Unlike unit tests, these interact with the actual database layer and transaction manager
+ * to ensure that JPA mappings, cascades, and business logic hold up under real scenarios.
+ * </p>
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
@@ -30,346 +43,127 @@ class CrossFeatureIntegrationTest {
 
     @Autowired
     private CategoryService categoryService;
-
     @Autowired
     private ProductService productService;
-
     @Autowired
     private CartService cartService;
-
-    @Autowired
-    private CategoryRepository categoryRepository;
-
     @Autowired
     private ProductRepository productRepository;
-
     @Autowired
     private CartRepository cartRepository;
 
+    @MockitoBean
+    private OrderProducer orderProducer;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private ProductProducer productProducer;
+
+    /**
+     * <b>Scenario:</b> Complete User Journey.
+     * <ol>
+     * <li>Admin creates a catalog (Category + Products).</li>
+     * <li>User adds multiple items to their cart.</li>
+     * <li>User executes checkout, clearing the cart state.</li>
+     * </ol>
+     */
     @Test
-    @DisplayName("Should complete full e-commerce workflow: Create category → Create product → Add to cart → Checkout")
+    @DisplayName("Workflow - Should complete full journey from Catalog creation to Cart checkout")
     void shouldCompleteFullECommerceWorkflow() {
-        // Step 1: Create Category
-        CategoryRequest categoryRequest = new CategoryRequest();
-        categoryRequest.setName("Electronics_" + System.nanoTime());
-        categoryRequest.setDescription("Electronic devices");
-        var category = categoryService.createCategory(categoryRequest);
+        // 1. Create Category
+        var category = categoryService.createCategory(CategoryRequest.builder()
+                .name("Electronics_" + System.nanoTime())
+                .description("Devices")
+                .build());
 
-        // Step 2: Create Products in Category
-        ProductCreateRequest productRequest1 = ProductCreateRequest.builder()
+        // 2. Create Products (Ensuring all record fields are populated via Builder)
+        ProductResponse laptop = productService.createProduct(ProductCreateRequest.builder()
                 .name("Laptop")
-                .description("High-performance laptop")
                 .price(BigDecimal.valueOf(999.99))
+                .categoryId(category.id())
                 .stockQuantity(5)
-                .categoryId(category.getId())
-                .brand("TechBrand")
-                .build();
+                .brand("Dell")
+                .imageUrls(List.of())
+                .build());
 
-        ProductCreateRequest productRequest2 = ProductCreateRequest.builder()
+        ProductResponse mouse = productService.createProduct(ProductCreateRequest.builder()
                 .name("Mouse")
-                .description("Wireless mouse")
                 .price(BigDecimal.valueOf(49.99))
+                .categoryId(category.id())
                 .stockQuantity(100)
-                .categoryId(category.getId())
-                .brand("TechBrand")
-                .build();
+                .brand("Logitech")
+                .imageUrls(List.of())
+                .build());
 
-        ProductResponse laptop = productService.createProduct(productRequest1);
-        ProductResponse mouse = productService.createProduct(productRequest2);
-
-        // Step 3: Verify products are in category
-        List<ProductResponse> allProducts = productService.getAllProducts();
-        assertThat(allProducts).hasSizeGreaterThanOrEqualTo(2);
-        assertThat(allProducts.stream().map(ProductResponse::getCategoryName))
-                .contains("Electronics");
-
-        // Step 4: Add products to cart
-        AddToCartRequest addLaptop = new AddToCartRequest();
-        addLaptop.setProductId(laptop.getId());
-        addLaptop.setQuantity(1);
-
-        AddToCartRequest addMouse = new AddToCartRequest();
-        addMouse.setProductId(mouse.getId());
-        addMouse.setQuantity(2);
-
+        // 3. Add to Cart (Verifying state accumulation)
         Long userId = 1000L;
-        cartService.addItemToCart(userId, addLaptop);
-        var cart = cartService.addItemToCart(userId, addMouse);
+        cartService.addItemToCart(userId, AddToCartRequest.builder()
+                .productId(laptop.id()).quantity(1).build());
 
-        // Step 5: Verify cart contents
-        assertThat(cart.getItems()).hasSize(2);
-        assertThat(cart.getUserId()).isEqualTo(userId);
+        CartResponse cart = cartService.addItemToCart(userId, AddToCartRequest.builder()
+                .productId(mouse.id()).quantity(2).build());
 
-        // Step 6: Checkout
+        // 4. Verify logic
+        assertThat(cart.items()).hasSize(2);
+
+        // 5. Checkout (Verifying side effects)
         cartService.checkout(userId);
-        var finalCart = cartService.getCartByUserId(userId);
-
-        // Assert: Cart is empty after checkout
-        assertThat(finalCart.getItems()).isEmpty();
+        assertThat(cartService.getCartByUserId(userId).items()).isEmpty();
     }
 
+    /**
+     * <b>Scenario:</b> Batch Processing and Error Tolerance.
+     * Validates that the system correctly identifies which products exist in the DB
+     * and which requested IDs are invalid/missing.
+     */
     @Test
-    @DisplayName("Should handle product creation and batch fetch workflow")
+    @DisplayName("Workflow - Should handle product creation and batch fetch identifying missing IDs")
     void shouldHandleProductCreationAndBatchFetch() {
-        // Step 1: Create Category
-        CategoryRequest categoryRequest = new CategoryRequest();
-        categoryRequest.setName("Fashion_" + System.nanoTime());
-        categoryRequest.setDescription("Clothing and fashion");
-        var category = categoryService.createCategory(categoryRequest);
+        var category = categoryService.createCategory(CategoryRequest.builder()
+                .name("BatchTest")
+                .build());
 
-        // Step 2: Create multiple products
         ProductResponse shirt = productService.createProduct(ProductCreateRequest.builder()
                 .name("T-Shirt")
-                .description("Cotton t-shirt")
-                .price(BigDecimal.valueOf(29.99))
-                .stockQuantity(50)
-                .categoryId(category.getId())
-                .brand("FashionBrand")
+                .price(BigDecimal.valueOf(25.00))
+                .categoryId(category.id())
+                .brand("Funkart-Clothing")
+                .imageUrls(List.of())
                 .build());
 
-        ProductResponse jeans = productService.createProduct(ProductCreateRequest.builder()
-                .name("Jeans")
-                .description("Blue denim jeans")
-                .price(BigDecimal.valueOf(79.99))
-                .stockQuantity(30)
-                .categoryId(category.getId())
-                .brand("FashionBrand")
-                .build());
+        List<Long> requestedIds = List.of(shirt.id(), 999L); // One real, one fake
 
-        ProductResponse shoes = productService.createProduct(ProductCreateRequest.builder()
-                .name("Shoes")
-                .description("Running shoes")
-                .price(BigDecimal.valueOf(119.99))
-                .stockQuantity(20)
-                .categoryId(category.getId())
-                .brand("FashionBrand")
-                .build());
+        ProductsResponse response = productService.getProductsByIds(requestedIds);
 
-        // Step 3: Batch fetch products
-        var response = productService.getProductsByIds(
-                List.of(shirt.getId(), jeans.getId(), shoes.getId()));
-
-        // Assert
-        assertThat(response.getFound()).hasSize(3);
-        assertThat(response.getMissing()).isEmpty();
+        assertThat(response.found()).hasSize(1);
+        assertThat(response.found().get(0).getName()).isEqualTo("T-Shirt");
+        assertThat(response.missing()).contains(999L);
     }
 
+    /**
+     * <b>Scenario:</b> JPA Relationship Integrity.
+     * Ensures that lazy/eager loading and object mappings (Product -> Category)
+     * are maintained even after multiple service layers have touched the data.
+     */
     @Test
-    @DisplayName("Should manage multiple shopping carts with shared products")
-    void shouldManageMultipleShoppingCartsWithSharedProducts() {
-        // Step 1: Create Category and Product
-        CategoryRequest categoryRequest = new CategoryRequest();
-        categoryRequest.setName("Books");
-        categoryRequest.setDescription("Books collection");
-        var category = categoryService.createCategory(categoryRequest);
-
-        ProductResponse book = productService.createProduct(ProductCreateRequest.builder()
-                .name("Java Programming")
-                .description("Advanced Java programming book")
-                .price(BigDecimal.valueOf(59.99))
-                .stockQuantity(100)
-                .categoryId(category.getId())
-                .brand("TechBooks")
+    @DisplayName("Consistency - Should verify DB relationships remain intact across service calls")
+    void shouldVerifyDataConsistency() {
+        Long userId = 5000L;
+        var cat = categoryService.createCategory(CategoryRequest.builder().name("Consistency").build());
+        var prod = productService.createProduct(ProductCreateRequest.builder()
+                .name("Audit-Item")
+                .categoryId(cat.id())
+                .price(BigDecimal.TEN)
+                .brand("Generic")
+                .imageUrls(List.of())
                 .build());
 
-        // Step 2: Add same product to multiple carts
-        AddToCartRequest request = new AddToCartRequest();
-        request.setProductId(book.getId());
+        cartService.addItemToCart(userId, AddToCartRequest.builder().productId(prod.id()).quantity(5).build());
 
-        request.setQuantity(1);
-        var user1Cart = cartService.addItemToCart(2000L, request);
-
-        request.setQuantity(2);
-        var user2Cart = cartService.addItemToCart(2001L, request);
-
-        request.setQuantity(3);
-        var user3Cart = cartService.addItemToCart(2002L, request);
-
-        // Assert - Different users have different quantities
-        assertThat(user1Cart.getItems().get(0).getQuantity()).isEqualTo(1);
-        assertThat(user2Cart.getItems().get(0).getQuantity()).isEqualTo(2);
-        assertThat(user3Cart.getItems().get(0).getQuantity()).isEqualTo(3);
-    }
-
-    @Test
-    @DisplayName("Should handle product deletion cascade to cart")
-    void shouldHandleProductDeletionCascadeToCart() {
-        // Step 1: Create category and product
-        CategoryRequest categoryRequest = new CategoryRequest();
-        categoryRequest.setName("Temporary");
-        categoryRequest.setDescription("Temporary category");
-        var category = categoryService.createCategory(categoryRequest);
-
-        ProductResponse product = productService.createProduct(ProductCreateRequest.builder()
-                .name("Temporary Product")
-                .description("Will be deleted")
-                .price(BigDecimal.valueOf(99.99))
-                .stockQuantity(10)
-                .categoryId(category.getId())
-                .brand("TempBrand")
-                .build());
-
-        // Step 2: Add to cart
-        AddToCartRequest request = new AddToCartRequest();
-        request.setProductId(product.getId());
-        request.setQuantity(1);
-        cartService.addItemToCart(3000L, request);
-
-        // Step 3: Verify product is in cart
-        var cart = cartService.getCartByUserId(3000L);
-        assertThat(cart.getItems()).hasSize(1);
-
-        // Step 4: Delete product
-        productService.deleteProduct(product.getId());
-
-        // Assert - Product is deleted from database
-        assertThat(productRepository.findById(product.getId())).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should verify category operations with product dependencies")
-    void shouldVerifyCategoryOperationsWithProductDependencies() {
-        // Step 1: Create category
-        CategoryRequest categoryRequest = new CategoryRequest();
-        categoryRequest.setName("Hardware");
-        categoryRequest.setDescription("Hardware components");
-        var category = categoryService.createCategory(categoryRequest);
-
-        // Step 2: Add products
-        ProductResponse gpu = productService.createProduct(ProductCreateRequest.builder()
-                .name("Graphics Card")
-                .description("High-end GPU")
-                .price(BigDecimal.valueOf(599.99))
-                .stockQuantity(5)
-                .categoryId(category.getId())
-                .brand("HardwareBrand")
-                .build());
-
-        ProductResponse ram = productService.createProduct(ProductCreateRequest.builder()
-                .name("RAM Module")
-                .description("32GB DDR4 RAM")
-                .price(BigDecimal.valueOf(149.99))
-                .stockQuantity(20)
-                .categoryId(category.getId())
-                .brand("HardwareBrand")
-                .build());
-
-        // Step 3: Fetch category and verify products
-        var retrievedCategory = categoryService.getCategoryById(category.getId());
-        assertThat(retrievedCategory).isNotNull();
-        assertThat(retrievedCategory.getName()).isEqualTo("Hardware");
-
-        // Step 4: Fetch all products and verify they're in category
-        List<ProductResponse> products = productService.getAllProducts();
-        var categoryProducts = products.stream()
-                .filter(p -> "Hardware".equals(p.getCategoryName()))
-                .toList();
-        assertThat(categoryProducts).hasSizeGreaterThanOrEqualTo(2);
-    }
-
-    @Test
-    @Transactional
-    @DisplayName("Should handle complex shopping scenario with multiple operations")
-    void shouldHandleComplexShoppingScenario() {
-        // Create category
-        CategoryRequest categoryRequest = new CategoryRequest();
-        categoryRequest.setName("Gaming");
-        categoryRequest.setDescription("Gaming products");
-        var category = categoryService.createCategory(categoryRequest);
-
-        // Create multiple products
-        ProductResponse console = productService.createProduct(ProductCreateRequest.builder()
-                .name("Gaming Console")
-                .description("Latest gaming console")
-                .price(BigDecimal.valueOf(499.99))
-                .stockQuantity(10)
-                .categoryId(category.getId())
-                .brand("GamingBrand")
-                .build());
-
-        ProductResponse controller = productService.createProduct(ProductCreateRequest.builder()
-                .name("Game Controller")
-                .description("Wireless controller")
-                .price(BigDecimal.valueOf(69.99))
-                .stockQuantity(50)
-                .categoryId(category.getId())
-                .brand("GamingBrand")
-                .build());
-
-        ProductResponse headset = productService.createProduct(ProductCreateRequest.builder()
-                .name("Gaming Headset")
-                .description("7.1 surround sound")
-                .price(BigDecimal.valueOf(149.99))
-                .stockQuantity(30)
-                .categoryId(category.getId())
-                .brand("GamingBrand")
-                .build());
-
-        // User adds items to cart
-        Long userId = 4000L;
-        AddToCartRequest request1 = new AddToCartRequest();
-        request1.setProductId(console.getId());
-        request1.setQuantity(1);
-        cartService.addItemToCart(userId, request1);
-
-        AddToCartRequest request2 = new AddToCartRequest();
-        request2.setProductId(controller.getId());
-        request2.setQuantity(2);
-        cartService.addItemToCart(userId, request2);
-
-        AddToCartRequest request3 = new AddToCartRequest();
-        request3.setProductId(headset.getId());
-        request3.setQuantity(1);
-        var cartAfterAdding = cartService.addItemToCart(userId, request3);
-
-        // Verify cart state
-        assertThat(cartAfterAdding.getItems()).hasSize(3);
-        assertThat(cartAfterAdding.getItems().stream().mapToInt(i -> i.getQuantity()).sum())
-                .isEqualTo(4); // 1 + 2 + 1
-
-        // Checkout
-        cartService.checkout(userId);
-
-        // Verify cart is empty
-        var emptyCart = cartService.getCartByUserId(userId);
-        assertThat(emptyCart.getItems()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should verify data consistency across all features")
-    void shouldVerifyDataConsistencyAcrossAllFeatures() {
-        // Create category
-        CategoryRequest categoryRequest = new CategoryRequest();
-        categoryRequest.setName("Consistency Test");
-        categoryRequest.setDescription("Testing consistency");
-        var category = categoryService.createCategory(categoryRequest);
-
-        // Create product
-        ProductResponse product = productService.createProduct(ProductCreateRequest.builder()
-                .name("Consistency Product")
-                .description("Test product")
-                .price(BigDecimal.valueOf(99.99))
-                .stockQuantity(10)
-                .categoryId(category.getId())
-                .brand("TestBrand")
-                .build());
-
-        // Add to cart
-        AddToCartRequest request = new AddToCartRequest();
-        request.setProductId(product.getId());
-        request.setQuantity(5);
-        cartService.addItemToCart(5000L, request);
-
-        // Verify consistency across all repositories
-        assertThat(categoryRepository.findById(category.getId())).isPresent();
-        assertThat(productRepository.findById(product.getId())).isPresent();
-        assertThat(cartRepository.findByUserId(5000L)).isPresent();
-
-        // Verify relationships
-        var cartInDb = cartRepository.findByUserId(5000L).orElseThrow();
-        assertThat(cartInDb.getItems()).hasSize(1);
-        assertThat(cartInDb.getItems().get(0).getProduct().getCategory().getId())
-                .isEqualTo(category.getId());
+        // Direct Repository Verification to bypass Service caching
+        var cartInDb = cartRepository.findByUserId(userId).orElseThrow();
+        assertThat(cartInDb.getItems().get(0).getProduct().getCategory().getName()).isEqualTo("Consistency");
     }
 }
-

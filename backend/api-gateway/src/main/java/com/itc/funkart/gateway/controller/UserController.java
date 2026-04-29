@@ -1,102 +1,94 @@
-package com.itc.funkart.gateway.controller;
+    package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.dto.request.LoginRequest;
-import com.itc.funkart.gateway.dto.request.SignupRequest;
-import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
-import com.itc.funkart.gateway.response.ApiResponse;
-import com.itc.funkart.gateway.security.CookieUtil;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
-
-/**
- * REST Controller responsible for user authentication and account management.
- * <p>
- * This controller acts as a proxy for the downstream User Service. It captures
- * authentication requests, forwards them to the microservice, and converts the
- * resulting JWT tokens into secure HttpOnly cookies for the frontend.
- * </p>
- */
-@RestController
-@RequestMapping("/users")
-public class UserController {
-
-    private final WebClient webClient;
-    private final CookieUtil cookieUtil;
+    import com.itc.funkart.gateway.dto.request.LoginRequest;
+    import com.itc.funkart.gateway.dto.request.SignupRequest;
+    import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
+    import com.itc.funkart.gateway.response.ApiResponse;
+    import com.itc.funkart.gateway.service.UserGatewayService;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.web.bind.annotation.PostMapping;
+    import org.springframework.web.bind.annotation.RequestBody;
+    import org.springframework.web.bind.annotation.RequestMapping;
+    import org.springframework.web.bind.annotation.RestController;
+    import org.springframework.web.server.ServerWebExchange;
+    import reactor.core.publisher.Mono;
 
     /**
-     * Constructs a new UserController with required dependencies.
+     * <h2>User Authentication Gateway Controller</h2>
      *
-     * @param webClient  The reactive web client used to communicate with downstream services.
-     * @param cookieUtil Utility for managing secure JWT cookies on the ServerWebExchange.
-     */
-    public UserController(WebClient webClient, CookieUtil cookieUtil) {
-        this.webClient = webClient;
-        this.cookieUtil = cookieUtil;
-    }
-
-    /**
-     * Authenticates a user and sets an identity cookie.
      * <p>
-     * Forwards the {@link LoginRequest} to {@code /api/v1/users/login}. Upon success,
-     * extracts the JWT from the response and attaches it to the client's cookies.
+     * Entry point for authentication-related HTTP requests (login and signup).
+     * This controller is intentionally thin and delegates all business logic
+     * and downstream communication to {@link UserGatewayService}.
      * </p>
      *
-     * @param request  The user's credentials (email and password).
-     * @param exchange The current server exchange used to set the response cookie.
-     * @return A {@link Mono} emitting a 200 OK ResponseEntity on success, or an error signal.
-     */
-    @PostMapping("/login")
-    public Mono<ResponseEntity<ApiResponse<SuccessfulLoginResponse>>> login(
-            @RequestBody LoginRequest request,
-            ServerWebExchange exchange) {
-
-        return webClient.post()
-                .uri("/api/v1/users/login")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {
-                })
-                .doOnNext(response -> {
-                    String jwt = response.getData().token();
-                    cookieUtil.addTokenCookie(exchange, jwt, null);
-                })
-                .map(ResponseEntity::ok);
-    }
-
-    /**
-     * Registers a new user and automatically signs them in.
-     * <p>
-     * Forwards the {@link SignupRequest} to {@code /api/v1/users/signup}. Upon successful
-     * registration, the method mirrors the login flow by setting a secure JWT cookie.
-     * </p>
+     * <h3>Responsibilities</h3>
+     * <ul>
+     *   <li>Accept incoming HTTP requests from the client</li>
+     *   <li>Delegate authentication flows to the Gateway service layer</li>
+     *   <li>Return standardized API responses</li>
+     * </ul>
      *
-     * @param request  The registration details including name, email, and password.
-     * @param exchange The current server exchange used to set the response cookie.
-     * @return A {@link Mono} emitting a 200 OK ResponseEntity on success, or an error signal.
+     * <h3>Non-Responsibilities</h3>
+     * <ul>
+     *   <li>Does NOT call downstream services directly</li>
+     *   <li>Does NOT manage cookies or tokens</li>
+     *   <li>Does NOT contain business or orchestration logic</li>
+     * </ul>
      */
-    @PostMapping("/signup")
-    public Mono
-            <ResponseEntity<ApiResponse<SuccessfulLoginResponse>>> signup(
-            @RequestBody SignupRequest request,
-            ServerWebExchange exchange) {
+    @RestController
+    @RequestMapping("/api/v1/users")
+    public class UserController {
 
-        return webClient.post()
-                .uri("/api/v1/users/signup")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<ApiResponse<SuccessfulLoginResponse>>() {
-                })
-                .doOnNext(response -> {
-                    String jwt = response.getData().token();
-                    cookieUtil.addTokenCookie(exchange, jwt, null);
-                })
-                .map(ResponseEntity::ok);
+        private final UserGatewayService userGatewayService;
+
+        /**
+         * @param userGatewayService Service responsible for handling authentication
+         *                           orchestration and communication with the User-Service.
+         */
+        public UserController(UserGatewayService userGatewayService) {
+            this.userGatewayService = userGatewayService;
+        }
+
+        /**
+         * Handles user login requests by delegating authentication to the Gateway service layer.
+         *
+         * <p>
+         * The service layer performs the downstream call to the User-Service,
+         * processes the response, and manages session establishment (e.g. cookie handling).
+         * </p>
+         *
+         * @param request  The login credentials (email/password)
+         * @param exchange The current server exchange context
+         * @return A successful authentication response containing user data
+         */
+        @PostMapping("/login")
+        public Mono<ResponseEntity<ApiResponse<SuccessfulLoginResponse>>> login(
+                @RequestBody LoginRequest request,
+                ServerWebExchange exchange) {
+
+            return userGatewayService.login(request, exchange)
+                    .map(ResponseEntity::ok);
+        }
+
+        /**
+         * Handles user login requests by delegating authentication to the Gateway service layer.
+         *
+         * <p>
+         * The service layer performs the downstream call to the User-Service,
+         * processes the response, and manages session establishment (e.g. cookie handling).
+         * </p>
+         *
+         * @param request  The login credentials (email/password)
+         * @param exchange The current server exchange context
+         * @return A successful authentication response containing user data
+         */
+        @PostMapping("/signup")
+        public Mono<ResponseEntity<ApiResponse<SuccessfulLoginResponse>>> signup(
+                @RequestBody SignupRequest request,
+                ServerWebExchange exchange) {
+
+            return userGatewayService.signup(request, exchange)
+                    .map(ResponseEntity::ok);
+        }
     }
-}

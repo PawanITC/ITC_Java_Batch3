@@ -1,7 +1,8 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.2'
+    id 'org.springframework.boot' version '3.5.14'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.itc.funkart'
@@ -9,20 +10,48 @@ version = '0.0.1-SNAPSHOT'
 description = 'payment-service'
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
 }
 
 repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    dependencies {
+        // Jackson Suite
+        dependency 'com.fasterxml.jackson.core:jackson-databind:2.21.2'
+        dependency 'com.fasterxml.jackson.core:jackson-core:2.21.2'
+        // FIX: jackson-annotations uses 2.21 (no patch version)
+        dependency 'com.fasterxml.jackson.core:jackson-annotations:2.21'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.21.2'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.2'
+
+        // Tomcat Suite
+        dependency 'org.apache.tomcat.embed:tomcat-embed-core:10.1.54'
+        dependency 'org.apache.tomcat.embed:tomcat-embed-websocket:10.1.54'
+        dependency 'org.apache.tomcat.embed:tomcat-embed-el:10.1.54'
+    }
+}
+
+configurations {
+    configureEach {
+        exclude group: "com.fasterxml.jackson.module", module: "jackson-module-scala_2.13"
+        exclude group: "com.fasterxml.jackson.module", module: "jackson-module-scala_2.12"
+    }
+}
+
 dependencies {
     // === 1. BOILERPLATE & UTILS ===
-    compileOnly 'org.projectlombok:lombok:1.18.30'
-    annotationProcessor 'org.projectlombok:lombok:1.18.30'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.apache.commons:commons-lang3:3.18.0'
 
     // === 2. CORE SPRING BOOT ===
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -31,40 +60,55 @@ dependencies {
 
     // === 3. DATABASE & PERSISTENCE ===
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.postgresql:postgresql:42.7.7'
 
     // === 4. MESSAGING & INTEGRATIONS ===
-    implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'com.stripe:stripe-java:24.0.0'
+    implementation 'org.springframework.kafka:spring-kafka:3.3.2'
+    implementation 'com.stripe:stripe-java:28.1.0'
 
-    // === 5. SECURITY & JWT ===
+    // === 5. SECURITY & JWT (JJWT) ===
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // === 6. TESTING (Unit & Integration) ===
+    // === 6. TESTING ===
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
-    // Required specifically to make .with(jwt()) compile in tests
-    testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testImplementation 'io.rest-assured:rest-assured'
-
-    // In-Memory DB & Static Mocking for 100% coverage
+    testImplementation 'io.rest-assured:rest-assured:5.5.7'
     testImplementation 'com.h2database:h2'
-    testImplementation 'org.mockito:mockito-inline:5.2.0'
+    testImplementation 'org.awaitility:awaitility:4.3.0'
 }
 
-// === TASK CONFIGURATION ===
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    // Filter coverage to focus on logic rather than boilerplate
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    "**/dto/**",
+                    "**/entity/**",
+                    "**/config/**",
+                    "**/*Application*"
+            ])
+        }))
+    }
+}
 
 tasks.named('test') {
     useJUnitPlatform()
+    jvmArgs("-XX:+EnableDynamicAgentLoading")
+    finalizedBy jacocoTestReport
 }
 
 tasks.named('jar') {
-    enabled = false // Ensures we only build the executable bootJar
+    enabled = false
 }
 
 tasks.named('bootJar') {
-    archiveFileName = "payment-service-${version}.jar" // Uses variable for versioning
+    archiveFileName = "payment-service.jar"
 }

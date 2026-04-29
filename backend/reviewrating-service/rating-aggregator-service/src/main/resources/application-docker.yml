@@ -6,50 +6,33 @@ spring:
     name: rating-aggregator-service
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka:9092
     consumer:
-      group-id: rating-aggregator
+      group-id: rating-aggregator-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-    properties:
-      spring.json.trusted.packages: "*"
+      properties:
+        spring.json.trusted.packages: "*"
 
   data:
     redis:
-      host: reviewrating-service-redis-1
+      host: redis
       port: 6379
 
-resilience4j:
-  circuitbreaker:
-    instances:
-      ratingServiceCb:
-        sliding-window-type: COUNT_BASED
-        sliding-window-size: 20
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 30s
-        permitted-number-of-calls-in-half-open-state: 5
-        automatic-transition-from-open-to-half-open-enabled: true
+  datasource:
+    url: jdbc:postgresql://ep-falling-recipe-abxd40y0.eu-west-2.aws.neon.tech/neondb?sslmode=require
+    username: neondb_owner
+    password: npg_B1ILZK0QmaGc
 
-  retry:
-    instances:
-      ratingServiceRetry:
-        max-attempts: 3
-        wait-duration: 200ms
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  timelimiter:
-    instances:
-      ratingServiceTl:
-        timeout-duration: 2s
-        cancel-running-future: true
-
-  bulkhead:
-    instances:
-      ratingServiceBh:
-        max-concurrent-calls: 20
-        max-wait-duration: 0
-
-review-rating-service:
-  base-url: http://review-rating-service:9097
-
-
+otel:
+  exporter:
+    otlp:
+      endpoint: http://otel-collector:4318

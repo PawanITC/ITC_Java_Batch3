@@ -9,47 +9,44 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 
 /**
- * Shared Infrastructure for Synchronous HTTP Communication.
+ * <h2>RestClientConfig</h2>
  * <p>
- * This configuration provides a centralized {@link RestClient} bean, which is the
- * modern Spring 6.1+ replacement for the legacy RestTemplate. It is used for
- * "Service-to-Service" calls (e.g., asking the Order-Service for a total).
+ * Configures the primary engine for synchronous "Service-to-Service" (East-West) communication.
  * </p>
- * * @author Abbas (Funkart Team)
+ * <p>
+ * This configuration produces a thread-safe {@link RestClient} bean, which is the
+ * standardized HTTP client for Spring 6.1+. It replaces the deprecated RestTemplate
+ * with a more functional, fluent API.
+ * </p>
+ *
+ * <b>Resilience Strategy:</b>
+ * <p>
+ * To prevent <i>Cascading Failures</i>, this client is configured with strict
+ * connection and read timeouts. This ensures that if a downstream service (like Order-Service)
+ * becomes unresponsive, the Payment-Service will fail fast rather than exhausting its thread pool.
+ * </p>
  */
 @Configuration
 public class RestClientConfig {
 
     /**
-     * Creates a managed RestClient bean with built-in resilience.
-     * * @return A thread-safe, pre-configured RestClient.
+     * Provides a pre-configured {@link RestClient} with sensible default timeouts.
+     *
+     * @return A RestClient capable of making resilient outbound HTTP calls.
      */
     @Bean
     public RestClient restClient() {
 
-        /* * DEV NOTE:
-         * We use JdkClientHttpRequestFactory here to set explicit "Timeouts."
-         * By default, many HTTP clients will wait forever for a response.
-         * If the 'Order Service' is lagging, we don't want our 'Payment Service'
-         * threads to hang indefinitely, which would eventually crash our app.
-         */
+        // Use the modern JDK HttpClient with an explicit connection timeout.
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder()
-                        .connectTimeout(Duration.ofSeconds(5)) // Time to establish the connection
+                        .connectTimeout(Duration.ofSeconds(5)) // Establishment window
                         .build()
         );
 
-        /* * We set a Read Timeout of 10 seconds.
-         * If the downstream service doesn't send data back within this window,
-         * we throw an exception rather than holding up resources.
-         */
+        // Set the maximum time to wait for data packets once the connection is open.
         factory.setReadTimeout(Duration.ofSeconds(10));
 
-        /*
-         * RestClient.builder() allows us to add global features like
-         * default headers (e.g., Content-Type: application/json) or
-         * ErrorHandlers in the future without changing individual service calls.
-         */
         return RestClient.builder()
                 .requestFactory(factory)
                 .build();

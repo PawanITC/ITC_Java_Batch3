@@ -1,4 +1,4 @@
-import { useState, useContext, type FormEvent } from "react";
+import {useState, useContext, type FormEvent} from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import "../styles/auth.css";
@@ -31,12 +31,16 @@ export default function Login() {
 
             // Call refreshUser to update AuthProvider state consistently
             await refreshUser();
-
-            navigate("/"); // redirect after login
+            navigate("/", { replace: true }); // redirect after login
         } catch (err) {
             console.error("Login error:", err);
             setError("Something went wrong. Please try again.");
         }
+    };
+
+    const handleGithubLogin = () => {
+        // assign() mimics a URL bar entry, which helps bypass some "Unsafe attempt" flags
+        window.location.assign("http://localhost:8060/api/v1/oauth/github/login");
     };
 
     return (
@@ -69,10 +73,9 @@ export default function Login() {
                 <div className="oauth-divider">or</div>
 
                 <button
+                    type="button"
+                    onClick={handleGithubLogin}
                     className="github-button"
-                    onClick={() =>
-                        (window.location.href = "http://localhost:8080/oauth/github/login")
-                    }
                 >
                     Login with GitHub
                 </button>
