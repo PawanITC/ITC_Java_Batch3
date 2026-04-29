@@ -1,5 +1,7 @@
 package com.itc.funkart.dto;
 
+
+
 public class ProductRatingSummaryResponse {
 
     private Long productId;
@@ -24,3 +26,4 @@ public class ProductRatingSummaryResponse {
         return ratingCount;
     }
 }
+

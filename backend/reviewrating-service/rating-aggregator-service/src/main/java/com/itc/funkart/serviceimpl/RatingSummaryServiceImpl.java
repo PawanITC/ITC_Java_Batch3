@@ -1,7 +1,9 @@
 package com.itc.funkart.serviceimpl;
 
+
+
 import com.itc.funkart.dto.RatingStatsDto;
-import com.itc.funkart.entity.ProductRatingSummary;
+import com.itc.funkart.model.ProductRatingSummary;
 import com.itc.funkart.repository.ProductRatingSummaryRepository;
 import com.itc.funkart.repository.ReviewRepository;
 import com.itc.funkart.service.RatingSummaryService;
@@ -20,23 +22,29 @@ public class RatingSummaryServiceImpl implements RatingSummaryService {
     @Override
     public void recalculateSummary(Long productId) {
 
-        /*RatingStatsDto stats = reviewRepository.getRatingStatsByProductId(productId);
+        // Fetch aggregated stats from review-rating-service DB
+        RatingStatsDto stats = reviewRepository.getRatingStatsByProductId(productId);
 
-        if (stats == null || stats.avg() == null) {
-            log.info("No reviews found for product {}. Deleting summary.", productId);
+        // If no reviews exist → delete summary
+        if (stats == null || stats.getAvg() == null) {
+            log.info("No reviews found for product {}. Removing summary.", productId);
             summaryRepository.deleteById(productId);
             return;
         }
 
+        // Load existing summary or create new one
         ProductRatingSummary summary = summaryRepository.findById(productId)
                 .orElseGet(() -> new ProductRatingSummary(productId));
 
-        summary.setAverageRating(stats.avg());
-        summary.setRatingCount(stats.count());
+        // Update summary fields
+        summary.setAverageRating(stats.getAvg());
+        summary.setRatingCount(stats.getCount());
 
+        // Save updated summary
         summaryRepository.save(summary);
 
-        log.info("Updated summary for product {} -> avg={}, count={}",
-                productId, stats.avg(), stats.count());*/
+        log.info("Updated rating summary for product {} → avg={}, count={}",
+                productId, stats.getAvg(), stats.getCount());
     }
 }
+

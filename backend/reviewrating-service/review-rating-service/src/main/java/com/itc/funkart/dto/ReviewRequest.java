@@ -1,14 +1,30 @@
 package com.itc.funkart.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class ReviewRequest {
-    private Long id;
-    private String productId;
-    private String userId;
 
+    private Long userId;
+    private Long productId;
 
+    public Long getUserId() {
+        return userId;
+    }
 
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Long getProductId() {
+        return productId;
+    }
+
+    public void setProductId(Long productId) {
+        this.productId = productId;
+    }
 
     @NotNull(message = "Rating is required")
     @Min(value = 1, message = "Rating must be at least 1")
@@ -16,23 +32,13 @@ public class ReviewRequest {
     private Integer rating;
 
     @NotBlank(message = "Comment cannot be empty")
-    @Size(max = 500, message = "Comment cannot exceed 500 characters")
     private String comment;
 
-    public ReviewRequest() {
-    }
+    public ReviewRequest() {}
 
-    public ReviewRequest(int rating, String comment) {
+    public ReviewRequest(Integer rating, String comment) {
         this.rating = rating;
         this.comment = comment;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public Integer getRating() {
@@ -49,21 +55,5 @@ public class ReviewRequest {
 
     public void setComment(String comment) {
         this.comment = comment;
-    }
-
-    public String getProductId() {
-        return productId;
-    }
-
-    public void setProductId(String productId) {
-        this.productId = productId;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 }
