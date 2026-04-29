@@ -133,8 +133,8 @@ public class CartServiceImpl implements CartService {
                 .productIds(productIds)
                 .build();
 
-        cart.getItems().clear(); //now cart is cleared after checkout but later actual order will be created (order-service) then with the topic cart will be cleared for that particular user
-        cartRepository.save(cart);
+        clearCart(userId); //now cart is cleared after checkout but later actual order will be created (order-service) then with the topic cart will be cleared for that particular user
+
 
         orderProducer.sendOrderEvent(event);
     }
