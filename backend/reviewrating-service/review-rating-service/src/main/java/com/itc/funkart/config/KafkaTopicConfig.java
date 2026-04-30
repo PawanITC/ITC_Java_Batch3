@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class KafkaTopicConfig {
 
-    public static final String REVIEW_CREATED_TOPIC = "review-created";
+    public static final String REVIEW_CREATED_TOPIC = "review.events.v1";
 
     @Bean
     public NewTopic reviewCreatedTopic() {

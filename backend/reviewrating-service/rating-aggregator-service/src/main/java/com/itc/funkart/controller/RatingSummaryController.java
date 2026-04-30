@@ -1,26 +1,31 @@
 package com.itc.funkart.controller;
 
+
+
+
+import com.itc.funkart.dto.ProductRatingSummaryResponse;
+
 import com.itc.funkart.model.ProductRatingSummary;
-import com.itc.funkart.service.RatingAggregationService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.itc.funkart.repository.ProductRatingSummaryRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/aggregator")
+@RequestMapping("/api/v1/rating-summary")
+@RequiredArgsConstructor
 public class RatingSummaryController {
 
-    private final RatingAggregationService aggregationService;
+    private final ProductRatingSummaryRepository summaryRepository;
 
-    public RatingSummaryController(RatingAggregationService aggregationService) {
-        this.aggregationService = aggregationService;
-    }
-
-    @GetMapping("/products/{productId}/rating-summary")
-    public ProductRatingSummary getRatingSummary(@PathVariable Long productId) {
-        return aggregationService.getFromCache(productId)
-                .orElseGet(() -> aggregationService.recomputeAndCache(productId));
+    @GetMapping("/{productId}")
+    public ProductRatingSummaryResponse getSummary(@PathVariable Long productId) {
+        com.itc.funkart.model.ProductRatingSummary s = summaryRepository.findById(productId)
+                .orElse(new ProductRatingSummary(productId));
+        return new ProductRatingSummaryResponse(
+                s.getProductId(),
+                s.getAverageRating(),
+                s.getRatingCount()
+        );
     }
 }
 

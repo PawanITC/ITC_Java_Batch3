@@ -1,26 +1,24 @@
+// com/itc/funkart/entity/ProductRatingSummary.java
 package com.itc.funkart.entity;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "product_rating_summary")
+@Getter
+@Setter
+@NoArgsConstructor
 public class ProductRatingSummary {
 
     @Id
     private Long productId;
 
-    private Double averageRating;
-    private Long ratingCount;
-
-
-    public ProductRatingSummary() {}
-
-    public ProductRatingSummary(Long productId) {
-        this.productId = productId;
-    }
+    private Double averageRating = 0.0;
 
     public Long getProductId() {
         return productId;
@@ -46,4 +44,9 @@ public class ProductRatingSummary {
         this.ratingCount = ratingCount;
     }
 
+    private Long ratingCount = 0L;
+
+    public ProductRatingSummary(Long productId) {
+        this.productId = productId;
+    }
 }

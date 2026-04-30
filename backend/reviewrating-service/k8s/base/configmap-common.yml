@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: common-config
+data:
+  kafka-bootstrap: "<MSK_BOOTSTRAP>:9092"
+  redis-host: "<ELASTICACHE_REDIS_ENDPOINT>"

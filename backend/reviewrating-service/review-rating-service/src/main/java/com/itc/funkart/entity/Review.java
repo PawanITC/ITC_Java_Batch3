@@ -1,43 +1,24 @@
+// com/itc/funkart/entity/ProductRatingSummary.java
 package com.itc.funkart.entity;
 
-import jakarta.persistence.*;
-import java.time.Instant;
-import java.util.UUID;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(
-        name = "reviews",
-        indexes = {
-                @Index(name = "idx_reviews_product", columnList = "product_id"),
-                @Index(name = "idx_reviews_user_product", columnList = "user_id,product_id", unique = true)
-        }
-)
-
-public class Review {
+@Table(name = "product_rating_summary")
+@Getter
+@Setter
+@NoArgsConstructor
+public class ProductRatingSummary {
 
     @Id
-    @GeneratedValue
-    private UUID id;
-
     private Long productId;
-    private Long userId;
-    private int rating;
 
-
-    @Column(length = 4000)
-    private String reviewText;
-
-    private Instant createdAt;
-    private Instant updatedAt;
-
-    // getters/setters omitted for brevity
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    private Double averageRating = 0.0;
 
     public Long getProductId() {
         return productId;
@@ -47,65 +28,25 @@ public class Review {
         this.productId = productId;
     }
 
-    public Long getUserId() {
-        return userId;
+    public Double getAverageRating() {
+        return averageRating;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
     }
 
-    public int getRating() {
-        return rating;
+    public Long getRatingCount() {
+        return ratingCount;
     }
 
-    public void setRating(int rating) {
-        this.rating = rating;
+    public void setRatingCount(Long ratingCount) {
+        this.ratingCount = ratingCount;
     }
 
-    public String getReviewText() {
-        return reviewText;
+    private Long ratingCount = 0L;
+
+    public ProductRatingSummary(Long productId) {
+        this.productId = productId;
     }
-
-    public void setReviewText(String reviewText) {
-        this.reviewText = reviewText;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    // --- Add these lifecycle hooks here ---
-    @PrePersist
-    public void onCreate() {
-        Instant now = Instant.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = Instant.now();
-    }
-
-    public Review(Long productId, Long userId, Instant createdAt) {
-        this.productId = productId != null ? productId : null;
-        this.userId = userId != null ? userId : null;
-        this.createdAt = createdAt;
-        this.updatedAt = createdAt; // optional: set updatedAt same as createdAt
-    }
-
-
 }

@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -61,8 +62,8 @@ class ReviewServiceImplTest {
         when(reviewRepository.findByProductIdAndUserId(productId, userId))
                 .thenReturn(Optional.empty());
 
-        when(reviewRepository.getRatingStatsByProductId(productId))
-                .thenReturn(mockStats(5.0, 1L));
+        /*when(reviewRepository.getRatingStatsByProductId(productId))
+                .thenReturn(mockStats(5.0, 1L));*/
 
         when(summaryRepository.findById(productId))
                 .thenReturn(Optional.empty());
@@ -89,8 +90,8 @@ class ReviewServiceImplTest {
         when(reviewRepository.findByProductIdAndUserId(productId, userId))
                 .thenReturn(Optional.of(existing));
 
-        when(reviewRepository.getRatingStatsByProductId(productId))
-                .thenReturn(mockStats(4.0, 2L));
+        /*when(reviewRepository.getRatingStatsByProductId(productId))
+                .thenReturn(mockStats(4.0, 2L));*/
 
         when(summaryRepository.findById(productId))
                 .thenReturn(Optional.of(new ProductRatingSummary()));
@@ -114,8 +115,8 @@ class ReviewServiceImplTest {
         when(reviewRepository.findByProductIdAndUserId(productId, userId))
                 .thenReturn(Optional.empty());
 
-        when(reviewRepository.getRatingStatsByProductId(productId))
-                .thenReturn(null);
+        /*when(reviewRepository.getRatingStatsByProductId(productId))
+                .thenReturn(null);*/
 
         when(reviewRepository.save(any()))
                 .thenReturn(buildReview(1L, 5, "Great"));
@@ -132,8 +133,8 @@ class ReviewServiceImplTest {
         when(reviewRepository.findByProductIdAndUserId(productId, userId))
                 .thenReturn(Optional.empty());
 
-        when(reviewRepository.getRatingStatsByProductId(productId))
-                .thenReturn(null);
+        /*when(reviewRepository.getRatingStatsByProductId(productId))
+                .thenReturn(null);*/
 
         when(reviewRepository.save(any()))
                 .thenThrow(new RuntimeException("DB error"));
@@ -149,12 +150,12 @@ class ReviewServiceImplTest {
     // ⭐ HELPERS
     private Review buildReview(Long id, int rating, String comment) {
 
-        Review r = new Review(productId, userId, Instant.now());  // FIXED
+        Review r = new Review(productId, userId, LocalDateTime.now());  // FIXED
 
-        r.setId(UUID.nameUUIDFromBytes(id.toString().getBytes()));  // UUID conversion
+        r.setId(id);  // UUID conversion
         r.setRating(rating);
         r.setReviewText(comment);
-        r.setUpdatedAt(Instant.now());
+        r.setUpdatedAt(LocalDateTime.now());
 
         return r;
     }

@@ -6,12 +6,10 @@ import com.itc.funkart.avro.ReviewDeletedEvent;
 import com.itc.funkart.dto.ReviewRequest;
 import com.itc.funkart.dto.ReviewResponse;
 import com.itc.funkart.entity.Review;
-import com.itc.funkart.avro.ReviewDeletedEvent;
 import com.itc.funkart.event.ReviewUpdatedEvent;
 import com.itc.funkart.outbox.OutboxService;
 import com.itc.funkart.repository.ReviewRepository;
 import com.itc.funkart.service.ReviewService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,15 +18,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewRepository reviewRepository;
+    //private final ReviewRepository reviewRepository;
     private final OutboxService outboxService;
     private final RedisTemplate<String, Object> redisTemplate;
+
+    public ReviewServiceImpl(ReviewRepository reviewRepository, OutboxService outboxService, RedisTemplate<String, Object> redisTemplate) {
+        this.reviewRepository = reviewRepository;
+        this.redisTemplate = redisTemplate;
+        this.outboxService = outboxService;
+    }
+
 
     @Override
     @Transactional
@@ -36,15 +43,28 @@ public class ReviewServiceImpl implements ReviewService {
 
         Review review = reviewRepository
                 .findByProductIdAndUserId(productId, userId)
-                .orElseGet(() -> new Review(productId, userId, Instant.now()));
+                .orElseGet(() -> new Review(productId, userId, LocalDateTime.now()));
 
         boolean isNew = review.getId() == null;
 
         review.setRating(request.getRating());
         review.setReviewText(request.getComment());
-        review.setUpdatedAt(Instant.now());
+        review.setUpdatedAt(LocalDateTime.now());
+
+        if (isNew) {
+            review.setCreatedAt(LocalDateTime.now());
+        }
+        review.setUpdatedAt(LocalDateTime.now());
 
         Review saved = reviewRepository.save(review);
+
+        Instant createdAtInstant = saved.getCreatedAt()
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
+
+        Instant updatedAtInstant = saved.getUpdatedAt()
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
 
         redisTemplate.delete("product:%s:rating-summary".formatted(productId));
 
@@ -54,12 +74,21 @@ public class ReviewServiceImpl implements ReviewService {
                 .setUserId(Long.valueOf(saved.getUserId()))
                 .setRating(saved.getRating())
                 .setComment(saved.getReviewText())
-                .setCreatedAt(saved.getCreatedAt())
+                .setCreatedAt(
+                        createdAtInstant
+                )
                 .build();
 
         if (isNew) {
             ReviewCreatedEvent event = ReviewCreatedEvent.newBuilder()
                     .setEventType("REVIEW_CREATED")
+                    .setReviewId(saved.getId().toString())
+                    .setProductId(saved.getProductId())
+                    .setUserId(saved.getUserId())
+                    .setRating(saved.getRating())
+                    .setComment(saved.getReviewText())
+                    .setCreatedAt(createdAtInstant)
+                    .setUpdatedAt(updatedAtInstant)
                     .setPayload(payload)
                     .build();
 
@@ -68,6 +97,13 @@ public class ReviewServiceImpl implements ReviewService {
         } else {
             ReviewUpdatedEvent event = ReviewUpdatedEvent.newBuilder()
                     .setEventType("REVIEW_UPDATED")
+                    .setReviewId(saved.getId().toString())
+                    .setProductId(saved.getProductId())
+                    .setUserId(saved.getUserId())
+                    .setRating(saved.getRating())
+                    .setComment(saved.getReviewText())
+                    .setCreatedAt(createdAtInstant)
+                    .setUpdatedAt(updatedAtInstant)
                     .setPayload(payload)
                     .build();
 
@@ -75,6 +111,23 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         return ReviewResponse.from(saved);
+    }
+
+
+    public Review createReview(Review review) {
+        review.setCreatedAt(LocalDateTime.now());
+        return reviewRepository.save(review);
+    }
+
+    public Review getReview(Long productId, Long userId) {
+        return reviewRepository.findByProductIdAndUserId(productId, userId)
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+    }
+
+    @Override
+    public Page<ReviewResponse> getReviewsForProduct(Long productId, Pageable pageable) {
+        return reviewRepository.findByProductId(productId, pageable)
+                .map(ReviewResponse::from);
     }
 
     @Override
@@ -87,35 +140,36 @@ public class ReviewServiceImpl implements ReviewService {
                     reviewRepository.delete(review);
 
                     redisTemplate.delete("product:%s:rating-summary".formatted(productId));
+
                     ReviewDeletedEvent event = ReviewDeletedEvent.newBuilder()
                             .setEventType("REVIEW_DELETED")
+                            .setReviewId(review.getId().toString())              // ✅ FIX
+                            .setProductId(review.getProductId())           // ✅ REQUIRED
+                            .setUserId(review.getUserId())                 // ✅ REQUIRED
+                            .setRating(review.getRating())                 // ✅ REQUIRED
+                            .setComment(review.getReviewText())            // ✅ REQUIRED
+                            .setCreatedAt(review.getCreatedAt().atZone(ZoneId.systemDefault())
+                                    .toInstant()) // ✅ FIX type
+                            .setDeletedAt(Instant.now())
                             .setPayload(
                                     ReviewPayload.newBuilder()
                                             .setReviewId(review.getId().toString())
-                                            .setProductId(Long.valueOf(review.getProductId()))
-                                            .setUserId(Long.valueOf(review.getUserId()))
+                                            .setProductId(review.getProductId())
+                                            .setUserId(review.getUserId())
                                             .setRating(review.getRating())
                                             .setComment(review.getReviewText())
-                                            .setCreatedAt(review.getCreatedAt())
+                                            .setCreatedAt(
+                                                    review.getCreatedAt()
+                                                            .atZone(ZoneId.systemDefault())
+                                                            .toInstant()
+                                            )
                                             .build()
                             )
-                            .build();
+                            .build();   // ✅ REQUIRED — you were missing this!
 
                     outboxService.saveEventToOutbox(event);
                 });
-    }
 
-    @Override
-    public Page<ReviewResponse> getReviewsForProduct(Long productId, Pageable pageable) {
-        return reviewRepository.findByProductId(productId, pageable)
-                .map(r -> new ReviewResponse(
-                        r.getId(),
-                        Long.valueOf(r.getProductId()),
-                        Long.valueOf(r.getUserId()),
-                        r.getRating(),
-                        r.getReviewText(),
-                        r.getCreatedAt(),
-                        r.getUpdatedAt()
-                ));
+
     }
 }
