@@ -1,42 +1,80 @@
 package com.itc.funkart.mapper;
 
+import com.itc.funkart.dto.OrderItemRequest;
+import com.itc.funkart.dto.OrderItemResponse;
 import com.itc.funkart.dto.OrderRequest;
 import com.itc.funkart.dto.OrderResponse;
 import com.itc.funkart.entity.Order;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Named;
+import com.itc.funkart.entity.OrderItem;
+import org.springframework.stereotype.Component;
 
-import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
 
-@Mapper(componentModel = "spring")
-public interface OrderMapper {
+/**
+ * <h2>OrderMapper (Manual Implementation)</h2>
+ * <p>Explicitly handles the transformation between Entities and DTOs.</p>
+ * <p>This approach is preferred for Junior Dev readability as it removes
+ * MapStruct's annotation complexity and makes debugging straightforward.</p>
+ */
+@Component
+public class OrderMapper {
 
-    // Convert DTO → Entity (handle UUID manually)
-    default Order toEntity(OrderRequest request) {
+    /**
+     * Maps OrderRequest to a fresh Order entity.
+     * Note: We don't map customerId or totalAmount here; the Service layer
+     * handles those after JWT extraction and price fetching.
+     */
+    public Order toEntity(OrderRequest request) {
         if (request == null) return null;
 
         Order order = new Order();
-        if (request.getCustomerId() != null)
-            order.setCustomerId(UUID.fromString(request.getCustomerId()));
-        if (request.getProductId() != null)
-            order.setProductId(UUID.fromString(request.getProductId()));
 
-        order.setQuantity(request.getQuantity());
-        order.setPrice(request.getPrice());
+        if (request.getItems() != null) {
+            List<OrderItem> items = request.getItems().stream()
+                    .map(this::toItemEntity)
+                    .peek(item -> item.setOrder(order)) // Crucial: Link child to parent
+                    .collect(Collectors.toList());
+            order.setItems(items);
+        }
 
         return order;
     }
 
-    // Convert Entity → DTO
-    @Mapping(source = "customerId", target = "customerId", qualifiedByName = "uuidToString")
-    @Mapping(source = "productId", target = "productId", qualifiedByName = "uuidToString")
-    @Mapping(source = "orderId", target = "orderId", qualifiedByName = "uuidToString")
-    OrderResponse toResponse(Order order);
+    /**
+     * Converts a saved Order entity into a Response DTO.
+     */
+    public OrderResponse toResponse(Order order) {
+        if (order == null) return null;
 
-    // Helper methods to convert UUID → String (MapStruct will use this)
-    @Named("uuidToString")
-    default String uuidToString(UUID uuid) {
-        return uuid != null ? uuid.toString() : null;
+        return OrderResponse.builder()
+                .orderId(order.getId())
+                .customerId(order.getCustomerId())
+                .orderStatus(order.getStatus()) // Matches the DTO field name
+                .totalAmount(order.getTotalAmount())
+                .createdAt(order.getCreatedAt())
+                .items(mapItemResponses(order.getItems()))
+                .build();
+    }
+
+    // --- Private Helpers for Collection Mapping ---
+
+    private OrderItem toItemEntity(OrderItemRequest itemRequest) {
+        return OrderItem.builder()
+                .productId(itemRequest.getProductId())
+                .quantity(itemRequest.getQuantity())
+                .build();
+    }
+
+    private List<OrderItemResponse> mapItemResponses(List<OrderItem> items) {
+        if (items == null) return List.of();
+
+        return items.stream()
+                .map(item -> OrderItemResponse.builder()
+                        .productId(item.getProductId())
+                        .quantity(item.getQuantity())
+                        .priceAtPurchase(item.getPriceAtPurchase())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

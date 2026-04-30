@@ -1,149 +1,87 @@
 package com.itc.funkart.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.itc.funkart.dto.OrderRequest;
+import com.itc.funkart.config.JwtService;
+import com.itc.funkart.config.JwtWebFilter;
 import com.itc.funkart.dto.OrderResponse;
+import com.itc.funkart.entity.OrderStatus;
 import com.itc.funkart.service.OrderService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * <h2>OrderControllerTest</h2>
+ * <p>
+ * Verifies the customer-facing {@link OrderController}.
+ * Ensures that responses are correctly structured and service methods are invoked properly.
+ * </p>
+ */
 @WebMvcTest(OrderController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class OrderControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockBean
+    @MockitoBean
     private OrderService service;
 
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private JwtWebFilter jwtWebFilter;
+
+    /**
+     * <h3>Test: Get Order by ID</h3>
+     * <b>Scenario:</b> A user requests details for a specific order they own.<br>
+     * <b>Expected:</b> Returns a 200 OK with the order data wrapped in an ApiResponse.
+     */
     @Test
-    void createOrder_shouldReturnCreatedPayload() throws Exception {
-        OrderRequest request = new OrderRequest(UUID.randomUUID().toString(), UUID.randomUUID().toString(), 2, 19.99);
-        OrderResponse response = OrderResponse.builder()
-                .orderId(UUID.randomUUID())
-                .customerId(UUID.fromString(request.getCustomerId()))
-                .productId(UUID.fromString(request.getProductId()))
-                .quantity(request.getQuantity())
-                .price(request.getPrice())
-                .orderStatus("CREATED")
-                .build();
-
-        when(service.createOrder(any(OrderRequest.class))).thenReturn(response);
-
-        mockMvc.perform(post("/api/v1/orders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(response)));
-
-        verify(service, times(1)).createOrder(any(OrderRequest.class));
-    }
-
-    @Test
-    void getOrder_shouldReturnResource() throws Exception {
-        UUID orderId = UUID.randomUUID();
+    @DisplayName("GET /orders/{id} - Success")
+    @WithMockUser
+    void getOrder_shouldReturnOrderDetails() throws Exception {
+        Long orderId = 101L;
         OrderResponse response = OrderResponse.builder()
                 .orderId(orderId)
-                .customerId(UUID.randomUUID())
-                .productId(UUID.randomUUID())
-                .quantity(1)
-                .price(9.95)
-                .orderStatus("CREATED")
+                .orderStatus(OrderStatus.PENDING)
                 .build();
 
         when(service.getOrder(orderId)).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/orders/{id}", orderId))
+        mockMvc.perform(get("/orders/{id}", orderId))
                 .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(response)));
-
-        verify(service, times(1)).getOrder(orderId);
+                .andExpect(jsonPath("$.data.orderId").value(orderId))
+                .andExpect(jsonPath("$.message").value("Order retrieved successfully"));
     }
 
+    /**
+     * <h3>Test: Order Cancellation</h3>
+     * <b>Scenario:</b> A user cancels their order before it is shipped.<br>
+     * <b>Expected:</b> The status is updated to CANCELLED and a success message is returned.
+     */
     @Test
-    void getOrders_shouldReturnList() throws Exception {
-        OrderResponse first = OrderResponse.builder()
-                .orderId(UUID.randomUUID())
-                .customerId(UUID.randomUUID())
-                .productId(UUID.randomUUID())
-                .quantity(1)
-                .price(5.0)
-                .orderStatus("CREATED")
-                .build();
-        OrderResponse second = OrderResponse.builder()
-                .orderId(UUID.randomUUID())
-                .customerId(UUID.randomUUID())
-                .productId(UUID.randomUUID())
-                .quantity(2)
-                .price(12.0)
-                .orderStatus("CREATED")
-                .build();
+    @DisplayName("PATCH /orders/{id}/cancel - Success")
+    @WithMockUser
+    void cancelOrder_shouldInvokeCancellation() throws Exception {
+        Long orderId = 101L;
 
-        when(service.getAllOrders()).thenReturn(List.of(first, second));
-
-        mockMvc.perform(get("/api/v1/orders"))
+        mockMvc.perform(patch("/orders/{id}/cancel", orderId))
                 .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(List.of(first, second))));
+                .andExpect(jsonPath("$.message").value("Order cancellation request processed"));
 
-        verify(service, times(1)).getAllOrders();
-    }
-
-    @Test
-    void updateOrder_shouldReturnUpdatedPayload() throws Exception {
-        UUID orderId = UUID.randomUUID();
-        OrderRequest request = new OrderRequest(UUID.randomUUID().toString(), UUID.randomUUID().toString(), 3, 27.5);
-        OrderResponse response = OrderResponse.builder()
-                .orderId(orderId)
-                .customerId(UUID.fromString(request.getCustomerId()))
-                .productId(UUID.fromString(request.getProductId()))
-                .quantity(request.getQuantity())
-                .price(request.getPrice())
-                .orderStatus("UPDATED")
-                .build();
-
-        when(service.updateOrder(orderId, request)).thenReturn(response);
-
-        mockMvc.perform(put("/api/v1/orders/{id}", orderId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(response)));
-
-        verify(service, times(1)).updateOrder(orderId, request);
-    }
-
-    @Test
-    void deleteOrder_shouldReturnConfirmation() throws Exception {
-        UUID orderId = UUID.randomUUID();
-
-        doNothing().when(service).deleteOrder(orderId);
-
-        mockMvc.perform(delete("/api/v1/orders/{id}", orderId))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Order deleted"));
-
-        verify(service, times(1)).deleteOrder(orderId);
+        // Verify the controller specifically asked for a CANCELLED status update
+        verify(service).updateOrderStatus(eq(orderId), eq(OrderStatus.CANCELLED));
     }
 }

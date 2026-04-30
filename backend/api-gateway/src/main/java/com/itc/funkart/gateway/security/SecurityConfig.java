@@ -72,7 +72,9 @@ public class SecurityConfig {
                                 "/api/v1/categories/**",
                                 "/api/v1/admin/categories/**",
                                 "/api/v1/products/by-ids",
-                                "/api/v1/cart"
+                                "/api/v1/cart",
+                                "/api/v1/orders/**",
+                                "/api/v1/admin/orders/**"
                         ).permitAll()
 
                         // PROTECTED ENDPOINTS: Requires valid JWT (e.g., /api/v1/users/me)

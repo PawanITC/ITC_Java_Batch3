@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: jdbc:postgresql://${PROD_DB_HOST}:5432/order_prod
+    username: ${PROD_DB_USER}
+    password: ${PROD_DB_PASS}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate # Safety first in Prod
+    show-sql: false
+
+  kafka:
+    bootstrap-servers: ${PROD_KAFKA_SERVER}
+
+  management:
+    tracing:
+      sampling:
+        probability: 0.1 # Don't trace 100% of traffic in Prod to save CPU

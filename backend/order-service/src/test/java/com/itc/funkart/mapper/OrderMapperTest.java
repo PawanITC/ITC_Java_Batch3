@@ -1,62 +1,96 @@
 package com.itc.funkart.mapper;
 
+import com.itc.funkart.dto.OrderItemRequest;
 import com.itc.funkart.dto.OrderRequest;
 import com.itc.funkart.dto.OrderResponse;
 import com.itc.funkart.entity.Order;
+import com.itc.funkart.entity.OrderItem;
+import com.itc.funkart.entity.OrderStatus;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
 
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * <h2>OrderMapperTest</h2>
+ * <p>
+ * Verifies that the manual mapping logic correctly transforms data between
+ * API DTOs and Database Entities. This is critical for data integrity.
+ * </p>
+ */
 class OrderMapperTest {
 
-    private final OrderMapper mapper = Mappers.getMapper(OrderMapper.class);
+    private OrderMapper mapper;
 
-    @Test
-    void toEntity_shouldParseUuidStrings() {
-        String customerId = UUID.randomUUID().toString();
-        String productId = UUID.randomUUID().toString();
-        OrderRequest request = new OrderRequest(customerId, productId, 4, 44.0);
-
-        Order entity = mapper.toEntity(request);
-
-        assertEquals(UUID.fromString(customerId), entity.getCustomerId());
-        assertEquals(UUID.fromString(productId), entity.getProductId());
-        assertEquals(4, entity.getQuantity());
-        assertEquals(44.0, entity.getPrice());
+    @BeforeEach
+    void setUp() {
+        mapper = new OrderMapper();
     }
 
     @Test
-    void toEntity_shouldHandleNullRequest() {
-        assertNull(mapper.toEntity(null));
-    }
+    @DisplayName("toEntity - Should map request with items to order entity")
+    void toEntity_shouldMapCorrectly() {
 
-    @Test
-    void toResponse_shouldCopyAllValues() {
-        Order order = Order.builder()
-                .orderId(UUID.randomUUID())
-                .customerId(UUID.randomUUID())
-                .productId(UUID.randomUUID())
-                .quantity(5)
-                .price(50.0)
-                .orderStatus("CREATED")
+        // Arrange
+        OrderItemRequest itemReq = OrderItemRequest.builder()
+                .productId(10L)
+                .quantity(2)
                 .build();
 
-        OrderResponse response = mapper.toResponse(order);
+        OrderRequest request = new OrderRequest();
+        request.setItems(List.of(itemReq));
 
-        assertEquals(order.getOrderId(), response.getOrderId());
-        assertEquals(order.getCustomerId(), response.getCustomerId());
-        assertEquals(order.getProductId(), response.getProductId());
-        assertEquals(order.getQuantity(), response.getQuantity());
-        assertEquals(order.getPrice(), response.getPrice());
-        assertEquals(order.getOrderStatus(), response.getOrderStatus());
+        // Act
+        Order result = mapper.toEntity(request);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getItems().size());
+
+        OrderItem item = result.getItems().get(0);
+
+        assertEquals(10L, item.getProductId());
+        assertEquals(2, item.getQuantity());
+
+        // ✔ This is the ONLY valid relationship check at mapper level
+        assertEquals(result, item.getOrder());
     }
 
     @Test
-    void uuidToString_shouldHandleNull() {
-        assertNull(mapper.uuidToString(null));
+    @DisplayName("toResponse - Should map entity fields to response DTO")
+    void toResponse_shouldMapCorrectly() {
+        // Arrange
+        Order order = new Order();
+        order.setId(100L);
+        order.setCustomerId(1L);
+        order.setStatus(OrderStatus.PENDING);
+        order.setTotalAmount(BigDecimal.valueOf(200.00));
+
+        OrderItem item = new OrderItem();
+        item.setProductId(50L);
+        item.setQuantity(2);
+        item.setPriceAtPurchase(BigDecimal.valueOf(100.00));
+        order.addOrderItem(item);
+
+        // Act
+        OrderResponse response = mapper.toResponse(order);
+
+        // Assert
+        assertEquals(100L, response.getOrderId());
+        assertEquals(OrderStatus.PENDING, response.getOrderStatus());
+        assertEquals(BigDecimal.valueOf(200.00), response.getTotalAmount());
+        assertEquals(1, response.getItems().size());
+        assertEquals(50L, response.getItems().get(0).getProductId());
+    }
+
+    @Test
+    @DisplayName("Null Safety - Should return null when input is null")
+    void handleNulls() {
+        assertNull(mapper.toEntity(null));
+        assertNull(mapper.toResponse(null));
     }
 }

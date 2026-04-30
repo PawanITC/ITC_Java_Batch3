@@ -1,17 +1,21 @@
 package com.itc.funkart.dto;
 
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
-import java.util.UUID;
+import java.util.List;
 
-    @Data
-    @AllArgsConstructor
-    public class OrderRequest {
+/**
+ * <h2>OrderRequest</h2>
+ * <p>The primary payload for creating a new order. Contains a list of
+ * items selected by the user from their shopping cart.</p>
+ */
+@Data
+public class OrderRequest {
 
-        private String customerId;
-        private String productId;
-        private Integer quantity;
-        private Double price;
-    }
-
+    /**
+     * A collection of one or more product items to be included in the order.
+     */
+    @NotEmpty(message = "Order must contain at least one item")
+    private List<OrderItemRequest> items;
+}
