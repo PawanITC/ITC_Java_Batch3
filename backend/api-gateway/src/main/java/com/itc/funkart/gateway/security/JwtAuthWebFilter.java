@@ -44,22 +44,29 @@ public class JwtAuthWebFilter implements WebFilter {
     public Mono<Void> filter(@NonNull ServerWebExchange exchange,
                              @NonNull WebFilterChain chain) {
 
-        String token = cookieUtil.extractToken(exchange);
-
-        if (token == null || token.isBlank()) {
-            return unauthorized(exchange);
-        }
-
         String path = exchange.getRequest().getURI().getPath();
 
+        // 1. Skip logic for paths that MUST be public at the filter level (like Actuator)
         if (path.startsWith("/actuator")) {
             return chain.filter(exchange);
         }
 
+
+        String token = cookieUtil.extractToken(exchange);
+        // 2. If no token is found, do NOT return unauthorized.
+        // Just move to the next filter. Spring Security will handle the 403/401
+        // based on your pathMatchers later.
+        if (token == null || token.isBlank()) {
+            return chain.filter(exchange);
+        }
+
+
+        // 3. If a token exists, validate it
         return tokenBlacklistService.isBlacklisted(token)
                 .flatMap(isBlacklisted -> {
 
                     if (Boolean.TRUE.equals(isBlacklisted)) {
+                        // Validating a BAD token still fails
                         return unauthorized(exchange);
                     }
 
