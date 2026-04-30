@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: payment-service
+  profiles:
+    active: dev # This is the "Switch" that turns on your dev file
+
+server:
+  port: 8080
+  address: 0.0.0.0
+
+# This connects to your ApiConfig.java class
+api:
+  version: v1

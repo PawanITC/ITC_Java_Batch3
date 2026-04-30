@@ -1,15 +1,58 @@
 spring:
+  config:
+    activate:
+      on-profile: dev
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+    cache:
+      type: redis
+
   datasource:
-    url: ${DB_URL}              # points to localhost
+    url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO:create-drop}
+      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
     show-sql: ${SHOW_SQL:true}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
-frontend:
-  url: ${FRONTEND_URL}
-app:
-  secure-cookie: false         # allow HTTP in dev
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      # Connection & Serialization
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+      # The Banker Logic (Reliability)
+      acks: all
+      retries: 2147483647 # Integer.MAX_VALUE for infinite retries on transient errors
+
+      properties:
+        # Ensures exactly-once delivery and prevents duplicates
+        enable.idempotence: true
+
+        # Speed & Stall Tactics (Optimized for performance)
+        linger.ms: 5
+        batch.size: 16384
+
+        # Connection stability
+        reconnect.backoff.ms: 50
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus  # minimal for prod
+  endpoint:
+    health:
+      show-details: always

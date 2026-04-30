@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jmeter
+  namespace: catalogue-service
+spec:
+  containers:
+    - name: jmeter
+      image: justb4/jmeter:latest
+      command: ["/bin/sh"]
+      args: ["-c", "sleep infinity"]

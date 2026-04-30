@@ -1,0 +1,40 @@
+# ==================================================
+# Funkart API Gateway - Git Ignore
+# ==================================================
+
+# --- Gradle Essentials (CRITICAL for Jenkins) ---
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# --- Build Outputs (Keep Git Clean) ---
+.gradle
+build/
+bin/
+out/
+.apt_generated
+
+# --- IDEs & Editors ---
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.springBeans
+.sts4-cache
+
+# --- Secrets & Environment (SECURITY) ---
+# Gateway handles JWT_SECRET - never commit these!
+.env
+*.env
+.env.local
+
+# --- OS & Logs ---
+.DS_Store
+Thumbs.db
+*.log

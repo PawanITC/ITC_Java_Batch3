@@ -1,39 +1,30 @@
-spring:
-  application:
-    name: funkart
+  spring:
+    application:
+      name: user-service
+    web:
+      resources:
+        add-mappings: true
 
-  config:
-    import: optional:file:.env[.properties] # importing env file properties
+  api:
+    version: v1
 
-  datasource:
-    url: jdbc:postgresql://prod-db-host:5432/mydb
-    driver-class-name: org.postgresql.Driver
-    username: prod_user
-    password: prod_secret
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS}
+    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
 
-  jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    hibernate:
-      ddl-auto: create-drop   # production safe set to validate
-    show-sql: false
+  frontend:
+    url: ${FRONTEND_URL}
 
-api:
-  version: /api/v1
+  app:
+    secure-cookie: ${APP_SECURE_COOKIE}
 
-github:
-  oauth:
-    client-id: ${CLIENT_ID}
-    client-secret: ${CLIENT_SECRET}
-    redirect-uri: ${GITHUB_REDIRECT_URI}
+  logging:
+    level:
+      org.springframework.core.env: INFO
 
-jwt:
-  secret: ${JWT_SECRET}
-  expiration-ms: ${EXPIRATION_MS}
-  cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
-
-app:
-  secure-cookie: true   # production HTTPS
-
-logging:
-  level:
-    org.springframework.core.env: INFO
+  github:
+    oauth:
+      client-id: ${GITHUB_CLIENT_ID}
+      client-secret: ${GITHUB_CLIENT_SECRET}
+      redirect-uri: ${GITHUB_REDIRECT_URI}

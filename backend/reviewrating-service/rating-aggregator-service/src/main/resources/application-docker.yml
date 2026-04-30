@@ -1,0 +1,41 @@
+server:
+  port: 9096
+
+spring:
+  application:
+    name: rating-aggregator-service
+
+
+
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: rating-aggregator-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+  datasource:
+    url: jdbc:postgresql://18.175.222.132:32680/postgres
+    username: postgres
+    password: Ie422p9Cx8
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+otel:
+  exporter:
+    otlp:
+      endpoint: http://otel-collector:4318

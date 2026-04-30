@@ -1,0 +1,35 @@
+# --- Gradle Essentials (DO NOT IGNORE) ---
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# --- Build Outputs ---
+.gradle
+build/
+bin/
+out/
+.apt_generated
+
+# --- IDEs & Editors ---
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.springBeans
+.sts4-cache
+
+# --- OS Junk ---
+RECYCLER/
+[Db]umb.db
+.DS_Store
+Thumbs.db
+
+# --- Microservice Specifics ---
+# Keep logs out of Git
+*.log

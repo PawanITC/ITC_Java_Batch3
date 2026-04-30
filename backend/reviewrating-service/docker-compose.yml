@@ -1,0 +1,175 @@
+services:
+
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: [ "--config=/etc/otel-config.yaml" ]
+    volumes:
+      - ./otel-config.yaml:/etc/otel-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics
+    depends_on:
+      - jaeger
+    networks:
+      - observability
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4317:4317"   # ✅ OTLP gRPC
+      - "4318:4318"
+    networks:
+      - observability
+
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      CLUSTER_ID: "3ftMfRiOSXaHaMkr7U4d6A"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:29093"
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      - observability
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      - kafka
+    networks:
+        - observability
+
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.6.0
+    depends_on:
+      - kafka
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_REST_PORT: 8083
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_GROUP_ID: "connect-cluster"
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_PLUGIN_PATH: /usr/share/java,/etc/kafka-connect/jars
+    volumes:
+      - ./connect-plugins:/etc/kafka-connect/jars
+    ports:
+      - "8083:8083"
+    networks:
+      - observability
+
+
+  review-rating-service:
+    build:
+      context: ./review-rating-service
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+      - otel-collector
+    env_file:
+      - docker.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://18.175.222.132:32680/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Ie422p9Cx8
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      SPRING_REDIS_HOST: ${REDIS_HOST}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP}
+
+
+    volumes:
+      - C:/otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar
+    expose:
+      - "9097"
+    networks:
+      - observability
+
+    # -----------------------------
+    # Consumer Microservice
+    # -----------------------------
+  rating-aggregator-service:
+    build:
+      context: ./rating-aggregator-service
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+      - otel-collector
+    env_file:
+      - docker.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://18.175.222.132:32680/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Ie422p9Cx8
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      SPRING_REDIS_HOST: ${REDIS_HOST}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP}
+
+    volumes:
+      - C:/otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar
+    expose:
+      - "9096"
+    networks:
+      - observability
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - C:/Users/Sunil/IdeaProjects/ITC_Java_Batch3/backend/reviewrating-service/prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks: [ observability ]
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    ports:
+      - "3000:3000"
+    depends_on:
+      - otel-collector
+    networks:
+      - observability
+
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    networks:
+      - observability
+
+
+
+networks:
+  observability:
+    driver: bridge
+
+volumes:
+  pgdata:
