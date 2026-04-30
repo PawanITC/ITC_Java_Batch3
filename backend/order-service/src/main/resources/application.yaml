@@ -2,21 +2,20 @@ spring:
   application:
     name: order-service
 
-  # --- Pagination Defaults ---
   data:
     web:
       pageable:
         default-page-size: 10
         max-page-size: 100
-        one-indexed-parameters: false # page=0 is the first page
+        one-indexed-parameters: false
 
-  # --- Kafka Config ---
   kafka:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+
     consumer:
       group-id: order-service-group-v1
       auto-offset-reset: earliest
@@ -26,9 +25,8 @@ spring:
         spring.json.trusted.packages: "com.itc.funkart.dto"
         spring.json.value.default.type: com.itc.funkart.dto.OrderEvent
 
-# Shared JWT settings
 jwt:
-  secret: ${JWT_SECRET:mXxbssTvw7Am8gAlzYhTCP4IyxMeOK2tDqSDPQAv6Qk0}
+  secret: ${JWT_SECRET}
   expiration-ms: ${JWT_EXPIRATION:3600000}
 
 server:
