@@ -1,6 +1,7 @@
 package com.itc.funkart.service;
 
 import com.itc.funkart.dto.ReviewRequest;
+import com.itc.funkart.entity.ProductRatingSummary;
 import com.itc.funkart.entity.Review;
 import com.itc.funkart.outbox.OutboxService;
 import com.itc.funkart.projection.RatingStats;
