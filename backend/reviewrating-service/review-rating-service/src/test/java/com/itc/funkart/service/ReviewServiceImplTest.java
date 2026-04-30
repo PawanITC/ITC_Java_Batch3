@@ -1,8 +1,6 @@
 package com.itc.funkart.service;
 
 import com.itc.funkart.dto.ReviewRequest;
-import com.itc.funkart.dto.ReviewResponse;
-import com.itc.funkart.entity.ProductRatingSummary;
 import com.itc.funkart.entity.Review;
 import com.itc.funkart.outbox.OutboxService;
 import com.itc.funkart.projection.RatingStats;
@@ -18,10 +16,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
