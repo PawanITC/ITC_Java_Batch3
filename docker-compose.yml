@@ -153,6 +153,22 @@ services:
     networks:
       - db-network
 
+  order-service:
+    container_name: order-service
+    build:
+      context: ./backend/order-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/order-service/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+    networks:
+      - db-network
+
 # --- STORAGE ---
 networks:
   db-network:
