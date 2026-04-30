@@ -38,14 +38,13 @@ public class KafkaProductListener {
 
             case DELETED:
                 if (event.getProduct() == null ||
-                        event.getProduct().getId() == null ||
-                        event.getProduct().getCategory() == null) {
+                        event.getProduct().getId() == null) {
                     throw new InvalidProductEventException("Invalid delete event");
                 }
 
                 catalogueService.deleteProductFromCache(
                         String.valueOf(event.getProduct().getId()),
-                        event.getProduct().getCategory()
+                        event.getProduct().getCategory() // can be null
                 );
                 break;
         }
