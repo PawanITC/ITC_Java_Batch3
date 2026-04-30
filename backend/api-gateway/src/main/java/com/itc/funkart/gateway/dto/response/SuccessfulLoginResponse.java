@@ -11,4 +11,5 @@ import lombok.Builder;
 public record SuccessfulLoginResponse(
         UserDto user,
         String token
-) {}
+) {
+}

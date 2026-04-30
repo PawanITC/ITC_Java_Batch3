@@ -13,4 +13,5 @@ import lombok.Builder;
 public record CodeRequest(
         @NotBlank(message = "OAuth code cannot be empty")
         String code
-) {}
+) {
+}

@@ -41,43 +41,35 @@ public class SecurityConfig {
     ) {
 
         return http
-                // 1. Stateless gateway (no sessions, no CSRF)
+                // 1. Stateless gateway
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
 
-                // 2. CORS config (Enables frontend to talk to Gateway)
+                // 2. CORS
                 .cors(cors -> cors.configurationSource(corsSource))
 
-                // 3. JWT authentication filter
+                // 3. JWT filter
                 .addFilterAt(jwtAuthWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
 
-                // 4. Authorization rules
+                // 4. Authorization rules (FIXED)
                 .authorizeExchange(auth -> auth
-                        .pathMatchers(HttpMethod.OPTIONS).permitAll() // Allow pre-flight requests
 
-                        // PUBLIC ENDPOINTS: No JWT required
+                        // Preflight requests
+                        .pathMatchers(HttpMethod.OPTIONS).permitAll()
+
+                        // PUBLIC endpoints ONLY
                         .pathMatchers(
                                 "/api/v1/users/login",
                                 "/api/v1/users/signup",
-                                "/api/v1/admin/users/**",
-                                "/api/v1/users/oauth/**",   // For your internal user service oauth paths
-                                "/api/v1/oauth/**",         // For the direct gateway oauth paths
-                                "/api/v1/users/health",
-                                "/actuator/**",             // Allow health checks
-                                "/api/v1/payments/webhook/**", // 1. External facing path
-                                "/payments/webhook/**",         // 2. Internal/Direct path (Just in case)
-                                "/api/v1/products/**",
-                                "/api/v1/admin/products/**",
-                                "/api/v1/categories/**",
-                                "/api/v1/admin/categories/**",
-                                "/api/v1/products/by-ids",
-                                "/api/v1/cart",
-                                "/api/v1/orders/**",
-                                "/api/v1/admin/orders/**"
+                                "/api/v1/users/oauth/**",
+                                "/api/v1/oauth/**",
+                                "/actuator/**",
+                                "/api/v1/payments/webhook/**",
+                                "/payments/webhook/**"
                         ).permitAll()
 
-                        // PROTECTED ENDPOINTS: Requires valid JWT (e.g., /api/v1/users/me)
+                        // EVERYTHING ELSE is protected
                         .anyExchange().authenticated()
                 )
                 .build();

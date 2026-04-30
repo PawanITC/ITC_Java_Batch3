@@ -1,38 +1,48 @@
 # ==============================================================================
 # API GATEWAY CONFIGURATION
 # ==============================================================================
+
 spring:
   application:
     name: api-gateway
 
-  # --- INFRASTRUCTURE ---
+  # ----------------------------------------------------------------------------
+  # REDIS (rate limit / caching)
+  # ----------------------------------------------------------------------------
   data:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
       connect-timeout: 2000ms
 
-  # --- DB EXCLUSION (Gateway is non-blocking/no-DB) ---
+  # ----------------------------------------------------------------------------
+  # DISABLE DB AUTO-CONFIG (gateway is reactive only)
+  # ----------------------------------------------------------------------------
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 
-  # --- ROUTING RULES ---
+  # ----------------------------------------------------------------------------
+  # GATEWAY ROUTES
+  # ----------------------------------------------------------------------------
   cloud:
     gateway:
       server:
         webflux:
           routes:
-            # 1. AUTH & USER MANAGEMENT
+
+            # ======================================================
+            # USER SERVICE
+            # ======================================================
             - id: user-service
               uri: ${USER_SERVICE_URL:http://user-service:8080}
               predicates:
-                - Path=/api/v1/users/**, /api/v1/oauth/**
+                - Path=/api/v1/users/**,/api/v1/oauth/**
               filters:
                 - StripPrefix=2
-            # 1.1 ADMIN USER MANAGEMENT
+
             - id: user-admin-service
               uri: ${USER_SERVICE_URL:http://user-service:8080}
               predicates:
@@ -40,17 +50,17 @@ spring:
               filters:
                 - StripPrefix=2
 
-            # 2. PRODUCT ADMIN (Must be above general products)
-            # Request: /api/v1/admin/categories -> Forward: /admin/categories
+
+            # ======================================================
+            # PRODUCT SERVICE
+            # ======================================================
             - id: product-admin-service
               uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
               predicates:
-                - Path=/api/v1/admin/**
+                - Path=/api/v1/admin/products/**,/api/v1/admin/categories/**
               filters:
                 - StripPrefix=2
 
-            # 3. SHOPPING CART
-            # Request: /api/v1/cart/** -> Forward: /cart/**
             - id: product-cart-service
               uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
               predicates:
@@ -58,8 +68,6 @@ spring:
               filters:
                 - StripPrefix=2
 
-            # 4. PRODUCT CATEGORIES (Public)
-            # Request: /api/v1/categories/** -> Forward: /categories/**
             - id: product-categories-service
               uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
               predicates:
@@ -67,8 +75,6 @@ spring:
               filters:
                 - StripPrefix=2
 
-            # 5. PRODUCT CATALOG (General Public)
-            # Request: /api/v1/products/** -> Forward: /products/**
             - id: product-service
               uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
               predicates:
@@ -76,7 +82,28 @@ spring:
               filters:
                 - StripPrefix=2
 
-            # 6. PAYMENTS (Webhook first for precision)
+
+            # ======================================================
+            # ORDER SERVICE
+            # ======================================================
+            - id: order-service
+              uri: ${ORDER_SERVICE_URL:http://order-service:8080}
+              predicates:
+                - Path=/api/v1/orders/**
+              filters:
+                - StripPrefix=2
+
+            - id: order-admin-service
+              uri: ${ORDER_SERVICE_URL:http://order-service:8080}
+              predicates:
+                - Path=/api/v1/admin/orders/**
+              filters:
+                - StripPrefix=2
+
+
+            # ======================================================
+            # PAYMENT SERVICE
+            # ======================================================
             - id: payment-webhook-route
               uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
               predicates:
@@ -91,11 +118,17 @@ spring:
               filters:
                 - StripPrefix=2
 
-# --- SERVER CONFIG ---
+
+# ==============================================================================
+# SERVER
+# ==============================================================================
 server:
   port: ${PORT:8060}
 
-# --- MONITORING ---
+
+# ==============================================================================
+# ACTUATOR
+# ==============================================================================
 management:
   endpoints:
     web:
@@ -105,25 +138,25 @@ management:
     health:
       show-details: always
 
-# --- CUSTOM APPLICATION PROPERTIES ---
+
+# ==============================================================================
+# APP CONFIG
+# ==============================================================================
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   oauth-success-path: ${OAUTH_SUCCESS_PATH:/oauth-success}
 
-  # Microservice Internal URLs
   services:
     user-service: ${USER_SERVICE_URL:http://user-service:8080}
     payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
     product-service: ${PRODUCT_SERVICE_URL:http://product-service:8080}
     order-service: ${ORDER_SERVICE_URL:http://order-service:8080}
 
-  # GitHub OAuth Credentials
   github:
     client-id: ${GITHUB_CLIENT_ID}
     client-secret: ${GITHUB_CLIENT_SECRET}
     redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8060/api/v1/oauth/github/callback}
 
-  # JWT Policy
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}

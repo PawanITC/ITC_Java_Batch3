@@ -28,7 +28,8 @@ import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 /**
  * <h2>GithubOAuthController — Web Layer Tests</h2>
@@ -55,7 +56,9 @@ class GithubOAuthControllerTest {
     @Autowired
     private WebTestClient webTestClient;
 
-    /** The sole collaborator of this controller. */
+    /**
+     * The sole collaborator of this controller.
+     */
     @MockitoBean
     private OAuthGatewayService oAuthGatewayService;
 
@@ -66,6 +69,16 @@ class GithubOAuthControllerTest {
      */
     @MockitoBean
     private JwtAuthWebFilter jwtAuthWebFilter;
+
+    @BeforeEach
+    void setUp() {
+        // Use the robust pass-through to avoid NPEs
+        lenient().when(jwtAuthWebFilter.filter(any(), any())).thenAnswer(inv -> {
+            ServerWebExchange exchange = inv.getArgument(0);
+            WebFilterChain chain = inv.getArgument(1);
+            return (chain != null) ? chain.filter(exchange) : Mono.empty();
+        });
+    }
 
     /**
      * Disables all security rules and stubs the JWT filter so it transparently
@@ -81,16 +94,6 @@ class GithubOAuthControllerTest {
                     .authorizeExchange(ex -> ex.anyExchange().permitAll())
                     .build();
         }
-    }
-
-    @BeforeEach
-    void setUp() {
-        // Use the robust pass-through to avoid NPEs
-        lenient().when(jwtAuthWebFilter.filter(any(), any())).thenAnswer(inv -> {
-            ServerWebExchange exchange = inv.getArgument(0);
-            WebFilterChain chain = inv.getArgument(1);
-            return (chain != null) ? chain.filter(exchange) : Mono.empty();
-        });
     }
 
 //    @BeforeEach

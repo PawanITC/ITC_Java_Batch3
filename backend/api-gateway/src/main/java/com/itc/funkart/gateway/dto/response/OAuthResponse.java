@@ -32,16 +32,14 @@ import lombok.Builder;
  * by the Gateway.
  * </p>
  *
- * @param user
- *         The authenticated user profile returned by the User-Service.
- *         May be used for UI hydration or client-side display.
- *
- * @param token
- *         The signed JWT issued by the User-Service representing the
- *         authenticated session.
+ * @param user  The authenticated user profile returned by the User-Service.
+ *              May be used for UI hydration or client-side display.
+ * @param token The signed JWT issued by the User-Service representing the
+ *              authenticated session.
  */
 @Builder
 public record OAuthResponse(
         UserDto user,
         String token
-) {}
+) {
+}

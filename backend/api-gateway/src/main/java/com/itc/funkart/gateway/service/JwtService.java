@@ -20,7 +20,9 @@ public class JwtService {
 
     public JwtService(AppConfig appConfig) {
         String rawSecret = appConfig.jwt().secret();
-        if (rawSecret == null) {throw new RuntimeException("JWT Secret is missing from configuration!");}
+        if (rawSecret == null) {
+            throw new RuntimeException("JWT Secret is missing from configuration!");
+        }
 
         byte[] keyBytes = java.util.Base64.getDecoder().decode(rawSecret.trim());
         this.key = Keys.hmacShaKeyFor(keyBytes);

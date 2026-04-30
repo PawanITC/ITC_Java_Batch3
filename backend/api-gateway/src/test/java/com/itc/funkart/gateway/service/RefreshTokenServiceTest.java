@@ -40,19 +40,22 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class RefreshTokenServiceTest {
 
-    @Mock private ReactiveRedisTemplate<String, String> redis;
-    @Mock private ReactiveValueOperations<String, String> valueOps;
-
-    private RefreshTokenService service;
-
-    /** Token and device constants reused across test cases. */
-    private static final String TOKEN   = "refresh-uuid-abc";
-    private static final String DEVICE  = "device-xyz";
-    private static final Long   USER_ID = 42L;
-
-    /** Canonical Redis key computed the same way the service does. */
-    private static final String KEY      = "refresh:" + TOKEN;
+    /**
+     * Token and device constants reused across test cases.
+     */
+    private static final String TOKEN = "refresh-uuid-abc";
+    private static final String DEVICE = "device-xyz";
+    private static final Long USER_ID = 42L;
+    /**
+     * Canonical Redis key computed the same way the service does.
+     */
+    private static final String KEY = "refresh:" + TOKEN;
     private static final String USED_KEY = "used:" + KEY;
+    @Mock
+    private ReactiveRedisTemplate<String, String> redis;
+    @Mock
+    private ReactiveValueOperations<String, String> valueOps;
+    private RefreshTokenService service;
 
     @BeforeEach
     void setUp() {

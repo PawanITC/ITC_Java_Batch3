@@ -3,6 +3,7 @@ package com.itc.funkart.gateway.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
@@ -23,14 +24,18 @@ public class ApiResponse<T> {
         this.timestamp = Instant.now().truncatedTo(ChronoUnit.MILLIS);
     }
 
-    /** Success constructor */
+    /**
+     * Success constructor
+     */
     public ApiResponse(T data, String message) {
         this();
         this.data = data;
         this.message = message;
     }
 
-    /** Error constructor */
+    /**
+     * Error constructor
+     */
     public ApiResponse(ErrorDetails error) {
         this();
         this.error = error;

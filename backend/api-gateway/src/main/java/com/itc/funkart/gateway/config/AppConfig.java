@@ -61,7 +61,8 @@ public record AppConfig(
             @NotNull Integer cookieMaxAgeSeconds,
             @NotBlank String cookieName,
             boolean secureCookie
-    ) {}
+    ) {
+    }
 
     /**
      * GitHub OAuth configuration.
@@ -70,5 +71,6 @@ public record AppConfig(
             @NotBlank String clientId,
             @NotBlank String clientSecret,
             @NotBlank String redirectUri
-    ) {}
+    ) {
+    }
 }

@@ -1,6 +1,7 @@
 # 🛡️ Funkart API Gateway
 
-The Funkart API Gateway is the **edge routing layer** of the system and acts strictly as a **network + security perimeter**, not an identity authority.
+The Funkart API Gateway is the **edge routing layer** of the system and acts strictly as a **network + security
+perimeter**, not an identity authority.
 
 It is built on **Spring Cloud Gateway (Reactive)** and follows a **stateless pass-through security model**.
 
@@ -55,12 +56,12 @@ It is a **dumb router with security awareness**, not a security brain.
 
 1. Client sends request with JWT
 2. Gateway:
-   - extracts Authorization header
-   - optionally checks token structure (NOT claims logic)
-   - forwards request unchanged
+    - extracts Authorization header
+    - optionally checks token structure (NOT claims logic)
+    - forwards request unchanged
 3. User-service:
-   - fully validates token
-   - builds `SecurityContext`
+    - fully validates token
+    - builds `SecurityContext`
 
 ---
 
@@ -80,8 +81,6 @@ It is a **dumb router with security awareness**, not a security brain.
 - Header propagation tests
 - Reactive WebTestClient integration tests
 
-
-
 ## 🧪 Quality Assurance & Testing
 
 This project maintains a **100% Code Coverage** standard for all core security logic and utility classes.
@@ -89,9 +88,12 @@ This project maintains a **100% Code Coverage** standard for all core security l
 ![Test Coverage Report](./testing-coverage.jpg)
 
 * **Unit Testing:** Comprehensive suites for `JwtTokenValidator` and `CookieUtil` using JUnit 5.
-* **Integration Testing:** `SecurityConfigTest` ensures the filter chain correctly blocks unauthorized traffic and permits public traffic.
-* **Reactive Testing:** Extensive use of `StepVerifier` to test non-blocking `Mono` and `Flux` streams in the OAuth service.
-* **Semantic Reporting:** All tests utilize `@DisplayName` to provide a human-readable living specification of system behavior.
+* **Integration Testing:** `SecurityConfigTest` ensures the filter chain correctly blocks unauthorized traffic and
+  permits public traffic.
+* **Reactive Testing:** Extensive use of `StepVerifier` to test non-blocking `Mono` and `Flux` streams in the OAuth
+  service.
+* **Semantic Reporting:** All tests utilize `@DisplayName` to provide a human-readable living specification of system
+  behavior.
 
 ---
 
@@ -114,6 +116,7 @@ All identity logic belongs in `user-service`.
 ## 🚦 Getting Started
 
 ### Prerequisites
+
 * Java 17 or higher
 * Gradle
 * Environment Variables:
@@ -122,5 +125,6 @@ All identity logic belongs in `user-service`.
     * `GITHUB_CLIENT_SECRET`: Your OAuth App Secret.
 
 ### Running the Application
+
 ```bash
 ./gradlew bootRun

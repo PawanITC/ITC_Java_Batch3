@@ -46,9 +46,9 @@ app:
   oauth-success-path: /oauth-success
 
   services:
-    user-service:    http://localhost:9999
+    user-service: http://localhost:9999
     payment-service: http://localhost:9999
-    order-service:   http://localhost:9999
+    order-service: http://localhost:9999
 
   jwt:
     # A valid HS256 key — must be at least 32 characters before Base64 encoding
