@@ -1,4 +1,4 @@
-package com.itc.funkart.gateway.filters;
+package com.itc.funkart.gateway.security;
 
 import com.itc.funkart.gateway.dto.JwtUserDto;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -37,25 +37,45 @@ public class RelayUserHeaderFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-
+        /*
+         * We pull from the Reactive Context rather than a ThreadLocal.
+         * This ensures identity is preserved across Netty's event-loop threads.
+         */
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
+                // Ensure the Principal is our expected DTO to avoid ClassCastExceptions
                 .filter(auth -> auth != null && auth.getPrincipal() instanceof JwtUserDto)
                 .map(auth -> (JwtUserDto) auth.getPrincipal())
                 .flatMap(user -> {
-
+                    /*
+                     * Senior Design: Downstream services are 'Internal'.
+                     * They trust these headers because they are behind the Gateway's firewall.
+                     * This removes the need for each microservice to parse JWTs (saving CPU cycles).
+                     */
                     ServerWebExchange mutated = exchange.mutate()
                             .request(r -> r.headers(headers -> {
                                 headers.add("X-User-Id", String.valueOf(user.id()));
                                 headers.add("X-User-Email", user.email());
                                 headers.add("X-User-Role", user.role());
+
+                                /*
+                                 * OBSERVABILITY NOTE:
+                                 * Micrometer Tracing / OpenTelemetry (OTel) hooks into this
+                                 * mutation process to inject 'traceparent' headers.
+                                 * Do not manually clear headers here, or you break the Jaeger trace.
+                                 */
                             }))
                             .build();
 
                     return chain.filter(mutated);
                 })
+                /*
+                 * Fallback: If no security context exists (e.g., public endpoints),
+                 * we simply proceed with the original exchange.
+                 */
                 .switchIfEmpty(chain.filter(exchange));
     }
+
 
     /**
      * Ensures this filter runs AFTER the {@code JwtWebFilter} has populated
@@ -63,9 +83,11 @@ public class RelayUserHeaderFilter implements GlobalFilter, Ordered {
      */
     @Override
     public int getOrder() {
-        // MUST run AFTER authentication filter, BEFORE routing
-        // A value of 0 or 1 is usually safe to ensure it happens
-        // after the SecurityWebFilterChain but before routing.
-        return -1; // safer: run early in Gateway filter chain before routing
+        /*
+         * Filter Order -1 ensures this runs AFTER the JwtAuthWebFilter (which populates context)
+         * but BEFORE the NettyRoutingFilter (which sends the request).
+         */
+        return -1;
     }
 }
+

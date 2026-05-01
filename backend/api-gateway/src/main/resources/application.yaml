@@ -1,13 +1,20 @@
 # ==============================================================================
-# API GATEWAY CONFIGURATION
+# MASTER SERVICE REGISTRY (The "Master Key")
+# Define URLs here once so they are synchronized across the entire JVM context.
 # ==============================================================================
+internal:
+  service-urls:
+    user: ${USER_SERVICE_URL:http://user-service:8080}
+    payment: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+    product: ${PRODUCT_SERVICE_URL:http://product-service:8080}
+    order: ${ORDER_SERVICE_URL:http://order-service:8080}
 
 spring:
   application:
     name: api-gateway
 
   # ----------------------------------------------------------------------------
-  # REDIS (rate limit / caching)
+  # REDIS (Reactive Configuration)
   # ----------------------------------------------------------------------------
   data:
     redis:
@@ -16,141 +23,69 @@ spring:
       connect-timeout: 2000ms
 
   # ----------------------------------------------------------------------------
-  # DISABLE DB AUTO-CONFIG (gateway is reactive only)
+  # EXCLUSIONS
+  # Prevent Spring from trying to initialize a heavy RDBMS/Hibernate context
+  # in a non-blocking Gateway environment.
   # ----------------------------------------------------------------------------
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 
   # ----------------------------------------------------------------------------
-  # GATEWAY ROUTES
+  # GATEWAY ROUTES (The "Public Map")
+  # Uses internal references to ensure alignment with Java Service beans.
   # ----------------------------------------------------------------------------
   cloud:
     gateway:
-      server:
-        webflux:
-          routes:
+      webflux:
+        routes:
+          # USER SERVICE
+          - id: user-service
+            uri: ${internal.service-urls.user}
+            predicates:
+              - Path=/api/v1/users/**,/api/v1/oauth/**
+            filters:
+              - StripPrefix=2
 
-            # ======================================================
-            # USER SERVICE
-            # ======================================================
-            - id: user-service
-              uri: ${USER_SERVICE_URL:http://user-service:8080}
-              predicates:
-                - Path=/api/v1/users/**,/api/v1/oauth/**
-              filters:
-                - StripPrefix=2
+          # PRODUCT SERVICE
+          - id: product-service
+            uri: ${internal.service-urls.product}
+            predicates:
+              - Path=/api/v1/products/**,/api/v1/admin/products/**,/api/v1/categories/**,/api/v1/admin/categories/**,/api/v1/cart/**
+            filters:
+              - StripPrefix=2
 
-            - id: user-admin-service
-              uri: ${USER_SERVICE_URL:http://user-service:8080}
-              predicates:
-                - Path=/api/v1/admin/users/**
-              filters:
-                - StripPrefix=2
+          # ORDER SERVICE
+          - id: order-service
+            uri: ${internal.service-urls.order}
+            predicates:
+              - Path=/api/v1/orders/**,/api/v1/admin/orders/**
+            filters:
+              - StripPrefix=2
 
-
-            # ======================================================
-            # PRODUCT SERVICE
-            # ======================================================
-            - id: product-admin-service
-              uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
-              predicates:
-                - Path=/api/v1/admin/products/**,/api/v1/admin/categories/**
-              filters:
-                - StripPrefix=2
-
-            - id: product-cart-service
-              uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
-              predicates:
-                - Path=/api/v1/cart/**
-              filters:
-                - StripPrefix=2
-
-            - id: product-categories-service
-              uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
-              predicates:
-                - Path=/api/v1/categories/**
-              filters:
-                - StripPrefix=2
-
-            - id: product-service
-              uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
-              predicates:
-                - Path=/api/v1/products/**
-              filters:
-                - StripPrefix=2
-
-
-            # ======================================================
-            # ORDER SERVICE
-            # ======================================================
-            - id: order-service
-              uri: ${ORDER_SERVICE_URL:http://order-service:8080}
-              predicates:
-                - Path=/api/v1/orders/**
-              filters:
-                - StripPrefix=2
-
-            - id: order-admin-service
-              uri: ${ORDER_SERVICE_URL:http://order-service:8080}
-              predicates:
-                - Path=/api/v1/admin/orders/**
-              filters:
-                - StripPrefix=2
-
-
-            # ======================================================
-            # PAYMENT SERVICE
-            # ======================================================
-            - id: payment-webhook-route
-              uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
-              predicates:
-                - Path=/api/v1/payments/webhook/**
-              filters:
-                - StripPrefix=2
-
-            - id: payment-service
-              uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
-              predicates:
-                - Path=/api/v1/payments/**
-              filters:
-                - StripPrefix=2
-
+          # PAYMENT SERVICE
+          - id: payment-service
+            uri: ${internal.service-urls.payment}
+            predicates:
+              - Path=/api/v1/payments/**
+            filters:
+              - StripPrefix=2
 
 # ==============================================================================
-# SERVER
-# ==============================================================================
-server:
-  port: ${PORT:8060}
-
-
-# ==============================================================================
-# ACTUATOR
-# ==============================================================================
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always
-
-
-# ==============================================================================
-# APP CONFIG
+# APP CONFIG (The "Java Context Map")
+# Binds to AppConfig.java record via @ConfigurationProperties.
 # ==============================================================================
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   oauth-success-path: ${OAUTH_SUCCESS_PATH:/oauth-success}
 
+  # These references link directly to the internal registry above
   services:
-    user-service: ${USER_SERVICE_URL:http://user-service:8080}
-    payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
-    product-service: ${PRODUCT_SERVICE_URL:http://product-service:8080}
-    order-service: ${ORDER_SERVICE_URL:http://order-service:8080}
+    user-service: ${internal.service-urls.user}
+    payment-service: ${internal.service-urls.payment}
+    product-service: ${internal.service-urls.product}
+    order-service: ${internal.service-urls.order}
 
   github:
     client-id: ${GITHUB_CLIENT_ID}
@@ -163,3 +98,72 @@ app:
     cookie-name: ${APP_COOKIE_NAME:token}
     cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
     secure-cookie: ${APP_SECURE_COOKIE:false}
+
+server:
+  port: ${PORT:8060}
+
+# ==============================================================================
+# OBSERVABILITY (The "Flight Recorder" - Collector Edition)
+# ==============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        # Senior Note: 'prometheus' and 'metrics' are essential for the
+        # Scraper/Collector to pull JVM health data.
+        include: health,info,prometheus,metrics
+
+  health:
+    show-details: always
+    # Senior Practice: Enable specific health indicators for the JVM stack
+    redis:
+      enabled: true
+
+  # ----------------------------------------------------------------------------
+  # OBSERVATIONS & TRACING (OTLP Pipeline)
+  # ----------------------------------------------------------------------------
+  observations:
+    key-values:
+      application: ${spring.application.name}
+
+  tracing:
+    sampling:
+      # 1.0 (100%) is fine for your dev environment.
+      # High-traffic production JVMs use 0.05 - 0.1 to prevent disk-IO saturation.
+      probability: 1.0
+
+  otlp:
+    tracing:
+      # Provide only the base URL for OTLP/HTTP
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}
+    metrics:
+      export:
+        # Same here; avoid appending /v1/metrics manually
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}
+
+  # ----------------------------------------------------------------------------
+  # LOGGING & METRICS TAGGING
+  # ----------------------------------------------------------------------------
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+
+  loki:
+    endpoint: ${LOKI_URL:http://loki:3100/loki/api/v1/push}
+
+
+# ==============================================================================
+# LOGGING (The "Black Box" Config)
+# ==============================================================================
+logging:
+  pattern:
+    # The [traceId, spanId] is injected via the JVM's MDC (Mapped Diagnostic Context).
+    # This correlates your logs in Loki to your traces in Jaeger.
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %m%n"
+  level:
+    root: INFO
+    # Debugging the Gateway's reactive routes and JWT filter logic
+    com.itc.funkart.gateway: DEBUG
+    # Monitor the OTLP export activity
+    io.micrometer.tracing: DEBUG

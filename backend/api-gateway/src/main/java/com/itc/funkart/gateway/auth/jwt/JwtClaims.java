@@ -13,6 +13,7 @@ public final class JwtClaims {
     public static final String NAME = "name";
     public static final String EMAIL = "email";
     public static final String ROLE = "role";
+
     private JwtClaims() {
     }
 }

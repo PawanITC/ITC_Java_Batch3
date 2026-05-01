@@ -9,6 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 
@@ -61,18 +62,16 @@ public class JwtService {
      * @return compact signed JWT string
      */
     public String generateJwtToken(UserPrincipalDto user) {
-
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtConfig.getExpirationMs());
+        Instant now = Instant.now();
+        // Use the Duration object directly from your config
+        Instant expiry = now.plus(jwtConfig.getExpirationMs());
 
         return Jwts.builder()
                 .subject(user.userId().toString())
-                .issuer(JwtClaims.ISSUER)
-                .claim(JwtClaims.NAME, user.name())
-                .claim(JwtClaims.EMAIL, user.email())
                 .claim(JwtClaims.ROLE, user.role())
-                .issuedAt(now)
-                .expiration(expiryDate)
+                // Most modern JWT libs (like JJWT 0.12+) accept Instant directly
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiry))
                 .signWith(key)
                 .compact();
     }

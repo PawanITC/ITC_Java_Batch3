@@ -16,6 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -75,18 +76,19 @@ public class OAuthGatewayService {
      * </p>
      */
     public Mono<Void> logout(ServerWebExchange exchange) {
-
         String token = cookieUtil.extractToken(exchange);
 
         if (token == null || token.isBlank()) {
             return cookieUtil.clearTokenCookie(exchange);
         }
 
-        return Mono.fromCallable(() -> jwtService.getExpiration(token))
-                .flatMap(expiry ->
-                        tokenBlacklistService.blacklistWithExpiry(token, expiry)
-                )
-                .then(cookieUtil.clearTokenCookie(exchange));
+        return Mono.fromCallable(() -> jwtService.parseClaims(token)) // Parse Once
+                .flatMap(claims -> {
+                    Date expiry = jwtService.getExpiration(claims); // Read from Heap
+                    return tokenBlacklistService.blacklistWithExpiry(token, expiry);
+                })
+                .then(cookieUtil.clearTokenCookie(exchange))
+                .onErrorResume(e -> cookieUtil.clearTokenCookie(exchange)); // Still clear on error
     }
 
 

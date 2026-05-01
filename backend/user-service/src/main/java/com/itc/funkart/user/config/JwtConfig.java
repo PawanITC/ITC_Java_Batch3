@@ -4,6 +4,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Duration;
+
 /**
  * Security properties for JWT generation and validation.
  */
@@ -18,5 +20,5 @@ public class JwtConfig {
     /**
      * Token validity duration in milliseconds.
      */
-    private long expirationMs;
+    private Duration expirationMs;
 }

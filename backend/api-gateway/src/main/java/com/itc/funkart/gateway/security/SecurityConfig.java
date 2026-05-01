@@ -41,35 +41,35 @@ public class SecurityConfig {
     ) {
 
         return http
-                // 1. Stateless gateway
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
-
-                // 2. CORS
                 .cors(cors -> cors.configurationSource(corsSource))
 
-                // 3. JWT filter
+                // Custom JWT validation filter placed in the Authentication slot
                 .addFilterAt(jwtAuthWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
 
-                // 4. Authorization rules (FIXED)
                 .authorizeExchange(auth -> auth
-
-                        // Preflight requests
                         .pathMatchers(HttpMethod.OPTIONS).permitAll()
 
-                        // PUBLIC endpoints ONLY
+                        /*
+                         * OBSERVABILITY & INFRASTRUCTURE:
+                         * Permit all Actuator endpoints. In a production EKS environment,
+                         * access to these should be restricted at the Network (Security Group) level,
+                         * but they must remain accessible to the Prometheus scraper and K8s Probes.
+                         */
+                        .pathMatchers("/actuator/**").permitAll()
+
+                        // PUBLIC BUSINESS ENDPOINTS
                         .pathMatchers(
                                 "/api/v1/users/login",
                                 "/api/v1/users/signup",
                                 "/api/v1/users/oauth/**",
                                 "/api/v1/oauth/**",
-                                "/actuator/**",
-                                "/api/v1/payments/webhook/**",
-                                "/payments/webhook/**"
+                                "/api/v1/payments/webhook/**"
                         ).permitAll()
 
-                        // EVERYTHING ELSE is protected
+                        // PROTECTED DOMAIN
                         .anyExchange().authenticated()
                 )
                 .build();

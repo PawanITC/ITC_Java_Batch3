@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,7 +33,7 @@ class AppConfigTest {
                 "/oauth-success",
                 new AppConfig.Jwt(
                         "super-secret-key-must-be-at-least-32-bytes!!xyz",
-                        3_600_000L,
+                        Duration.ofMillis(3600000),
                         3600,
                         "token",
                         false

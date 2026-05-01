@@ -1,0 +1,62 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Pull properties from application.yml -->
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
+    <springProperty scope="context" name="lokiUrl" source="management.loki.endpoint"/>
+
+    <!-- Standard Console Output for Docker Logs -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p)
+                %clr([${appName},%X{traceId:-},%X{spanId:-}]){yellow} %clr(---){faint} %clr([%15.15t]){faint}
+                %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!-- Loki Appender: Optimized for high-throughput -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${lokiUrl}</url>
+            <connectionTimeoutMs>5000</connectionTimeoutMs>
+            <readTimeoutMs>5000</readTimeoutMs>
+        </http>
+        <format>
+            <label>
+                <pattern>app=${appName},host=${HOSTNAME},level=%level</pattern>
+            </label>
+            <message>
+                <pattern>l=%level t=%d{ISO8601} c=%logger{20} trace=%X{traceId:-} span=%X{spanId:-} msg=%m %ex</pattern>
+            </message>
+        </format>
+        <!-- Senior Note: Batching parameters to protect JVM Heap -->
+        <batchMaxItems>1000</batchMaxItems>
+        <batchMaxBytes>65536</batchMaxBytes>
+        <sendQueueMaxBytes>4194304</sendQueueMaxBytes>
+    </appender>
+
+    <!-- Async Appender: Highly recommended for WebFlux to prevent logging from blocking threads -->
+    <appender name="ASYNC_LOKI" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="LOKI"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+    </appender>
+    <!-- Only active when running in Docker/Dev/Prod, NOT during local JUnit tests -->
+    <springProfile name="dev,prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_LOKI"/>
+        </root>
+    </springProfile>
+
+    <!-- Default/Test profile: Keep it light -->
+    <springProfile name="!dev &amp; !prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <shutdownHook class="ch.qos.logback.core.hook.DefaultShutdownHook"/>
+</configuration>

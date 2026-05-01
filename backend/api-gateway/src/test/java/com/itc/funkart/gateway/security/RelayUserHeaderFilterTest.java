@@ -1,4 +1,4 @@
-package com.itc.funkart.gateway.filters;
+package com.itc.funkart.gateway.security;
 
 import com.itc.funkart.gateway.dto.JwtUserDto;
 import org.junit.jupiter.api.BeforeEach;

@@ -7,6 +7,7 @@ import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
 import com.itc.funkart.gateway.exception.OAuthException;
 import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.JwtAuthWebFilter;
+import com.itc.funkart.gateway.service.JwtService;
 import com.itc.funkart.gateway.service.UserGatewayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -63,6 +64,9 @@ class UserControllerTest {
      */
     @MockitoBean
     private JwtAuthWebFilter jwtAuthWebFilter;
+
+    @MockitoBean
+    private JwtService jwtService;
 
     @BeforeEach
     void setUp() {

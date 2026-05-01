@@ -6,6 +6,7 @@ import com.itc.funkart.gateway.exception.JwtAuthenticationException;
 import com.itc.funkart.gateway.exception.OAuthException;
 import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.JwtAuthWebFilter;
+import com.itc.funkart.gateway.service.JwtService;
 import com.itc.funkart.gateway.service.OAuthGatewayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -62,6 +63,7 @@ class GithubOAuthControllerTest {
     @MockitoBean
     private OAuthGatewayService oAuthGatewayService;
 
+
     /**
      * The {@link JwtAuthWebFilter} must be provided so the WebFlux security
      * autoconfiguration can satisfy its dependency, even though security
@@ -69,6 +71,9 @@ class GithubOAuthControllerTest {
      */
     @MockitoBean
     private JwtAuthWebFilter jwtAuthWebFilter;
+
+    @MockitoBean
+    private JwtService jwtService;
 
     @BeforeEach
     void setUp() {
@@ -96,10 +101,6 @@ class GithubOAuthControllerTest {
         }
     }
 
-//    @BeforeEach
-//    void resetMocks() {
-//        reset(oAuthGatewayService);
-//    }
 
     // -------------------------------------------------------------------------
     // GET /api/v1/oauth/github/login
