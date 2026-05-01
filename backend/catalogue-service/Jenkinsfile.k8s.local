@@ -79,7 +79,7 @@ spec:
                 container('kubectl') {
                     sh '''
                     kubectl apply -n catalogue-service -f backend/catalogue-service/k8s/local/apps/
-                    kubectl rollout restart deployment catalogue-service -n catalogue-service
+                    kubectl rollout restart deployment/catalogue-service -n catalogue-service
                     '''
                 }
             }
@@ -90,6 +90,8 @@ spec:
                 container('kubectl') {
                     sh 'kubectl rollout status deployment kafka -n catalogue-service'
                     sh 'kubectl rollout status deployment redis -n catalogue-service'
+                    sh 'kubectl rollout status deployment otel-collector -n catalogue-service'
+                    sh 'kubectl rollout status deployment jaeger -n catalogue-service'
                     sh 'kubectl rollout status deployment catalogue-service -n catalogue-service'
                 }
             }
