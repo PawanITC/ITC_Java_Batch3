@@ -95,7 +95,7 @@ spec:
                     sh 'kubectl rollout status deployment catalogue-service -n catalogue-service'
                 }
             }
-        }
+        }s
 
         stage('Wait for App Health') {
             steps {
