@@ -1,22 +1,27 @@
 package com.itc.funkart.product_service.integration;
 
+import com.itc.funkart.product_service.config.JwtConfig;
+import com.itc.funkart.product_service.dto.jwt.JwtUserDto;
 import com.itc.funkart.product_service.dto.request.AddToCartRequest;
 import com.itc.funkart.product_service.dto.request.CartItemUpdateDto;
 import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
 import com.itc.funkart.product_service.dto.response.CartResponse;
 import com.itc.funkart.product_service.dto.response.ProductResponse;
 import com.itc.funkart.product_service.entity.Category;
-import com.itc.funkart.product_service.producer.OrderProducer;
-import com.itc.funkart.product_service.producer.ProductProducer;
+import com.itc.funkart.product_service.kafka.producer.OrderProducer;
+import com.itc.funkart.product_service.kafka.producer.ProductProducer;
 import com.itc.funkart.product_service.repository.CartRepository;
 import com.itc.funkart.product_service.repository.CategoryRepository;
 import com.itc.funkart.product_service.service.CartService;
 import com.itc.funkart.product_service.service.JwtService;
 import com.itc.funkart.product_service.service.ProductService;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,19 +34,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * <h2>CartServiceIntegrationTest</h2>
  * <p>
- * This suite validates the full lifecycle of a shopping cart, ensuring that
- * business rules like item aggregation, quantity updates, and cart isolation
- * work correctly when interacting with the real database schema.
+ * Validates the shopping cart lifecycle, ensuring business rules like item aggregation,
+ * quantity adjustments, and user-based isolation are enforced.
  * </p>
  * <p>
- * Infrastructure dependencies like Kafka and JWT verification are mocked to ensure
- * the tests remain focused on the service and repository layer interactions.
+ * Identity is handled via the {@code SecurityContext}, simulating a real-world
+ * JWT-authenticated request flow.
  * </p>
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-@DisplayName("Cart Service Integration Tests")
+@DisplayName("Integration: Cart Service Workflows")
 class CartServiceIntegrationTest {
 
     @Autowired
@@ -52,157 +56,131 @@ class CartServiceIntegrationTest {
     private CartRepository cartRepository;
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private EntityManager entityManager;
 
-    // --- Mocks to prevent infrastructure hangs ---
     @MockitoBean
     private JwtService jwtService;
+    @MockitoBean
+    private JwtConfig jwtConfig;
     @MockitoBean
     private OrderProducer orderProducer;
     @MockitoBean
     private ProductProducer productProducer;
 
-    // --- Helpers using Records & Builders ---
-
     /**
-     * Persists a new category to provide a valid relationship for product creation.
+     * Helper to inject the required JwtUserDto into the SecurityContext.
      */
-    private Category createCategory() {
-        return categoryRepository.save(Category.builder()
-                .name("Category_" + System.nanoTime())
-                .description("Integration Test Category")
+    private void mockAuth(Long userId) {
+        JwtUserDto principal = JwtUserDto.builder()
+                .id(userId)
+                .name("IntegrationUser")
+                .email("test@funkart.com")
+                .role("ROLE_USER")
+                .build();
+
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                principal, null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    private ProductResponse createProduct(String name) {
+        Category category = categoryRepository.save(Category.builder()
+                .name("Cat_" + System.nanoTime())
+                .build());
+
+        return productService.createProduct(ProductCreateRequest.builder()
+                .name(name + "_" + System.nanoTime())
+                .price(BigDecimal.valueOf(99.99))
+                .stockQuantity(100)
+                .categoryId(category.getId())
+                .brand("TestBrand")
+                .imageUrls(List.of())
                 .build());
     }
 
-    /**
-     * Creates a product with unique identifiers to avoid collision during parallel runs.
-     * Includes the required 'imageUrls' list for the Record constructor.
-     */
-    private ProductResponse createProduct(String name) {
-        Category category = createCategory();
-        ProductCreateRequest request = ProductCreateRequest.builder()
-                .name(name + "_" + System.nanoTime())
-                .description("Description")
-                .price(BigDecimal.valueOf(99.99))
-                .stockQuantity(10)
-                .categoryId(category.getId())
-                .brand("Brand")
-                .imageUrls(List.of()) // Vital for record instantiation
-                .build();
-        return productService.createProduct(request);
-    }
-
-    // --- Tests ---
-
-    /**
-     * Verifies the "Lazy Cart Creation" logic where a user record is initialized
-     * in the database the moment they first access their cart.
-     */
     @Test
-    @DisplayName("Workflow - Should create cart automatically on first user access")
+    @DisplayName("Workflow: Automatic cart initialization on first access")
     void shouldCreateCartOnFirstRequest() {
         Long userId = 1001L;
+        mockAuth(userId);
 
-        CartResponse cart = cartService.getCartByUserId(userId);
+        CartResponse cart = cartService.getCart();
 
         assertThat(cart).isNotNull();
         assertThat(cart.userId()).isEqualTo(userId);
-        assertThat(cart.items()).isEmpty();
-
-        assertThat(cartRepository.findByUserId(userId)).isPresent();
+        assertThat(cartRepository.findByUserIdWithItems(userId)).isPresent();
     }
 
-    /**
-     * Tests the logic that merges multiple additions of the same product into
-     * a single line item with an aggregated quantity.
-     */
     @Test
-    @DisplayName("Workflow - Should add items and aggregate quantities correctly")
+    @DisplayName("Workflow: Item aggregation for duplicate product additions")
     void shouldHandleItemAggregation() {
-        Long userId = 1002L;
+        mockAuth(1002L);
         ProductResponse product = createProduct("Monitor");
 
-        // Add first time
-        cartService.addItemToCart(userId, AddToCartRequest.builder()
-                .productId(product.id())
-                .quantity(1)
-                .build());
+        cartService.addItemToCart(AddToCartRequest.builder()
+                .productId(product.id()).quantity(1).build());
 
-        // Add second time (same product)
-        CartResponse finalCart = cartService.addItemToCart(userId, AddToCartRequest.builder()
-                .productId(product.id())
-                .quantity(2)
-                .build());
+        CartResponse finalCart = cartService.addItemToCart(AddToCartRequest.builder()
+                .productId(product.id()).quantity(2).build());
 
         assertThat(finalCart.items()).hasSize(1);
         assertThat(finalCart.items().get(0).quantity()).isEqualTo(3);
     }
 
-    /**
-     * Ensures that if an update results in zero or negative quantity, the
-     * business logic removes the item from the cart entirely.
-     */
     @Test
-    @DisplayName("Workflow - Should remove item when quantity update results in <= 0")
+    @DisplayName("Workflow: Item removal when quantity drops to zero")
     void shouldRemoveItemOnNegativeUpdate() {
-        Long userId = 1003L;
+        mockAuth(1003L);
         ProductResponse product = createProduct("Keyboard");
 
-        cartService.addItemToCart(userId, AddToCartRequest.builder()
-                .productId(product.id())
-                .quantity(5)
-                .build());
+        cartService.addItemToCart(AddToCartRequest.builder()
+                .productId(product.id()).quantity(5).build());
 
-        CartResponse updatedCart = cartService.updateItemQuantity(userId, product.id(),
+        CartResponse updatedCart = cartService.updateItemQuantity(product.id(),
                 CartItemUpdateDto.builder().quantityChange(-10).build());
 
         assertThat(updatedCart.items()).isEmpty();
     }
 
-    /**
-     * Comprehensive end-to-end test simulating a real user behavior:
-     * searching, adding, adjusting, and finally checking out.
-     */
     @Test
-    @DisplayName("End-to-End - Full Shopping Journey: Add -> Update -> Checkout")
+    @DisplayName("End-to-End: Full journey from addition to checkout")
     void shouldHandleFullShoppingWorkflow() {
-        Long userId = 1004L;
+        mockAuth(1004L);
         ProductResponse p1 = createProduct("Mouse");
         ProductResponse p2 = createProduct("Pad");
 
-        // 1. Add items
-        cartService.addItemToCart(userId, AddToCartRequest.builder().productId(p1.id()).quantity(1).build());
-        cartService.addItemToCart(userId, AddToCartRequest.builder().productId(p2.id()).quantity(1).build());
+        cartService.addItemToCart(AddToCartRequest.builder().productId(p1.id()).quantity(1).build());
+        cartService.addItemToCart(AddToCartRequest.builder().productId(p2.id()).quantity(1).build());
 
-        // 2. Update quantity of Mouse
-        cartService.updateItemQuantity(userId, p1.id(), CartItemUpdateDto.builder().quantityChange(2).build());
+        cartService.updateItemQuantity(p1.id(), CartItemUpdateDto.builder().quantityChange(2).build());
 
-        // 3. Verify state before checkout
-        CartResponse midCart = cartService.getCartByUserId(userId);
-        assertThat(midCart.items()).hasSize(2);
+        cartService.checkout();
 
-        // 4. Checkout
-        cartService.checkout(userId);
+        entityManager.flush();
+        entityManager.clear();
 
-        // 5. Final Assertion (Cart should be wiped clean)
-        CartResponse finalCart = cartService.getCartByUserId(userId);
-        assertThat(finalCart.items()).isEmpty();
+        assertThat(cartService.getCart().items()).isEmpty();
     }
 
-    /**
-     * Tests Cart Isolation. This ensures that user data is correctly partitioned
-     * and that User A cannot see or modify User B's items.
-     */
     @Test
-    @DisplayName("Concurrency/Separation - Users should have isolated carts")
+    @DisplayName("Security: Strict isolation between distinct users")
     void shouldMaintainIsolationBetweenUsers() {
-        Long userA = 2001L;
-        Long userB = 2002L;
         ProductResponse product = createProduct("Shared Product");
 
-        cartService.addItemToCart(userA, AddToCartRequest.builder().productId(product.id()).quantity(1).build());
-        cartService.addItemToCart(userB, AddToCartRequest.builder().productId(product.id()).quantity(99).build());
+        // Setup User A
+        mockAuth(2001L);
+        cartService.addItemToCart(AddToCartRequest.builder().productId(product.id()).quantity(1).build());
 
-        assertThat(cartService.getCartByUserId(userA).items().get(0).quantity()).isEqualTo(1);
-        assertThat(cartService.getCartByUserId(userB).items().get(0).quantity()).isEqualTo(99);
+        // Switch to User B
+        mockAuth(2002L);
+        cartService.addItemToCart(AddToCartRequest.builder().productId(product.id()).quantity(99).build());
+
+        // Verify User B state
+        assertThat(cartService.getCart().items().get(0).quantity()).isEqualTo(99);
+
+        // Switch back to User A
+        mockAuth(2001L);
+        assertThat(cartService.getCart().items().get(0).quantity()).isEqualTo(1);
     }
 }

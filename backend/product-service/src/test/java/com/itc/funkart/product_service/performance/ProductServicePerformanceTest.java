@@ -1,16 +1,16 @@
 package com.itc.funkart.product_service.performance;
 
+import com.itc.funkart.product_service.config.JwtConfig;
 import com.itc.funkart.product_service.dto.request.ProductCreateRequest;
 import com.itc.funkart.product_service.dto.request.ProductUpdateRequest;
 import com.itc.funkart.product_service.dto.response.ProductResponse;
-import com.itc.funkart.product_service.dto.response.ProductsResponse;
 import com.itc.funkart.product_service.entity.Category;
-import com.itc.funkart.product_service.producer.OrderProducer;
-import com.itc.funkart.product_service.producer.ProductProducer;
+import com.itc.funkart.product_service.kafka.producer.OrderProducer;
+import com.itc.funkart.product_service.kafka.producer.ProductProducer;
 import com.itc.funkart.product_service.repository.CategoryRepository;
-import com.itc.funkart.product_service.service.CategoryService;
 import com.itc.funkart.product_service.service.JwtService;
 import com.itc.funkart.product_service.service.ProductService;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StopWatch;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,18 +29,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * <h2>ProductServicePerformanceTest</h2>
  * <p>
- * This suite provides basic benchmarking for the Product Service catalog operations.
- * It focuses on latency, memory efficiency, and throughput under sequential load.
- * </p>
- * <p>
- * <b>Warning:</b> These tests are environment-dependent. While they validate logic
- * efficiency, actual millisecond results may vary based on CPU and CI/CD runner load.
+ * Provides high-precision benchmarking for the Product Service.
+ * Unlike standard unit tests, this suite monitors:
+ * <ul>
+ *     <li><b>Execution Latency:</b> Using high-resolution timers to avoid wall-clock skew.</li>
+ *     <li><b>Persistence Overhead:</b> Measuring DB interaction by clearing Hibernate's First-Level cache.</li>
+ *     <li><b>Memory Stability:</b> Tracking allocation deltas during bulk operations.</li>
+ * </ul>
  * </p>
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-@DisplayName("Performance: Product Catalog")
+@DisplayName("Performance: Product Catalog & Persistence")
 class ProductServicePerformanceTest {
 
     private static final long MAX_LATENCY_MS = 500;
@@ -48,15 +50,17 @@ class ProductServicePerformanceTest {
     private ProductService productService;
 
     @Autowired
-    private CategoryService categoryService;
+    private CategoryRepository categoryRepository;
 
     @Autowired
-    private CategoryRepository categoryRepository;
+    private EntityManager entityManager;
 
     @MockitoBean
     private JwtService jwtService;
 
-    // Neutralizing Kafka producers to keep performance focused on DB/Service logic
+    @MockitoBean
+    private JwtConfig jwtConfig;
+
     @MockitoBean
     private OrderProducer orderProducer;
 
@@ -64,28 +68,30 @@ class ProductServicePerformanceTest {
     private ProductProducer productProducer;
 
     /**
-     * Measures the latency of batch product retrieval.
-     * Includes a warm-up call to ensure JIT compilation doesn't skew initial results.
+     * Measures batch fetch latency.
+     * Uses a warm-up phase to trigger initial JIT compilation before measurement.
      */
     @Test
     @DisplayName("Latency: Batch fetch products by ID list")
     void shouldBatchFetchProductsWithinAcceptableTime() {
-        Category cat = categoryRepository.save(Category.builder().name("Batch-Perf").build());
+        categoryRepository.save(Category.builder().name("Batch-Perf").build());
         List<Long> ids = LongStream.rangeClosed(1, 10).boxed().toList();
 
-        // Warm up
+        // Warm up phase: JIT compilation and initial class loading
+        productService.getProductsByIds(ids);
+        entityManager.clear();
+
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+
         productService.getProductsByIds(ids);
 
-        long start = System.currentTimeMillis();
-        ProductsResponse response = productService.getProductsByIds(ids);
-        long duration = System.currentTimeMillis() - start;
-
-        assertThat(duration).isLessThan(MAX_LATENCY_MS * 2);
+        stopWatch.stop();
+        assertThat(stopWatch.getTotalTimeMillis()).isLessThan(MAX_LATENCY_MS * 2);
     }
 
     /**
-     * Benchmarks partial updates using the ProductUpdateRequest DTO.
-     * Ensures that the mapping and persistence layer handle updates efficiently.
+     * Benchmarks the DTO mapping and merge overhead during partial updates.
      */
     @Test
     @DisplayName("Latency: Partial update using ProductUpdateRequest")
@@ -99,21 +105,25 @@ class ProductServicePerformanceTest {
                 .imageUrls(List.of())
                 .build());
 
+        entityManager.flush();
+        entityManager.clear();
+
         var updateRequest = ProductUpdateRequest.builder()
                 .name("New Name")
                 .price(BigDecimal.valueOf(99.99))
                 .build();
 
-        long start = System.currentTimeMillis();
+        StopWatch sw = new StopWatch();
+        sw.start();
         productService.updateProduct(product.id(), updateRequest);
-        long duration = System.currentTimeMillis() - start;
+        sw.stop();
 
-        assertThat(duration).isLessThan(MAX_LATENCY_MS);
+        assertThat(sw.getTotalTimeMillis()).isLessThan(MAX_LATENCY_MS);
     }
 
     /**
-     * Evaluates the memory footprint during a bulk creation cycle.
-     * Uses System.gc() to attempt to stabilize the baseline before measuring.
+     * Evaluates memory efficiency by creating resources in batches.
+     * Manually clears the EntityManager to prevent a memory leak within the Transactional context.
      */
     @Test
     @DisplayName("Efficiency: Memory usage during bulk product creation")
@@ -121,12 +131,8 @@ class ProductServicePerformanceTest {
         Category cat = categoryRepository.save(Category.builder().name("Mem-Test").build());
         Runtime runtime = Runtime.getRuntime();
 
+        // Stabilize heap before measurement
         System.gc();
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException ignored) {
-        } // Wait for GC
-
         long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
 
         for (int i = 0; i < 100; i++) {
@@ -137,18 +143,20 @@ class ProductServicePerformanceTest {
                     .brand("B")
                     .imageUrls(List.of())
                     .build());
+
+            // Senior logic: Clear persistence context periodically to simulate real request/response lifecycles
+            if (i % 20 == 0) {
+                entityManager.flush();
+                entityManager.clear();
+            }
         }
 
         long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
-        long used = memoryAfter - memoryBefore;
-
-        // Threshold set to 50MB to account for Hibernate's 1st level cache and object proxies
-        assertThat(used).isLessThan(50 * 1024 * 1024);
+        assertThat(memoryAfter - memoryBefore).isLessThan(50 * 1024 * 1024);
     }
 
     /**
-     * Validates that the service can handle high-frequency sequential reads
-     * without significant degradation.
+     * Validates throughput for high-frequency reads.
      */
     @Test
     @DisplayName("Throughput: Rapid sequential retrieval")
@@ -162,13 +170,18 @@ class ProductServicePerformanceTest {
                 .imageUrls(List.of())
                 .build());
 
-        long start = System.currentTimeMillis();
+        // CRITICAL FIX: Flush the creation to the database so ID '12' actually exists
+        entityManager.flush();
+        entityManager.clear();
+
+        StopWatch sw = new StopWatch();
+        sw.start();
         for (int i = 0; i < 200; i++) {
             productService.getProduct(p.id());
+            entityManager.clear(); // Ensure we aren't just reading from memory
         }
-        long duration = System.currentTimeMillis() - start;
+        sw.stop();
 
-        // 200 requests should execute rapidly on a local H2 instance
-        assertThat(duration).isLessThan(2000);
+        assertThat(sw.getTotalTimeMillis()).isLessThan(2000);
     }
 }

@@ -28,7 +28,7 @@ public class Product {
      * Unique identifier for the product.
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
     /**
@@ -88,11 +88,6 @@ public class Product {
     @JsonIgnore
     private Category category;
 
-    /**
-     * List of active carts currently holding this product.
-     */
-    @OneToMany(mappedBy = "product")
-    private List<CartItem> cartItems;
 
     /**
      * Timestamp of when the product was first added to the DB.

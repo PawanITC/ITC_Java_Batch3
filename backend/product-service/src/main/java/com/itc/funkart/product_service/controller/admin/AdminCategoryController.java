@@ -13,42 +13,51 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Administrative endpoints for managing product categories.
+ * Administrative API for Category lifecycle management.
  * <p>
- * Access is restricted to users with {@code ROLE_ADMIN} authority.
+ * This controller is isolated from the public browsing API to ensure
+ * strict 'ROLE_ADMIN' authorization via the security filter chain.
  * </p>
  */
 @RestController
 @RequestMapping("/admin/categories")
 @RequiredArgsConstructor
-@Tag(name = "Admin Categories", description = "Administrative Category Management")
+@Tag(name = "Admin Categories", description = "Restricted Category Management")
 public class AdminCategoryController {
 
     private final CategoryService categoryService;
 
     /**
      * Creates a new product category.
+     * <p>
+     * Note: Input is validated via @Valid to prevent Malformed Data Injection.
+     * To address XSS concerns, the service layer ensures name sanitization.
+     * </p>
      *
      * @param request The category details.
-     * @return Standardized response containing the created category.
+     * @return 201 Created and the new Category resource.
      */
-    @PostMapping
+    @PostMapping(produces = "application/json")
     @Operation(summary = "Create a new category")
     public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryRequest request) {
+        CategoryResponse created = categoryService.createCategory(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(categoryService.createCategory(request), "Category created successfully"));
+                .body(new ApiResponse<>(created, "Resource successfully persisted"));
     }
 
     /**
-     * Deletes an existing category.
+     * Deletes a category by ID.
+     * <p>
+     * Referential integrity is checked at the Service/DB level.
+     * </p>
      *
-     * @param id The unique identifier of the category.
-     * @return Empty success response.
+     * @param id Target category ID.
+     * @return 200 OK.
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a category")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
-        return ResponseEntity.ok(new ApiResponse<>(null, "Category deleted successfully"));
+        return ResponseEntity.ok(new ApiResponse<>(null, "Resource successfully removed"));
     }
 }

@@ -19,7 +19,7 @@ import java.util.List;
  * </p>
  */
 @RestController
-@RequestMapping("/products")
+@RequestMapping(value = "/products", produces = "application/json")
 @RequiredArgsConstructor
 @Tag(name = "Products", description = "Public Product Browsing API")
 public class ProductController {
@@ -27,9 +27,8 @@ public class ProductController {
     private final ProductService productService;
 
     /**
-     * Retrieves a complete list of active products in the catalog.
-     *
-     * @return List of {@link ProductResponse} wrapped in a standardized API response.
+     * Retrieves the full catalog.
+     * <p>Note: This response is cached at the service layer.</p>
      */
     @GetMapping
     @Operation(summary = "Get all products")
@@ -37,12 +36,6 @@ public class ProductController {
         return ResponseEntity.ok(new ApiResponse<>(productService.getAllProducts()));
     }
 
-    /**
-     * Retrieves detailed information for a specific product.
-     *
-     * @param id The unique product identifier.
-     * @return Detailed {@link ProductResponse}.
-     */
     @GetMapping("/{id}")
     @Operation(summary = "Get product by ID")
     public ResponseEntity<ApiResponse<ProductResponse>> getProduct(@PathVariable Long id) {
@@ -50,11 +43,8 @@ public class ProductController {
     }
 
     /**
-     * Performs a batch lookup of products based on a list of IDs.
-     * Useful for recovering cart state or populating order summaries.
-     *
-     * @param ids List of product IDs to retrieve.
-     * @return {@link ProductsResponse} containing the matching product details.
+     * Resolves a collection of IDs into Product details.
+     * Often called by the Cart-Service or Order-Service.
      */
     @PostMapping("/by-ids")
     @Operation(summary = "Batch retrieve products by IDs")

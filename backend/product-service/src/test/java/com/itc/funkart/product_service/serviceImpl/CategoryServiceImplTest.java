@@ -123,12 +123,32 @@ class CategoryServiceImplTest {
     // --- 3. DELETE TESTS ---
 
     @Test
-    @DisplayName("Delete Category - Should invoke repository delete")
+    @DisplayName("Delete Category - Should fetch and then delete entity")
     void shouldDeleteCategory() {
-        doNothing().when(categoryRepository).deleteById(1L);
+        // Arrange
+        Long categoryId = 1L;
+        Category category = Category.builder()
+                .id(categoryId)
+                .name("Electronics")
+                .build();
 
-        categoryService.deleteCategory(1L);
+        // 1. Stub the findById to return our category object
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
 
-        verify(categoryRepository, times(1)).deleteById(1L);
+        // 2. Stub the delete method (not deleteById!)
+        doNothing().when(categoryRepository).delete(any(Category.class));
+
+        // Act
+        categoryService.deleteCategory(categoryId);
+
+        // Assert
+        // Verify findById was called to check existence/fetch state
+        verify(categoryRepository).findById(categoryId);
+
+        // Verify the actual delete(entity) method was called
+        verify(categoryRepository).delete(category);
+
+        // Ensure deleteById was NOT the method used
+        verify(categoryRepository, never()).deleteById(anyLong());
     }
 }

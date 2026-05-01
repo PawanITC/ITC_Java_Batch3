@@ -24,12 +24,4 @@ public interface JwtService {
      * @throws io.jsonwebtoken.JwtException if the token is malformed, expired, or tampered with.
      */
     Claims parseJwtToken(String token);
-
-    /**
-     * Performs a temporal and cryptographic check to ensure the token is active.
-     *
-     * @param token The raw JWT string to evaluate.
-     * @return {@code true} if the token is authentic and not yet expired; {@code false} otherwise.
-     */
-    boolean validateToken(String token);
 }

@@ -1,6 +1,5 @@
 package com.itc.funkart.product_service.dto.response;
 
-import com.itc.funkart.product_service.entity.Product;
 import lombok.Builder;
 
 import java.util.List;
@@ -11,7 +10,7 @@ import java.util.List;
  */
 @Builder
 public record ProductsResponse(
-        List<Product> found,
+        List<ProductResponse> found,
         List<Long> missing
 ) {
 }

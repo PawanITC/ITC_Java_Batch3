@@ -15,18 +15,14 @@ import java.math.BigDecimal;
 public record ProductUpdateRequest(
         @Size(min = 3, max = 100, message = "Name must be between 3 and 100 characters")
         String name,
-
         String description,
-
         @Positive(message = "Price must be positive")
         BigDecimal price,
-
         @Min(value = 0, message = "Stock cannot be negative")
         Integer stockQuantity,
-
         @Size(min = 2, message = "Brand name is too short")
         String brand,
-
-        Boolean active
+        Boolean active,
+        Long categoryId
 ) {
 }

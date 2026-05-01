@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import static org.springframework.http.ResponseEntity.*;
+
 /**
  * Administrative endpoints for product catalog maintenance.
  * <p>
@@ -20,51 +22,33 @@ import org.springframework.web.bind.annotation.*;
  * </p>
  */
 @RestController
-@RequestMapping("/admin/products")
+@RequestMapping(value = "/admin/products", produces = "application/json")
 @RequiredArgsConstructor
 @Tag(name = "Admin Products", description = "Administrative Product Management")
 public class AdminProductController {
 
     private final ProductService productService;
 
-    /**
-     * Persists a new product into the catalog.
-     *
-     * @param request The product details.
-     * @return Standardized response with the persisted product.
-     */
     @PostMapping
     @Operation(summary = "Create a new product")
     public ResponseEntity<ApiResponse<ProductResponse>> createProduct(@Valid @RequestBody ProductCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(productService.createProduct(request), "Product created successfully"));
+        // We return the DTO, but the 'Message' is a constant to prevent Reflected XSS
+        return status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(productService.createProduct(request), "Resource successfully created"));
     }
 
-    /**
-     * Updates an existing product's attributes.
-     *
-     * @param id      The product ID.
-     * @param request The updated data.
-     * @return Standardized response with the updated product.
-     */
     @PutMapping("/{id}")
     @Operation(summary = "Update an existing product")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
             @PathVariable Long id,
             @Valid @RequestBody ProductUpdateRequest request) {
-        return ResponseEntity.ok(new ApiResponse<>(productService.updateProduct(id, request), "Product updated successfully"));
+        return ok(new ApiResponse<>(productService.updateProduct(id, request), "Resource successfully updated"));
     }
 
-    /**
-     * Removes a product from the catalog.
-     *
-     * @param id The product ID.
-     * @return Empty success response.
-     */
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a product from the catalog")
+    @Operation(summary = "Delete a product")
     public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
-        return ResponseEntity.ok(new ApiResponse<>(null, "Product deleted successfully"));
+        return ok(new ApiResponse<>(null, "Resource successfully deleted"));
     }
 }

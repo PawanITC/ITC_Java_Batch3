@@ -1,4 +1,4 @@
-package com.itc.funkart.product_service.consumer;
+package com.itc.funkart.product_service.kafka.consumer;
 
 import com.itc.funkart.product_service.constants.KafkaConstants;
 import com.itc.funkart.product_service.dto.events.ProductEvent;

@@ -1,4 +1,4 @@
-package com.itc.funkart.product_service.producer;
+package com.itc.funkart.product_service.kafka.producer;
 
 import com.itc.funkart.product_service.constants.KafkaConstants;
 import com.itc.funkart.product_service.dto.events.OrderEvent;
@@ -12,52 +12,57 @@ import org.springframework.stereotype.Service;
  * <h2>OrderProducer</h2>
  * <p>
  * Asynchronous event producer responsible for dispatching order placement events.
+ * Uses a standardized {@link KafkaTemplate} with {@code Object} value type to
+ * satisfy Spring's Dependency Injection requirements.
  * </p>
- * <p>
- * This service facilitates the hand-off from the shopping cart to the Order microservice.
- * It uses the User ID as the Kafka message key to ensure that all orders from a specific
- * user are processed in chronological order by downstream consumers.
- * </p>
+ *
+ * @author Gemini Teacher
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class OrderProducer {
 
-    private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     /**
      * Dispatches an {@link OrderEvent} to the Kafka cluster.
      * <p>
-     * This method is non-blocking. It utilizes {@code CompletableFuture} to handle
-     * acknowledgement (ACK) from the Kafka brokers.
+     * Uses the User ID as the message key to ensure partition affinity (all orders
+     * from one user go to the same partition, preserving chronological order).
      * </p>
      *
-     * @param event The event payload containing cart details and user metadata.
+     * @param event The event payload containing cart details.
      */
     public void sendOrderEvent(OrderEvent event) {
+        if (event == null || event.userId() == null) {
+            log.error(">>>> [KAFKA] Aborting: OrderEvent or UserId is null.");
+            return;
+        }
+
         String key = String.valueOf(event.userId());
         log.info(">>>> [KAFKA PRODUCER] Dispatching Order Event for User: {}", key);
 
+        // We pass the OrderEvent record directly; the Template handles the Object-level abstraction
         kafkaTemplate.send(KafkaConstants.TOPIC_ORDERS, key, event)
                 .whenComplete((result, ex) -> {
                     if (ex == null) {
                         handleSuccess(key, result);
                     } else {
-                        handleFailure(key, event, ex);
+                        handleFailure(key, ex);
                     }
                 });
     }
 
-    private void handleSuccess(String key, SendResult<String, OrderEvent> result) {
+    private void handleSuccess(String key, SendResult<String, Object> result) {
         log.info(">>>> [KAFKA SUCCESS] Order event {} confirmed at partition {} with offset {}",
                 key,
                 result.getRecordMetadata().partition(),
                 result.getRecordMetadata().offset());
     }
 
-    private void handleFailure(String key, OrderEvent event, Throwable ex) {
+    private void handleFailure(String key, Throwable ex) {
         log.error(">>>> [KAFKA FAILURE] Critical failure dispatching Order {}: {}", key, ex.getMessage());
-        // TODO: Persist to 'failed_events' table for manual reconciliation or automated retry
+        // TODO: Implement Transactional Outbox pattern here for Senior level reliability
     }
 }

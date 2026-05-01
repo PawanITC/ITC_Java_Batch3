@@ -59,7 +59,7 @@ class ProductImageRepositoryTest {
     void shouldSaveProductImageWithProduct() {
         // Arrange
         Product product = entityManager.persist(createProduct("Smartphone"));
-        ProductImage image = createProductImage(product, "http://cdn.com/phone.png", true);
+        ProductImage image = createProductImage(product, "https://cdn.com/phone.png", true);
 
         // Act
         ProductImage saved = productImageRepository.save(image);

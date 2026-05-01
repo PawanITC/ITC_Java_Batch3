@@ -9,16 +9,13 @@ import com.itc.funkart.product_service.repository.CategoryRepository;
 import com.itc.funkart.product_service.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-/**
- * Implementation of {@link CategoryService}.
- * Provides standard CRUD operations for organizing products into groups.
- */
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
@@ -30,13 +27,15 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true) // Optimization: Disables dirty checking in the JVM, Tells the JVM: "Don't track changes, just fetch fast"
     public List<CategoryResponse> getAllCategories() {
         return categoryRepository.findAll().stream()
                 .map(CategoryMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList(); // Cleaner, faster, immutable, memory efficient
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long id) {
         return categoryRepository.findById(id)
                 .map(CategoryMapper::toResponse)
@@ -45,6 +44,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void deleteCategory(Long id) {
-        categoryRepository.deleteById(id);
+        // Better DRY: Single DB trip to verify and prepare for deletion
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+        categoryRepository.delete(category);
     }
 }

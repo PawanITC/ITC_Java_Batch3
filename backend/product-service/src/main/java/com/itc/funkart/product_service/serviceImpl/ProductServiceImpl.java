@@ -10,32 +10,29 @@ import com.itc.funkart.product_service.enums.ProductEventType;
 import com.itc.funkart.product_service.exceptions.BadRequestException;
 import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
 import com.itc.funkart.product_service.mapper.ProductMapper;
-import com.itc.funkart.product_service.producer.ProductProducer;
+import com.itc.funkart.product_service.kafka.producer.ProductProducer;
 import com.itc.funkart.product_service.repository.CategoryRepository;
 import com.itc.funkart.product_service.repository.ProductRepository;
 import com.itc.funkart.product_service.service.ProductService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Implementation of {@link ProductService}.
- * Handles business logic for product management, caching with Redis,
- * and event publishing via Kafka.
- */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
-    private static final int MAX_IDS = 2000;
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductProducer productProducer;
@@ -44,87 +41,67 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     @CacheEvict(value = "product-service:products", allEntries = true)
     public ProductResponse createProduct(ProductCreateRequest request) {
-        log.info("Creating product with name: {}", request.name()); // Fixed: record syntax
+        log.info("Creating product: {}", request.name());
 
         Product product = ProductMapper.toEntity(request);
 
-        if (request.categoryId() != null) { // Fixed: record syntax
-            Category category = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.categoryId()));
-            product.setCategory(category);
+        if (request.categoryId() != null) {
+            product.setCategory(fetchCategoryProxy(request.categoryId()));
         }
 
         Product savedProduct = productRepository.save(product);
+        registerEvent(savedProduct, ProductEventType.CREATE, savedProduct.getId());
 
-        productProducer.sendMessage(ProductMapper.toEvent(savedProduct, ProductEventType.CREATE, savedProduct.getId()));
         return ProductMapper.toResponse(savedProduct);
     }
 
+    @Override
     @Transactional
     @CacheEvict(value = "product-service:products", allEntries = true)
-    @Override
     public ProductResponse updateProduct(Long id, ProductUpdateRequest request) {
-        log.info("Updating product id: {}", id);
-
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
 
-        // Partial update logic using Record accessors
-        if (request.name() != null) {
-            product.setName(request.name());
-            product.setSlug(request.name().toLowerCase().replace(" ", "-"));
-        }
-        if (request.description() != null) product.setDescription(request.description());
-        if (request.price() != null) product.setPrice(request.price());
-        if (request.stockQuantity() != null) product.setStockQuantity(request.stockQuantity());
-        if (request.active() != null) product.setActive(request.active());
-        if (request.brand() != null) product.setBrand(request.brand());
-
+        applyPartialUpdates(product, request);
         Product updatedProduct = productRepository.save(product);
-        productProducer.sendMessage(ProductMapper.toEvent(updatedProduct, ProductEventType.UPDATE, updatedProduct.getId()));
+
+        registerEvent(updatedProduct, ProductEventType.UPDATE, updatedProduct.getId());
         return ProductMapper.toResponse(updatedProduct);
     }
-
 
     @Override
     @Transactional(readOnly = true)
     public ProductResponse getProduct(Long id) {
         return productRepository.findById(id)
                 .map(ProductMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "product-service:products")
     public List<ProductResponse> getAllProducts() {
-        log.info("Fetching all products from database");
-        return productRepository.findAllByOrderByCreatedAtDesc()
-                .stream()
+        return productRepository.findAllWithImages().stream()
                 .map(ProductMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional
     @CacheEvict(value = "product-service:products", allEntries = true)
     public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product not found with id: " + id);
-        }
-        productRepository.deleteById(id);
-        // Sending null for the product object on DELETE is standard
-        productProducer.sendMessage(ProductMapper.toEvent(null, ProductEventType.DELETE, id));
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
+
+        productRepository.delete(product);
+        registerEvent(null, ProductEventType.DELETE, id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductsResponse getProductsByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BadRequestException("ID list cannot be empty");
-        }
-
-        if (ids.size() > MAX_IDS) {
-            throw new BadRequestException("Too many IDs requested. Max allowed: " + MAX_IDS);
         }
 
         List<Long> uniqueIds = ids.stream().distinct().toList();
@@ -138,10 +115,44 @@ public class ProductServiceImpl implements ProductService {
                 .filter(id -> !foundIds.contains(id))
                 .toList();
 
-        // Fixed: Records must use the constructor, they don't have setters
         return ProductsResponse.builder()
-                .found(products)
+                .found(products.stream().map(ProductMapper::toResponse).toList())
                 .missing(missingIds)
                 .build();
+    }
+
+    private void applyPartialUpdates(Product product, ProductUpdateRequest request) {
+        if (request.name() != null) {
+            product.setName(request.name());
+            product.setSlug(request.name().toLowerCase().replace(" ", "-"));
+        }
+        if (request.description() != null) product.setDescription(request.description());
+        if (request.price() != null) product.setPrice(request.price());
+        if (request.stockQuantity() != null) product.setStockQuantity(request.stockQuantity());
+        if (request.active() != null) product.setActive(request.active());
+        if (request.brand() != null) product.setBrand(request.brand());
+        if (request.categoryId() != null) {
+            product.setCategory(fetchCategoryProxy(request.categoryId()));
+        }
+    }
+
+    private Category fetchCategoryProxy(Long categoryId) {
+        try {
+            // Optimization: getReferenceById creates a Proxy (no SELECT query)
+            return categoryRepository.getReferenceById(categoryId);
+        } catch (EntityNotFoundException e) {
+            throw new ResourceNotFoundException("Category not found: " + categoryId);
+        }
+    }
+
+    private void registerEvent(Product product, ProductEventType type, Long id) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    productProducer.sendMessage(ProductMapper.toEvent(product, type, id));
+                }
+            });
+        }
     }
 }

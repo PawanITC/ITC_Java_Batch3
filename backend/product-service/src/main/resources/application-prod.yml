@@ -12,7 +12,7 @@ spring:
 
   jwt:
     secret: ${PROD_JWT_SECRET:${JWT_SECRET}}
-    expiration: ${PROD_JWT_EXPIRATION:3600000}
+    expiration-ms: ${PROD_JWT_EXPIRATION:3600000}
 
   jpa:
     hibernate:

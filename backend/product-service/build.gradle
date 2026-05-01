@@ -36,9 +36,11 @@ dependencies {
 
 	// === 3. SECURITY & AUTHENTICATION (JWT) ===
 	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6' // Supports parsing JSON claims
+
 
 	// === 4. DATABASE & PERSISTENCE ===
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'

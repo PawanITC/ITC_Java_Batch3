@@ -3,10 +3,14 @@ package com.itc.funkart.product_service.serviceImpl;
 import com.itc.funkart.product_service.config.JwtConfig;
 import com.itc.funkart.product_service.constants.JwtClaims;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.IncorrectClaimException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -20,105 +24,94 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-
 /**
  * <h2>JwtServiceImplTest</h2>
- * <p>
- * Validates the cryptographic integrity and expiration logic of the JWT service.
- * Tests focus on signature verification and issuer enforcement.
- * </p>
+ * Validates the cryptographic integrity and temporal validity of JWTs.
+ * Ensures that the service adheres to the security contract defined by FunKart Auth.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("JWT Service Unit Tests")
+@DisplayName("JWT Service - Behavioral Analysis")
 class JwtServiceImplTest {
 
     @Mock
     private JwtConfig jwtConfig;
     private JwtServiceImpl jwtService;
-    private SecretKey testKey;
 
-    @BeforeEach
-    void setUp() {
-        // Prepare the key for signing test tokens
-        // Use a test secret: "testSecretKeyWithEnoughEntropyForHS256!!" in Base64
-        String testSecretBase64 = "dGVzdFNlY3JldEtleVdpdGhFbm91Z2hFbnRyb3B5Rm9ySFMyNTYhIQ==";
-        byte[] keyBytes = Base64.getDecoder().decode(testSecretBase64);
-        this.testKey = Keys.hmacShaKeyFor(keyBytes);
-
-        // Configure mock and initialize service
-        when(jwtConfig.getSecret()).thenReturn(testSecretBase64);
-        jwtService = new JwtServiceImpl(jwtConfig);
+    @Nested
+    @DisplayName("Initialization Logic")
+    class Initialization {
+        /**
+         * Verifies that the service fails fast if the configuration is corrupted.
+         */
+        @Test
+        @DisplayName("Should fail when secret is not valid Base64")
+        void shouldFailOnInvalidBase64() {
+            when(jwtConfig.getSecret()).thenReturn("!!!-Not-Base64-!!!");
+            assertThatThrownBy(() -> new JwtServiceImpl(jwtConfig))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
     }
 
-    // --- Helper to create a test token ---
-    private String createTestToken(String issuer, Date expiration) {
-        return Jwts.builder()
-                .subject("testUser")
-                .issuer(issuer)
-                .issuedAt(new Date())
-                .expiration(expiration)
-                .signWith(testKey)
-                .compact();
-    }
+    @Nested
+    @DisplayName("Token Parsing & Validation")
+    class Parsing {
+        private SecretKey testKey;
 
-    @Test
-    @DisplayName("Parse JWT - Should return claims for valid token")
-    void shouldParseValidToken() {
-        String token = createTestToken(JwtClaims.ISSUER, new Date(System.currentTimeMillis() + 3600000));
+        @BeforeEach
+        void setUp() {
+            String VALID_SECRET = "dGVzdFNlY3JldEtleVdpdGhFbm91Z2hFbnRyb3B5Rm9ySFMyNTYhIQ==";
+            when(jwtConfig.getSecret()).thenReturn(VALID_SECRET);
+            testKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(VALID_SECRET));
+            jwtService = new JwtServiceImpl(jwtConfig);
+        }
 
-        Claims claims = jwtService.parseJwtToken(token);
+        /**
+         * Helper to generate test tokens with specific properties.
+         */
+        private String generateToken(String issuer, Date exp) {
+            return Jwts.builder()
+                    .subject("12345")
+                    .issuer(issuer)
+                    .expiration(exp)
+                    .signWith(testKey)
+                    .compact();
+        }
 
-        assertThat(claims.getSubject()).isEqualTo("testUser");
-        assertThat(claims.getIssuer()).isEqualTo(JwtClaims.ISSUER);
-    }
+        @Test
+        @DisplayName("Success: Should extract claims from a perfectly valid token")
+        void shouldReturnClaims() {
+            String token = generateToken(JwtClaims.ISSUER, new Date(System.currentTimeMillis() + 60000));
+            Claims claims = jwtService.parseJwtToken(token);
+            assertThat(claims.getSubject()).isEqualTo("12345");
+        }
 
-    @Test
-    @DisplayName("Parse JWT - Should throw exception for invalid issuer (Branch: Security Check)")
-    void shouldThrowExceptionForInvalidIssuer() {
-        String token = createTestToken("Malicious-Issuer", new Date(System.currentTimeMillis() + 3600000));
+        @Test
+        @DisplayName("Failure: Should reject tokens with an expired 'exp' claim")
+        void shouldThrowOnExpired() {
+            String token = generateToken(JwtClaims.ISSUER, new Date(System.currentTimeMillis() - 1000));
+            assertThatThrownBy(() -> jwtService.parseJwtToken(token))
+                    .isInstanceOf(ExpiredJwtException.class);
+        }
 
-        assertThatThrownBy(() -> jwtService.parseJwtToken(token))
-                .isInstanceOf(io.jsonwebtoken.JwtException.class);
-    }
+        @Test
+        @DisplayName("Failure: Should reject tokens if the cryptographic signature is altered")
+        void shouldThrowOnTampering() {
+            String token = generateToken(JwtClaims.ISSUER, new Date(System.currentTimeMillis() + 60000));
+            assertThatThrownBy(() -> jwtService.parseJwtToken(token + "tampered"))
+                    .isInstanceOf(SignatureException.class);
+        }
 
-    @Test
-    @DisplayName("Validate Token - Should return true for active token")
-    void shouldValidateActiveToken() {
-        String token = createTestToken(JwtClaims.ISSUER, new Date(System.currentTimeMillis() + 3600000));
+        @Test
+        @DisplayName("Failure: Should reject tokens issued by an untrusted authority")
+        void shouldThrowOnInvalidIssuer() {
+            // We generate a token with a 'bad' issuer
+            String token = generateToken("Untrusted-Source", new Date(System.currentTimeMillis() + 60000));
 
-        boolean isValid = jwtService.validateToken(token);
-
-        assertThat(isValid).isTrue();
-    }
-
-    @Test
-    @DisplayName("Validate Token - Should return false for expired token (Branch: Temporal Check)")
-    void shouldReturnFalseForExpiredToken() {
-        // Create token that expired 1 hour ago
-        String token = createTestToken(JwtClaims.ISSUER, new Date(System.currentTimeMillis() - 3600000));
-
-        boolean isValid = jwtService.validateToken(token);
-
-        assertThat(isValid).isFalse();
-    }
-
-    @Test
-    @DisplayName("Validate Token - Should return false for tampered token (Branch: Cryptographic Integrity)")
-    void shouldReturnFalseForTamperedToken() {
-        String token = createTestToken(JwtClaims.ISSUER, new Date(System.currentTimeMillis() + 3600000));
-        String tamperedToken = token + "modified";
-
-        boolean isValid = jwtService.validateToken(tamperedToken);
-
-        assertThat(isValid).isFalse();
-    }
-
-    @Test
-    @DisplayName("Constructor - Should throw exception for invalid Base64 secret")
-    void shouldThrowExceptionForInvalidSecret() {
-        when(jwtConfig.getSecret()).thenReturn("not-base64-!!!");
-
-        assertThatThrownBy(() -> new JwtServiceImpl(jwtConfig))
-                .isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> jwtService.parseJwtToken(token))
+                    .isInstanceOf(IncorrectClaimException.class)
+                    // Change "issuer" to "iss" to match JJWT's internal error message
+                    .hasMessageContaining("iss")
+                    .hasMessageContaining("Untrusted-Source");
+        }
     }
 }

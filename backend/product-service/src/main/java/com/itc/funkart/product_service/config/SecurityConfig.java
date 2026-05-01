@@ -104,7 +104,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/products/by-ids").permitAll()
 
                         // 3. Shopping Cart (Restricted to authenticated Users)
-                        .requestMatchers("/cart/**").hasAuthority("ROLE_USER")
+                        .requestMatchers("/cart/**").hasAnyAuthority("ROLE_USER", "ROLE_MODERATOR", "ROLE_ADMIN")
 
                         // 4. Admin Management (Restricted to authenticated Admins)
                         .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")

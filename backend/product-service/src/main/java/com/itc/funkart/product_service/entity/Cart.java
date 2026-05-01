@@ -23,7 +23,7 @@ public class Cart {
      * Unique identifier for the cart record.
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
     /**
@@ -39,4 +39,10 @@ public class Cart {
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<CartItem> items = new ArrayList<>();
+
+
+    public void addCartItem(CartItem item) {
+        this.items.add(item);
+        item.setCart(this); // CRITICAL: Sets the back-reference for Hibernate
+    }
 }

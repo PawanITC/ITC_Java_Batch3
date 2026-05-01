@@ -20,7 +20,7 @@ public class CartItem {
      * Unique identifier for the cart item entry.
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
     /**
