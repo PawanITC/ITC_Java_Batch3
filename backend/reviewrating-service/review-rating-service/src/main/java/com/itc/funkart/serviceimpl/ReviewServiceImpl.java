@@ -3,11 +3,14 @@ package com.itc.funkart.serviceimpl;
 import com.example.events.common.ReviewPayload;
 import com.itc.funkart.avro.ReviewCreatedEvent;
 import com.itc.funkart.avro.ReviewDeletedEvent;
+import com.itc.funkart.dto.RatingStatsDto;
 import com.itc.funkart.dto.ReviewRequest;
 import com.itc.funkart.dto.ReviewResponse;
+import com.itc.funkart.entity.ProductRatingSummary;
 import com.itc.funkart.entity.Review;
 import com.itc.funkart.event.ReviewUpdatedEvent;
 import com.itc.funkart.outbox.OutboxService;
+import com.itc.funkart.repository.ProductRatingSummaryRepository;
 import com.itc.funkart.repository.ReviewRepository;
 import com.itc.funkart.service.ReviewService;
 import lombok.extern.slf4j.Slf4j;
@@ -26,14 +29,16 @@ import java.time.ZoneId;
 public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewRepository reviewRepository;
+    private final ProductRatingSummaryRepository summaryRepository;
     //private final ReviewRepository reviewRepository;
     private final OutboxService outboxService;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public ReviewServiceImpl(ReviewRepository reviewRepository, OutboxService outboxService, RedisTemplate<String, Object> redisTemplate) {
+    public ReviewServiceImpl(ReviewRepository reviewRepository, OutboxService outboxService, RedisTemplate<String, Object> redisTemplate,ProductRatingSummaryRepository summaryRepository) {
         this.reviewRepository = reviewRepository;
         this.redisTemplate = redisTemplate;
         this.outboxService = outboxService;
+        this.summaryRepository = summaryRepository;
     }
 
 
@@ -57,6 +62,8 @@ public class ReviewServiceImpl implements ReviewService {
         review.setUpdatedAt(LocalDateTime.now());
 
         Review saved = reviewRepository.save(review);
+
+        recalculateSummary(productId);
 
         Instant createdAtInstant = saved.getCreatedAt()
                 .atZone(ZoneId.systemDefault())
@@ -138,6 +145,8 @@ public class ReviewServiceImpl implements ReviewService {
                 .ifPresent(review -> {
 
                     reviewRepository.delete(review);
+                    // ⭐ Recalculate summary
+                    recalculateSummary(productId);
 
                     redisTemplate.delete("product:%s:rating-summary".formatted(productId));
 
@@ -171,5 +180,41 @@ public class ReviewServiceImpl implements ReviewService {
                 });
 
 
+    }
+
+    // -------------------------------------------------------------------------
+    // ⭐ SUMMARY RECALCULATION
+    // -------------------------------------------------------------------------
+    private void recalculateSummary(Long productId) {
+
+        RatingStatsDto stats = reviewRepository.getRatingStatsByProductId(productId);
+
+        if (stats == null || stats.getAvg() == null) {
+            summaryRepository.deleteById(productId);
+            return;
+        }
+
+        ProductRatingSummary summary = summaryRepository.findById(productId)
+                .orElseGet(() -> new ProductRatingSummary(productId));
+
+        summary.setAverageRating(stats.getAvg());
+        summary.setRatingCount(stats.getCount());
+
+        summaryRepository.save(summary);
+    }
+
+    private Review createNew(Long productId, Long userId, ReviewRequest request) {
+        Review r = new Review(productId, userId, LocalDateTime.now());
+        r.setRating(request.getRating());
+        r.setReviewText(request.getComment());
+        r.setUpdatedAt(LocalDateTime.now());
+        return r;
+    }
+
+    private Review updateExisting(Review existing, ReviewRequest request) {
+        existing.setRating(request.getRating());
+        existing.setReviewText(request.getComment());
+        existing.setUpdatedAt(LocalDateTime.now());
+        return existing;
     }
 }

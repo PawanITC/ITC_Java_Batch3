@@ -2,6 +2,9 @@ server:
   address: 0.0.0.0
 
 spring:
+  config:
+    activate:
+      on-profile: docker
   application:
     name: review-rating-service
 
@@ -10,8 +13,8 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-    properties:
-      spring.json.add.type.headers: false
+      properties:
+        spring.json.add.type.headers: false
 
   data:
     redis:
