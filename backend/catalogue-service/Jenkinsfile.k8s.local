@@ -79,7 +79,7 @@ spec:
                 container('kubectl') {
                     sh '''
                     kubectl apply -n catalogue-service -f backend/catalogue-service/k8s/local/apps/
-                    kubectl rollout restart deployment/catalogue-service -n catalogue-service
+                    kubectl rollout restart deployment catalogue-service -n catalogue-service
                     '''
                 }
             }
@@ -90,8 +90,6 @@ spec:
                 container('kubectl') {
                     sh 'kubectl rollout status deployment kafka -n catalogue-service'
                     sh 'kubectl rollout status deployment redis -n catalogue-service'
-                    sh 'kubectl rollout status deployment otel-collector -n catalogue-service'
-
                     sh 'kubectl rollout status deployment catalogue-service -n catalogue-service'
                 }
             }
@@ -124,7 +122,7 @@ spec:
         stage('Scale Up Pods') {
             steps {
                 container('kubectl') {
-                    sh 'kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service'
+                    sh 'kubectl scale deployment catalogue-service --replicas=5 -n catalogue-service'
                 }
             }
         }
@@ -150,7 +148,7 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=veryhigh
+                      -JtestType=ultimate
 
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -g /results.jtl \
