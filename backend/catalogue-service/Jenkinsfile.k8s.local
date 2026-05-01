@@ -150,7 +150,7 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=ultimate
+                      -JtestType=extremehigh
 
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -g /results.jtl \
