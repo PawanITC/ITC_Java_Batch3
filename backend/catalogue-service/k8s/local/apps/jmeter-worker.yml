@@ -16,7 +16,8 @@ spec:
       containers:
         - name: jmeter
           image: justb4/jmeter:latest
-          command: ["jmeter-server"]
+          command: ["/bin/sh"]
+          args: ["-c", "jmeter-server"]
 ---
 apiVersion: v1
 kind: Service
