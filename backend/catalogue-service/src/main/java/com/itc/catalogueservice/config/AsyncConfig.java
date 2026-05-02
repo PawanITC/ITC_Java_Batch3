@@ -12,8 +12,8 @@ public class AsyncConfig {
     @Bean(name = "productExecutor")
     public Executor productExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(200);
-        executor.setMaxPoolSize(400);
+        executor.setCorePoolSize(300);
+        executor.setMaxPoolSize(500);
         executor.setQueueCapacity(300);
         executor.setThreadNamePrefix("product-exec-");
         executor.initialize();
