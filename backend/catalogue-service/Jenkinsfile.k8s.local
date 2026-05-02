@@ -81,7 +81,6 @@ spec:
                     kubectl apply -n catalogue-service -f backend/catalogue-service/k8s/local/apps/
 
                     kubectl rollout restart deployment catalogue-service -n catalogue-service
-
                     kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service
                     '''
                 }
@@ -91,9 +90,11 @@ spec:
         stage('Wait for Deployments Ready') {
             steps {
                 container('kubectl') {
-                    sh 'kubectl rollout status deployment kafka -n catalogue-service'
-                    sh 'kubectl rollout status deployment redis -n catalogue-service'
-                    sh 'kubectl rollout status deployment catalogue-service -n catalogue-service'
+                    sh '''
+                    kubectl rollout status deployment kafka -n catalogue-service
+                    kubectl rollout status deployment redis -n catalogue-service
+                    kubectl rollout status deployment catalogue-service -n catalogue-service
+                    '''
                 }
             }
         }
@@ -129,22 +130,24 @@ spec:
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter -n catalogue-service
 
-                    kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/jmeter:/catalogue-docker-test.jmx
+                    JMETER_POD=$(kubectl get pods -n catalogue-service -l app=jmeter -o jsonpath="{.items[0].metadata.name}")
 
-                    kubectl exec jmeter -n catalogue-service -- rm -rf /results.jtl /report* || true
+                    kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$JMETER_POD:/catalogue-docker-test.jmx
 
-                    kubectl exec jmeter -n catalogue-service -- jmeter \
+                    kubectl exec $JMETER_POD -n catalogue-service -- rm -rf /results.jtl /report* || true
+
+                    kubectl exec $JMETER_POD -n catalogue-service -- jmeter \
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
                       -JtestType=extremehigh
 
-                    kubectl exec jmeter -n catalogue-service -- jmeter \
+                    kubectl exec $JMETER_POD -n catalogue-service -- jmeter \
                       -g /results.jtl \
                       -o /report-${BUILD_NUMBER}
 
-                    kubectl cp catalogue-service/jmeter:/results.jtl backend/catalogue-service/jmeter/results-${BUILD_NUMBER}.jtl
-                    kubectl cp catalogue-service/jmeter:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
+                    kubectl cp catalogue-service/$JMETER_POD:/results.jtl backend/catalogue-service/jmeter/results-${BUILD_NUMBER}.jtl
+                    kubectl cp catalogue-service/$JMETER_POD:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
                     '''
                 }
             }
