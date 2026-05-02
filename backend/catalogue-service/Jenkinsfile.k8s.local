@@ -156,29 +156,23 @@ spec:
                     # Kill master safely
                     kubectl exec jmeter -n catalogue-service -- sh -c "pkill -f jmeter || true" || true
 
-                    # HARD reset workers (fix engine busy)
+                    # Reset workers
                     kubectl delete pod -l app=jmeter-worker -n catalogue-service || true
                     kubectl rollout status deployment jmeter-worker -n catalogue-service --timeout=120s
                     kubectl wait --for=condition=ready pod -l app=jmeter-worker -n catalogue-service --timeout=120s
-
-                    # Extra safety kill inside workers
-                    kubectl exec -n catalogue-service -l app=jmeter-worker -- sh -c "pkill -f jmeter || true" || true
 
                     # Clean old results
                     kubectl exec jmeter -n catalogue-service -- rm -rf /results.jtl /report* || true
 
                     WORKERS=$(kubectl get pods -n catalogue-service -l app=jmeter-worker -o jsonpath="{.items[*].status.podIP}" | tr " " ",")
 
-                    # Run test (blocking)
-                    kubectl exec jmeter -n catalogue-service -- sh -c "JVM_ARGS='-Dserver.rmi.ssl.disable=true' jmeter -n -t /catalogue-docker-test.jmx -l /results.jtl -JtestType=extremehigh -R $WORKERS || exit 1"
+                    # RUN TEST + SHOW LIVE SUMMARY
+                    kubectl exec jmeter -n catalogue-service -- sh -c "JVM_ARGS='-Dserver.rmi.ssl.disable=true' jmeter -n -t /catalogue-docker-test.jmx -l /results.jtl -JtestType=extremehigh -R $WORKERS -Jsummariser.interval=5 -Jsummariser.name=summary || exit 1"
 
-                    # Ensure results exist
                     kubectl exec jmeter -n catalogue-service -- test -f /results.jtl
 
-                    # Generate report
                     kubectl exec jmeter -n catalogue-service -- jmeter -g /results.jtl -o /report-${BUILD_NUMBER}
 
-                    # Copy results
                     kubectl cp catalogue-service/jmeter:/results.jtl backend/catalogue-service/jmeter/results-${BUILD_NUMBER}.jtl
                     kubectl cp catalogue-service/jmeter:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
                     '''
