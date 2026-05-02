@@ -1,10 +1,10 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.dto.UserDto;
-import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
+import com.itc.funkart.common.dto.auth.response.SuccessfulLoginResponse;
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.user.UserDto;
 import com.itc.funkart.gateway.exception.JwtAuthenticationException;
 import com.itc.funkart.gateway.exception.OAuthException;
-import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.JwtAuthWebFilter;
 import com.itc.funkart.gateway.service.JwtService;
 import com.itc.funkart.gateway.service.OAuthGatewayService;
@@ -166,19 +166,25 @@ class GithubOAuthControllerTest {
         @Test
         @DisplayName("Returns 200 with new tokens")
         void refresh_success() {
+            // 1. Prepare the data
             UserDto user = new UserDto(1L, "Alice", "alice@example.com", "ROLE_USER");
             SuccessfulLoginResponse resp = new SuccessfulLoginResponse(user, "new-token");
-            ApiResponse<SuccessfulLoginResponse> apiResp = new ApiResponse<>(resp, "Refreshed");
 
+            // 2. FIX: Use the static factory method 'success' instead of the constructor
+            ApiResponse<SuccessfulLoginResponse> apiResp = ApiResponse.success(resp, "Refreshed");
+
+            // 3. Mock the service
             when(oAuthGatewayService.refresh(anyString(), any())).thenReturn(Mono.just(apiResp));
 
+            // 4. Execute the call
             webTestClient.post()
                     .uri("/api/v1/oauth/github/refresh")
                     .cookie("refresh_token", "valid-token")
                     .exchange()
                     .expectStatus().isOk()
                     .expectBody()
-                    .jsonPath("$.data.token").isEqualTo("new-token");
+                    .jsonPath("$.data.token").isEqualTo("new-token")
+                    .jsonPath("$.message").isEqualTo("Refreshed"); // Added message check for completeness
         }
 
         @Test

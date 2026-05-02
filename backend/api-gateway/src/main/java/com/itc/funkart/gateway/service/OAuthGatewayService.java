@@ -1,12 +1,12 @@
 package com.itc.funkart.gateway.service;
 
+import com.itc.funkart.common.dto.auth.response.OAuthResponse;
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.user.UserDto;
 import com.itc.funkart.gateway.config.AppConfig;
-import com.itc.funkart.gateway.dto.UserDto;
-import com.itc.funkart.gateway.dto.request.CodeRequest;
-import com.itc.funkart.gateway.dto.response.OAuthResponse;
-import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
+import com.itc.funkart.common.dto.auth.request.CodeRequest;
+import com.itc.funkart.common.dto.auth.response.SuccessfulLoginResponse;
 import com.itc.funkart.gateway.exception.JwtAuthenticationException;
-import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.CookieUtil;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
@@ -137,7 +137,7 @@ public class OAuthGatewayService {
 
                         return storeRefresh
                                 .then(setCookies)
-                                .thenReturn(new ApiResponse<>(
+                                .thenReturn(ApiResponse.success(
                                         new SuccessfulLoginResponse(user, newAccessToken),
                                         "Token refreshed successfully"
                                 ));

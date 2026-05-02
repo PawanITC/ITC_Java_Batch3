@@ -31,6 +31,10 @@ dependencyManagement {
 dependencies {
 
     // =====================
+    // Shared Contracts
+    // =====================
+    implementation project(':common-contracts')
+    // =====================
     // Core Gateway Stack
     // =====================
     implementation 'org.springframework.boot:spring-boot-starter-webflux'

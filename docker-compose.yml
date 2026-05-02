@@ -95,26 +95,27 @@ services:
       - db-network
 
   # --- 4. MICROSERVICES ---
+  # NOTE: Build context is now '.' (root) so Gradle can find ':common-contracts'
   api-gateway:
     container_name: api-gateway
     build:
-      context: ./backend/api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/api-gateway/Dockerfile
     env_file:
       - ./backend/api-gateway/.env
     ports:
       - "8060:8060"
     depends_on:
       - redis
-      - jaeger # Senior Note: Gateway depends on Jaeger for boot-time tracing registration
+      - jaeger
     networks:
       - db-network
 
   user-service:
     container_name: user-service
     build:
-      context: ./backend/user-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/user-service/Dockerfile
     env_file:
       - ./backend/user-service/.env
     depends_on:
@@ -127,8 +128,8 @@ services:
   payment-service:
     container_name: payment-service
     build:
-      context: ./backend/payment-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/payment-service/Dockerfile
     env_file:
       - ./backend/payment-service/.env
     ports:
@@ -143,8 +144,8 @@ services:
   product-service:
     container_name: product-service
     build:
-      context: ./backend/product-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/product-service/Dockerfile
     env_file:
       - ./backend/product-service/.env
     ports:
@@ -160,8 +161,8 @@ services:
   order-service:
     container_name: order-service
     build:
-      context: ./backend/order-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/order-service/Dockerfile
     env_file:
       - ./backend/order-service/.env
     ports:
@@ -174,13 +175,13 @@ services:
     networks:
       - db-network
 
-  # --- 5. OBSERVABILITY (The Telemetry Suite) ---
+  # --- 5. OBSERVABILITY ---
   jaeger:
     container_name: jaeger
     image: jaegertracing/all-in-one:1.53
     restart: always
     ports:
-      - "16686:16686" # Jaeger Query UI
+      - "16686:16686"
     networks:
       - db-network
 
@@ -188,7 +189,7 @@ services:
     container_name: loki
     image: grafana/loki:2.9.4
     ports:
-      - "3100:3100" # Log push endpoint
+      - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
     networks:
       - db-network
@@ -219,6 +220,7 @@ services:
       - prometheus
     networks:
       - db-network
+
   otel-collector:
     container_name: otel-collector
     image: otel/opentelemetry-collector-contrib:0.94.0
@@ -227,16 +229,15 @@ services:
     volumes:
       - ./infra/otel/otel-col-config.yaml:/etc/otel-col-config.yaml
     ports:
-      - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP HTTP
-      - "8888:8888" # Collector metrics
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
     networks:
       - db-network
     depends_on:
       - jaeger
       - loki
 
-# --- INFRASTRUCTURE ---
 networks:
   db-network:
     driver: bridge
@@ -249,5 +250,3 @@ volumes:
   kafka_data:
   pgadmin_data:
   grafana_data:
-  # Senior Note: No Jaeger volume needed for all-in-one in-memory mode, 
-  # but recommended for production-grade persistent tracing.

@@ -1,6 +1,6 @@
 package com.itc.funkart.gateway.service;
 
-import com.itc.funkart.gateway.auth.jwt.JwtClaims;
+import com.itc.funkart.common.constants.auth.JwtClaims;
 import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.exception.JwtAuthenticationException;
 import io.jsonwebtoken.Claims;

@@ -1,6 +1,6 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.dto.JwtUserDto;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;

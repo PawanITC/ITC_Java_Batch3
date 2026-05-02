@@ -14,7 +14,6 @@ pipeline {
     }
 
     stages {
-
         stage('Check Environment') {
             steps {
                 sh 'java -version'
@@ -22,43 +21,25 @@ pipeline {
             }
         }
 
-
         stage('Build & Test') {
             steps {
-                dir('backend/api-gateway') {
-                    script {
-                        sh "chmod +x gradlew"
-                        sh "./gradlew clean build jacocoTestReport \
-                                -Dspring.profiles.active=test \
-                                --no-daemon --stacktrace"
-                    }
-                }
-            }
-        }
-
-        stage('Security Scan (Snyk)') {
-            steps {
-                dir('backend/api-gateway') {
-                    script {
-                        sh 'chmod +x gradlew'
-                        sh "snyk auth ${SNYK_TOKEN}"
-
-                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            sh 'snyk test --severity-threshold=critical --fail-on=all'
-                        }
-
-                        sh 'snyk monitor'
-                    }
+                script {
+                    sh "chmod +x gradlew"
+                    // We run from root, but use the specific project path for Jacoco
+                    sh "./gradlew clean :common-contracts:jar :api-gateway:build :api-gateway:jacocoTestReport \
+                        -Dspring.profiles.active=test \
+                        --no-daemon --stacktrace"
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
+                // Adjusting paths to look inside the sub-module directory
                 jacoco(
-                    execPattern:      '**/build/jacoco/*.exec',
-                    classPattern:     '**/build/classes/java/main',
-                    sourcePattern:    '**/src/main/java',
+                    execPattern:      'backend/api-gateway/build/jacoco/*.exec',
+                    classPattern:     'backend/api-gateway/build/classes/java/main',
+                    sourcePattern:    'backend/api-gateway/src/main/java',
                     inclusionPattern: '**/*.class',
                     minimumLineCoverage: '70',
                     maximumLineCoverage: '80',
@@ -67,15 +48,28 @@ pipeline {
             }
         }
 
+        stage('Security Scan (Snyk)') {
+            steps {
+                script {
+                    sh "snyk auth ${SNYK_TOKEN}"
+                    // Scan the gateway project specifically
+                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                        sh 'snyk test --file=backend/api-gateway/build.gradle --severity-threshold=critical'
+                    }
+                    sh 'snyk monitor --file=backend/api-gateway/build.gradle'
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
-                dir('backend/api-gateway') {
-                    script {
-                        sh 'ls -R build/libs/'
-                        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                        dockerImage = docker.build(
-                            "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", ".")
-                    }
+                script {
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                    // Build from root context so Dockerfile can COPY common-contracts
+                    dockerImage = docker.build(
+                        "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", 
+                        "-f backend/api-gateway/Dockerfile ."
+                    )
                 }
             }
         }
@@ -94,7 +88,7 @@ pipeline {
 
     post {
         success { echo "SUCCESS: ${IMAGE_NAME} deployed to Docker Hub." }
-        failure { echo "FAILURE: Check test reports, security filter logs, or Snyk output." }
+        failure { echo "FAILURE: Check logs." }
         always  { cleanWs() }
     }
 }

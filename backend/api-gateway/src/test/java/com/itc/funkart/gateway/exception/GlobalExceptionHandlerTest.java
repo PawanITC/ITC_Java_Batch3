@@ -1,7 +1,7 @@
 package com.itc.funkart.gateway.exception;
 
-import com.itc.funkart.gateway.response.ApiResponse;
-import com.itc.funkart.gateway.response.ErrorDetails;
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.response.ErrorDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -316,7 +316,8 @@ class GlobalExceptionHandlerTest {
         @Test
         @DisplayName("Success ApiResponse: data and message present, error absent")
         void successResponse_leanEnvelope() {
-            ApiResponse<String> response = new ApiResponse<>("payload", "Operation OK");
+            // FIX: Use the static success method
+            ApiResponse<String> response = ApiResponse.success("payload", "Operation OK");
 
             assertEquals("payload", response.getData());
             assertEquals("Operation OK", response.getMessage());
@@ -325,12 +326,27 @@ class GlobalExceptionHandlerTest {
         }
 
         @Test
+        @DisplayName("ApiResponse timestamp is always populated on construction")
+        void timestamp_alwaysPresent() {
+            // FIX: Use static error and success methods
+            ApiResponse<Void> error = ApiResponse.error(new ErrorDetails("X", "y", null));
+            ApiResponse<String> success = ApiResponse.success("data", "msg");
+
+            assertNotNull(error.getTimestamp());
+            assertNotNull(success.getTimestamp());
+        }
+
+        @Test
         @DisplayName("Error ApiResponse: error present, data absent")
         void errorResponse_errorPresent() {
-            ErrorDetails details = new ErrorDetails("SOME_CODE", "Something went wrong");
-            ApiResponse<Void> response = new ApiResponse<>(details);
+            // 1. Create the details
+            ErrorDetails details = new ErrorDetails("SOME_CODE", "Something went wrong", null);
 
-            assertNotNull(response.getError());
+            // 2. FIX: Use the factory method to link 'details' to the response
+            ApiResponse<Void> response = ApiResponse.error(details);
+
+            // 3. Now the assertions will pass
+            assertNotNull(response.getError()); // This is no longer null
             assertNull(response.getData());
             assertEquals("SOME_CODE", response.getError().getCode());
         }
@@ -355,14 +371,5 @@ class GlobalExceptionHandlerTest {
             assertNull(details.getField());
         }
 
-        @Test
-        @DisplayName("ApiResponse timestamp is always populated on construction")
-        void timestamp_alwaysPresent() {
-            ApiResponse<Void> error = new ApiResponse<>(new ErrorDetails("X", "y"));
-            ApiResponse<String> success = new ApiResponse<>("data", "msg");
-
-            assertNotNull(error.getTimestamp());
-            assertNotNull(success.getTimestamp());
-        }
     }
 }

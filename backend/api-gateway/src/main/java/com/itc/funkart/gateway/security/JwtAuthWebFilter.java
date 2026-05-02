@@ -1,6 +1,6 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.dto.JwtUserDto;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import com.itc.funkart.gateway.service.JwtService;
 import com.itc.funkart.gateway.service.TokenBlacklistService;
 import lombok.extern.slf4j.Slf4j; // Added for professional logging

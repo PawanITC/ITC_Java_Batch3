@@ -1,6 +1,6 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.dto.JwtUserDto;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
