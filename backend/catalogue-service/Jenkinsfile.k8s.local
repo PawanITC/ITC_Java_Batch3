@@ -36,15 +36,11 @@ spec:
     stages {
 
         stage('Clean Workspace') {
-            steps {
-                cleanWs()
-            }
+            steps { cleanWs() }
         }
 
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Test') {
@@ -107,9 +103,7 @@ spec:
                       -n catalogue-service \
                       -- curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
 
-                        if [ $elapsed -ge $timeout ]; then
-                            exit 1
-                        fi
+                        if [ $elapsed -ge $timeout ]; then exit 1; fi
 
                         sleep 3
                         elapsed=$((elapsed+3))
@@ -136,6 +130,23 @@ spec:
             }
         }
 
+        stage('Scale JMeter Workers') {
+            steps {
+                container('kubectl') {
+                    sh 'kubectl scale deployment jmeter-worker --replicas=2 -n catalogue-service'
+                }
+            }
+        }
+
+        stage('Wait for JMeter Workers') {
+            steps {
+                container('kubectl') {
+                    sh 'kubectl rollout status deployment jmeter-worker -n catalogue-service'
+                    sh 'kubectl wait --for=condition=ready pod -l app=jmeter-worker -n catalogue-service --timeout=120s'
+                }
+            }
+        }
+
         stage('Performance Test (JMeter)') {
             steps {
                 container('kubectl') {
@@ -148,7 +159,8 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=extremehigh
+                      -JtestType=extremehigh \
+                      -R jmeter-worker
 
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -g /results.jtl \
