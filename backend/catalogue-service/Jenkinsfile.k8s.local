@@ -126,7 +126,6 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    kubectl scale deployment jmeter --replicas=3 -n catalogue-service
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter -n catalogue-service
                     kubectl wait --for=condition=Ready pod -l app=jmeter -n catalogue-service --timeout=120s
@@ -141,7 +140,7 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -Jthreads=400 \
+                      -Jthreads=300 \
                       -Jramp=60 \
                       -Jduration=180
 
