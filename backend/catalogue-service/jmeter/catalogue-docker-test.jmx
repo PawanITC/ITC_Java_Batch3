@@ -226,7 +226,7 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Very High">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Very High" enabled="true">
         <stringProp name="TestPlan.comments">Very high load (stabilised ramp)</stringProp>
         <intProp name="ThreadGroup.num_threads">1200</intProp>
         <intProp name="ThreadGroup.ramp_time">10</intProp>
@@ -265,18 +265,19 @@
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Extreme High">
         <stringProp name="TestPlan.comments">Extreme stress test</stringProp>
         <intProp name="ThreadGroup.num_threads">3000</intProp>
-        <intProp name="ThreadGroup.ramp_time">60</intProp>
-        <longProp name="ThreadGroup.duration">120</longProp>
+        <intProp name="ThreadGroup.ramp_time">30</intProp>
+        <longProp name="ThreadGroup.duration">180</longProp>
+        <longProp name="ThreadGroup.delay">0</longProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
-          <stringProp name="LoopController.loops">1</stringProp>
+          <intProp name="LoopController.loops">-1</intProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Extreme High">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Extreme High" enabled="true">
           <stringProp name="IfController.condition">${__groovy(&quot;extremehigh&quot;.equals(props.get(&quot;testType&quot;)))}</stringProp>
           <boolProp name="IfController.evaluateAll">false</boolProp>
           <boolProp name="IfController.useExpression">true</boolProp>
@@ -339,7 +340,7 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Test Config">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Test Config" enabled="true">
         <collectionProp name="Arguments.arguments">
           <elementProp name="testType" elementType="Argument">
             <stringProp name="Argument.name">testType</stringProp>
