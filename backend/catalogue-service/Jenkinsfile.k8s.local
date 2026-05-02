@@ -30,7 +30,7 @@ spec:
     }
 
     environment {
-        IMAGE = "host.docker.internal:5000/catalogue-service-registry:${BUILD_NUMBER}"
+        IMAGE = "host.docker.internal:5000/catalogue-service-registry:local"
     }
 
     stages {
@@ -80,8 +80,7 @@ spec:
                     sh '''
                     kubectl apply -n catalogue-service -f backend/catalogue-service/k8s/local/apps/
 
-                    kubectl set image deployment/catalogue-service \
-                    catalogue-service=$IMAGE -n catalogue-service
+                    kubectl rollout restart deployment catalogue-service -n catalogue-service
 
                     kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service
                     '''
