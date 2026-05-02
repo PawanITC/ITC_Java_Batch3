@@ -95,7 +95,6 @@ services:
       - db-network
 
   # --- 4. MICROSERVICES ---
-  # NOTE: Build context is now '.' (root) so Gradle can find ':common-contracts'
   api-gateway:
     container_name: api-gateway
     build:
@@ -107,7 +106,7 @@ services:
       - "8060:8060"
     depends_on:
       - redis
-      - jaeger
+      - otel-collector # Gateway sends telemetry to collector
     networks:
       - db-network
 
@@ -118,10 +117,11 @@ services:
       dockerfile: backend/user-service/Dockerfile
     env_file:
       - ./backend/user-service/.env
+    # No public ports: internal access only via Gateway
     depends_on:
       - postgres
       - kafka
-      - jaeger
+      - otel-collector
     networks:
       - db-network
 
@@ -133,11 +133,11 @@ services:
     env_file:
       - ./backend/payment-service/.env
     ports:
-      - "8082:8080"
+      - "8082:8080" # Exposed for external payment webhooks
     depends_on:
       - postgres
       - kafka
-      - jaeger
+      - otel-collector
     networks:
       - db-network
 
@@ -149,12 +149,12 @@ services:
     env_file:
       - ./backend/product-service/.env
     ports:
-      - "9090:9090"
+      - "8083:8080" # External debug port, Internal 8080 for Gateway
     depends_on:
       - postgres
       - kafka
       - redis
-      - jaeger
+      - otel-collector
     networks:
       - db-network
 
@@ -166,12 +166,12 @@ services:
     env_file:
       - ./backend/order-service/.env
     ports:
-      - "8080:8080"
+      - "8084:8080" # External debug port, Internal 8080 for Gateway
     depends_on:
       - postgres
       - kafka
       - redis
-      - jaeger
+      - otel-collector
     networks:
       - db-network
 
@@ -181,7 +181,8 @@ services:
     image: jaegertracing/all-in-one:1.53
     restart: always
     ports:
-      - "16686:16686"
+      - "16686:16686" # UI
+      - "4317:4317"  # OTLP gRPC
     networks:
       - db-network
 
@@ -229,9 +230,8 @@ services:
     volumes:
       - ./infra/otel/otel-col-config.yaml:/etc/otel-col-config.yaml
     ports:
-      - "4317:4317"
-      - "4318:4318"
-      - "8888:8888"
+      - "4318:4318" # OTLP HTTP
+      - "8888:8888" # Metrics
     networks:
       - db-network
     depends_on:

@@ -127,10 +127,12 @@ management:
 
   otlp:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}
+      # Spring will append /v1/traces automatically if using the OTLP exporter
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}/v1/traces
     metrics:
       export:
-        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}
+        # Metrics use a different sub-path
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}/v1/metrics
 
   metrics:
     tags:

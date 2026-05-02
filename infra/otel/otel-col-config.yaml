@@ -12,15 +12,21 @@ processors:
     timeout: 10s
 
 exporters:
+  # Metrics: Pulled by Prometheus on port 8889
   prometheus:
     endpoint: "0.0.0.0:8889"
     resource_to_telemetry_conversion:
       enabled: true
-  # Adding Jaeger back so your traces have somewhere to go
+  
+  # Traces: Pushed to Jaeger
   otlp/jaeger:
     endpoint: "jaeger:4317"
     tls:
       insecure: true
+
+  # Logs: Pushed to Loki
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
 
 service:
   pipelines:
@@ -28,7 +34,13 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
+    
     traces:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp/jaeger]
+
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [loki]
