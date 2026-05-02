@@ -153,6 +153,13 @@ spec:
                     sh '''
                     kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/jmeter:/catalogue-docker-test.jmx
 
+                    # 🔥 CLEAN PREVIOUS STATE
+                    kubectl exec jmeter -n catalogue-service -- sh -c "pkill -f jmeter || true"
+
+                    kubectl delete pod -l app=jmeter-worker -n catalogue-service
+                    kubectl rollout status deployment jmeter-worker -n catalogue-service --timeout=120s
+                    kubectl wait --for=condition=ready pod -l app=jmeter-worker -n catalogue-service --timeout=120s
+
                     kubectl exec jmeter -n catalogue-service -- rm -rf /results.jtl /report* || true
 
                     WORKERS=$(kubectl get pods -n catalogue-service -l app=jmeter-worker -o jsonpath="{.items[*].status.podIP}" | tr " " ",")
