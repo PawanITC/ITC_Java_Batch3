@@ -21,12 +21,12 @@ spec:
 
           resources:
             requests:
-              memory: "1500Mi"
+              memory: "512Mi"
               cpu: "500m"
             limits:
-              memory: "1500Mi"
+              memory: "2Gi"
               cpu: "1"
 
           env:
             - name: JVM_ARGS
-              value: "-Xms1g -Xmx1200m"
+              value: "-Xms512m -Xmx1500m"

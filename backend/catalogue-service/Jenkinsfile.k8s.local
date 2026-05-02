@@ -79,7 +79,6 @@ spec:
                 container('kubectl') {
                     sh '''
                     kubectl apply -n catalogue-service -f backend/catalogue-service/k8s/local/apps/
-
                     kubectl rollout restart deployment catalogue-service -n catalogue-service
                     kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service
                     '''
@@ -129,8 +128,6 @@ spec:
                     sh '''
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter -n catalogue-service
-
-                    # WAIT until pod is fully ready (IMPORTANT FIX)
                     kubectl wait --for=condition=Ready pod -l app=jmeter -n catalogue-service --timeout=120s
 
                     JMETER_POD=$(kubectl get pods -n catalogue-service -l app=jmeter -o jsonpath="{.items[0].metadata.name}")
@@ -143,7 +140,9 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=extremehigh
+                      -Jthreads=1200 \
+                      -Jramp=60 \
+                      -Jduration=180
 
                     kubectl exec $JMETER_POD -n catalogue-service -- jmeter \
                       -g /results.jtl \
