@@ -30,7 +30,7 @@ spec:
     }
 
     environment {
-        IMAGE = "host.docker.internal:5000/catalogue-service-registry:local"
+        IMAGE = "host.docker.internal:5000/catalogue-service-registry:${BUILD_NUMBER}"
     }
 
     stages {
@@ -79,6 +79,12 @@ spec:
                 container('kubectl') {
                     sh '''
                     kubectl apply -n catalogue-service -f backend/catalogue-service/k8s/local/apps/
+
+                    kubectl set image deployment/catalogue-service \
+                    catalogue-service=$IMAGE -n catalogue-service
+
+                    kubectl delete pod -l app=catalogue-service -n catalogue-service || true
+
                     kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service
                     '''
                 }
