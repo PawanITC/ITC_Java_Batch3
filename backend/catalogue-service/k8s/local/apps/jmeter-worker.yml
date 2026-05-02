@@ -37,5 +37,9 @@ spec:
   selector:
     app: jmeter-worker
   ports:
-    - port: 1099
-    - port: 50000
+    - name: rmi
+      port: 1099
+      targetPort: 1099
+    - name: data
+      port: 50000
+      targetPort: 50000
