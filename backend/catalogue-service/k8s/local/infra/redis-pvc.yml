@@ -5,6 +5,7 @@ metadata:
   namespace: catalogue-service
 spec:
   storageClassName: manual
+  volumeName: redis-pv
   accessModes:
     - ReadWriteOnce
   resources:
