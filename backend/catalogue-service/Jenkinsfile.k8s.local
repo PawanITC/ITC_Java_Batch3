@@ -36,11 +36,15 @@ spec:
     stages {
 
         stage('Clean Workspace') {
-            steps { cleanWs() }
+            steps {
+                cleanWs()
+            }
         }
 
         stage('Checkout') {
-            steps { checkout scm }
+            steps {
+                checkout scm
+            }
         }
 
         stage('Test') {
@@ -103,7 +107,9 @@ spec:
                       -n catalogue-service \
                       -- curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
 
-                        if [ $elapsed -ge $timeout ]; then exit 1; fi
+                        if [ $elapsed -ge $timeout ]; then
+                            exit 1
+                        fi
 
                         sleep 3
                         elapsed=$((elapsed+3))
@@ -130,48 +136,23 @@ spec:
             }
         }
 
-        stage('Scale JMeter Workers') {
-            steps {
-                container('kubectl') {
-                    sh 'kubectl scale deployment jmeter-worker --replicas=1 -n catalogue-service'
-                }
-            }
-        }
-
-        stage('Wait for JMeter Workers') {
-            steps {
-                container('kubectl') {
-                    sh 'kubectl rollout status deployment jmeter-worker -n catalogue-service --timeout=120s'
-                    sh 'kubectl wait --for=condition=ready pod -l app=jmeter-worker -n catalogue-service --timeout=120s'
-                }
-            }
-        }
-
         stage('Performance Test (JMeter)') {
             steps {
                 container('kubectl') {
                     sh '''
                     kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/jmeter:/catalogue-docker-test.jmx
 
-                    # Kill master safely
-                    kubectl exec jmeter -n catalogue-service -- sh -c "pkill -f jmeter || true" || true
-
-                    # Reset workers
-                    kubectl delete pod -l app=jmeter-worker -n catalogue-service || true
-                    kubectl rollout status deployment jmeter-worker -n catalogue-service --timeout=120s
-                    kubectl wait --for=condition=ready pod -l app=jmeter-worker -n catalogue-service --timeout=120s
-
-                    # Clean old results
                     kubectl exec jmeter -n catalogue-service -- rm -rf /results.jtl /report* || true
 
-                    WORKERS=$(kubectl get pods -n catalogue-service -l app=jmeter-worker -o jsonpath="{.items[*].status.podIP}" | tr " " ",")
+                    kubectl exec jmeter -n catalogue-service -- jmeter \
+                      -n \
+                      -t /catalogue-docker-test.jmx \
+                      -l /results.jtl \
+                      -JtestType=extremehigh
 
-                    # RUN TEST + SHOW LIVE SUMMARY
-                    kubectl exec jmeter -n catalogue-service -- sh -c "JVM_ARGS='-Dserver.rmi.ssl.disable=true' jmeter -n -t /catalogue-docker-test.jmx -l /results.jtl -JtestType=extremehigh -R $WORKERS -Jsummariser.interval=5 -Jsummariser.name=summary || exit 1"
-
-                    kubectl exec jmeter -n catalogue-service -- test -f /results.jtl
-
-                    kubectl exec jmeter -n catalogue-service -- jmeter -g /results.jtl -o /report-${BUILD_NUMBER}
+                    kubectl exec jmeter -n catalogue-service -- jmeter \
+                      -g /results.jtl \
+                      -o /report-${BUILD_NUMBER}
 
                     kubectl cp catalogue-service/jmeter:/results.jtl backend/catalogue-service/jmeter/results-${BUILD_NUMBER}.jtl
                     kubectl cp catalogue-service/jmeter:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
