@@ -32,7 +32,7 @@ server:
   tomcat:
     threads:
       max: 400
-    accept-count: 800
+    accept-count: 2000
 resilience4j:
   ratelimiter:
     instances:
