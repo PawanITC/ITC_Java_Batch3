@@ -83,8 +83,6 @@ spec:
                     kubectl set image deployment/catalogue-service \
                     catalogue-service=$IMAGE -n catalogue-service
 
-                    kubectl delete pod -l app=catalogue-service -n catalogue-service || true
-
                     kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service
                     '''
                 }
