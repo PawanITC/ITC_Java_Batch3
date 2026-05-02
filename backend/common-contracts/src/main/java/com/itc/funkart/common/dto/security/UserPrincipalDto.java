@@ -1,4 +1,4 @@
-package com.itc.funkart.user.dto.security;
+package com.itc.funkart.common.dto.security;
 
 import lombok.Builder;
 

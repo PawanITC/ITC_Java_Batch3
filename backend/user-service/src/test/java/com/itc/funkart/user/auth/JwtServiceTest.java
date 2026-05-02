@@ -1,13 +1,14 @@
 package com.itc.funkart.user.auth;
 
+import com.itc.funkart.common.dto.security.UserPrincipalDto;
 import com.itc.funkart.user.config.JwtConfig;
-import com.itc.funkart.user.dto.security.UserPrincipalDto;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Date;
 
@@ -46,7 +47,7 @@ class JwtServiceTest {
     void setUp() {
         JwtConfig config = new JwtConfig();
         config.setSecret(B64_SECRET);
-        config.setExpirationMs(3_600_000L); // 1 hour
+        config.setExpirationMs(Duration.ofSeconds(3600)); // 1 hour
         jwtService = new JwtService(config);
     }
 

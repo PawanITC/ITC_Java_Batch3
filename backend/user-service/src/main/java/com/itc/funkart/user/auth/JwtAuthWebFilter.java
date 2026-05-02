@@ -1,6 +1,6 @@
 package com.itc.funkart.user.auth;
 
-import com.itc.funkart.user.dto.security.UserPrincipalDto;
+import com.itc.funkart.common.dto.security.UserPrincipalDto;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

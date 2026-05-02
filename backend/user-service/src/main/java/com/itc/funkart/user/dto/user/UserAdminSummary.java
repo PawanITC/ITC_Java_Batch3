@@ -5,4 +5,5 @@ public record UserAdminSummary(
         String email,
         String role,
         boolean isActive
-) {}
+) {
+}

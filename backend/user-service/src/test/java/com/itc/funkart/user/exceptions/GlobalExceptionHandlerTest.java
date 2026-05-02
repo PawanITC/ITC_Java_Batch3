@@ -1,6 +1,6 @@
 package com.itc.funkart.user.exceptions;
 
-import com.itc.funkart.user.response.ApiResponse;
+import com.itc.funkart.common.dto.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -11,6 +11,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -69,34 +70,45 @@ class GlobalExceptionHandlerTest {
         @Test
         @DisplayName("MethodArgumentNotValidException → 400 with field and message")
         void handleValidation_returns400() {
+            // Arrange
             MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
             BindingResult bindingResult = mock(BindingResult.class);
+            // You must use a List because your handler now streams getFieldErrors()
             FieldError fieldError = new FieldError("user", "email", "invalid format");
+
             when(ex.getBindingResult()).thenReturn(bindingResult);
+            when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
             when(bindingResult.getFieldError()).thenReturn(fieldError);
 
-            ResponseEntity<ApiResponse<Void>> response = handler.handleValidation(ex);
+            // Act
+            ResponseEntity<ApiResponse<Void>> response = handler.handleValidationExceptions(ex);
 
+            // Assert
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-            assertNotNull(response.getBody());
+            // Match the concatenated string logic: "Validation Failed: " + "email: invalid format"
+            assertEquals("Validation Failed: email: invalid format", response.getBody().getError().getMessage());
             assertEquals("email", response.getBody().getError().getField());
-            assertEquals("invalid format", response.getBody().getError().getMessage());
         }
 
         @Test
-        @DisplayName("MethodArgumentNotValidException → falls back to 'Validation failed' when no field error")
+        @DisplayName("MethodArgumentNotValidException → falls back to 'multiple_fields' when no field error")
         void handleValidation_fallsBackOnNoFieldError() {
+            // Arrange
             MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
             BindingResult bindingResult = mock(BindingResult.class);
+
             when(ex.getBindingResult()).thenReturn(bindingResult);
+            when(bindingResult.getFieldErrors()).thenReturn(List.of()); // Empty stream
             when(bindingResult.getFieldError()).thenReturn(null);
 
-            ResponseEntity<ApiResponse<Void>> response = handler.handleValidation(ex);
+            // Act
+            ResponseEntity<ApiResponse<Void>> response = handler.handleValidationExceptions(ex);
 
+            // Assert
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-            assertNotNull(response.getBody());
-            assertNull(response.getBody().getError().getField());
-            assertEquals("Validation failed", response.getBody().getError().getMessage());
+            // Matches your hardcoded fallback in the handler
+            assertEquals("multiple_fields", response.getBody().getError().getField());
+            assertEquals("Validation Failed: ", response.getBody().getError().getMessage());
         }
 
         @Test

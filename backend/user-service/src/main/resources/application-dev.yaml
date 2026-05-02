@@ -57,6 +57,7 @@ spring:
         linger.ms: 5
         batch.size: 16384
         reconnect.backoff.ms: 50
+        spring.json.trusted.packages: "com.itc.funkart.*"
 
 # --- OBSERVABILITY & MONITORING ---
 management:

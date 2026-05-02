@@ -1,29 +1,28 @@
 # ==================================================
-# User Service Microservice
+# User Service Microservice - Runtime Image
 # ==================================================
-# Author: Abbas
-# Description: Handles authentication, user profiles,
-#              and user-related operations for Funkart.
-# ==================================================
-
-# ---------------------------
-# Runtime Stage (Lean & Fast)
-# ---------------------------
 FROM eclipse-temurin:17-jdk-jammy
+
+# Security: Run as non-root user
+RUN addgroup --system spring && adduser --system spring --ingroup spring
+USER spring:spring
 
 WORKDIR /app
 
-# Metadata Labels
 LABEL maintainer="Abbas"
 LABEL service.name="user-service"
-LABEL service.description="User Service - Core identity and profile management"
+LABEL service.description="Core Identity Service - Auth & Profile Management"
 
-# Copy the JAR built by Jenkins
-# IMPORTANT: Ensure bootJar is configured to produce consistent name if you switch away from wildcard
-COPY build/libs/*.jar app.jar
+# Jenkins builds from root, so we copy from the specific module path
+# Ensure build.gradle has 'archiveFileName = "user-service.jar"'
+COPY --chown=spring:spring backend/user-service/build/libs/user-service.jar app.jar
 
-# Service runs on 8080 internally (mapped externally to 8081 in docker-compose)
+# Standard Spring Boot port
 EXPOSE 8080
 
 # JVM container-friendly settings
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+            "-XX:+UseContainerSupport", \
+            "-XX:MaxRAMPercentage=75.0", \
+            "-XX:+UseG1GC", \
+            "-jar", "app.jar"]

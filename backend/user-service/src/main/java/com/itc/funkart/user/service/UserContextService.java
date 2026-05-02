@@ -1,6 +1,6 @@
 package com.itc.funkart.user.service;
 
-import com.itc.funkart.user.dto.security.UserPrincipalDto;
+import com.itc.funkart.common.dto.security.UserPrincipalDto;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.UnauthorizedException;
 import com.itc.funkart.user.repository.UserRepository;

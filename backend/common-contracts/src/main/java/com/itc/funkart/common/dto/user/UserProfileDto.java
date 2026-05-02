@@ -1,4 +1,4 @@
-package com.itc.funkart.user.dto.user;
+package com.itc.funkart.common.dto.user;
 
 import lombok.Builder;
 

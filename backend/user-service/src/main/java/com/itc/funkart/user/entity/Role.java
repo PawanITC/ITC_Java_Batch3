@@ -24,7 +24,9 @@ public enum Role {
     ROLE_USER("USER"),
 
 
-    /** Content management privileges (Reviews/Ratings). */
+    /**
+     * Content management privileges (Reviews/Ratings).
+     */
     ROLE_MODERATOR("MODERATOR"),
 
     /**

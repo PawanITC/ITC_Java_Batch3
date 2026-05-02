@@ -25,17 +25,24 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Unique email address used for identification and login. */
+    /**
+     * Unique email address used for identification and login.
+     */
     @Column(unique = true, nullable = false)
     private String email;
 
-    /** The Bcrypt hashed password. Will be {@code null} for pure OAuth users. */
+    /**
+     * The Bcrypt hashed password. Will be {@code null} for pure OAuth users.
+     */
     private String password;
 
-    /** The display name of the user. */
+    /**
+     * The display name of the user.
+     */
     private String name;
 
-    /** The security clearance level of the user.
+    /**
+     * The security clearance level of the user.
      * Defaults to ROLE_USER to follow the Principle of Least Privilege.
      */
     @Enumerated(EnumType.STRING)

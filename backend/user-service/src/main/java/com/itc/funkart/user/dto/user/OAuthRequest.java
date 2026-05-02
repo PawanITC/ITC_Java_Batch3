@@ -10,4 +10,5 @@ import jakarta.validation.constraints.NotBlank;
 public record OAuthRequest(
         @NotBlank(message = "Authorization code cannot be empty")
         String code
-) {}
+) {
+}

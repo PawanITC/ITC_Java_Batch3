@@ -1,7 +1,7 @@
 package com.itc.funkart.user.mapper;
 
+import com.itc.funkart.common.dto.user.UserDto;
 import com.itc.funkart.user.dto.user.SuccessfulLoginResponse;
-import com.itc.funkart.user.dto.user.UserDto;
 import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import org.junit.jupiter.api.DisplayName;

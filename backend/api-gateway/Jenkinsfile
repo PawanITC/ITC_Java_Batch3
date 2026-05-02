@@ -25,8 +25,9 @@ pipeline {
             steps {
                 script {
                     sh "chmod +x gradlew"
-                    // We run from root, but use the specific project path for Jacoco
-                    sh "./gradlew clean :common-contracts:jar :api-gateway:build :api-gateway:jacocoTestReport \
+                    // 1. Build and install Common first
+                    // 2. Build Gateway with strict profile
+                    sh "./gradlew clean :common-contracts:publishToMavenLocal :api-gateway:build :api-gateway:jacocoTestReport \
                         -Dspring.profiles.active=test \
                         --no-daemon --stacktrace"
                 }
@@ -35,7 +36,6 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                // Adjusting paths to look inside the sub-module directory
                 jacoco(
                     execPattern:      'backend/api-gateway/build/jacoco/*.exec',
                     classPattern:     'backend/api-gateway/build/classes/java/main',
@@ -52,8 +52,8 @@ pipeline {
             steps {
                 script {
                     sh "snyk auth ${SNYK_TOKEN}"
-                    // Scan the gateway project specifically
                     catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                        // Pointing exactly to the Gateway's build file
                         sh 'snyk test --file=backend/api-gateway/build.gradle --severity-threshold=critical'
                     }
                     sh 'snyk monitor --file=backend/api-gateway/build.gradle'
@@ -65,9 +65,9 @@ pipeline {
             steps {
                 script {
                     currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
-                    // Build from root context so Dockerfile can COPY common-contracts
+                    // Root context build allows Docker to see the backend/ folder structure
                     dockerImage = docker.build(
-                        "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}", 
+                        "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}",
                         "-f backend/api-gateway/Dockerfile ."
                     )
                 }
@@ -87,8 +87,8 @@ pipeline {
     }
 
     post {
-        success { echo "SUCCESS: ${IMAGE_NAME} deployed to Docker Hub." }
-        failure { echo "FAILURE: Check logs." }
+        success { echo "SUCCESS: ${IMAGE_NAME} is live on Docker Hub." }
+        failure { echo "FAILURE: Build or Security check failed." }
         always  { cleanWs() }
     }
 }

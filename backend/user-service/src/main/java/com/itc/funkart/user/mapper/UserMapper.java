@@ -1,6 +1,10 @@
 package com.itc.funkart.user.mapper;
 
-import com.itc.funkart.user.dto.user.*;
+import com.itc.funkart.common.dto.user.UserDto;
+import com.itc.funkart.common.dto.user.UserProfileDto;
+import com.itc.funkart.user.dto.user.OAuthResponse;
+import com.itc.funkart.user.dto.user.SuccessfulLoginResponse;
+import com.itc.funkart.user.dto.user.UserAdminSummary;
 import com.itc.funkart.user.entity.OAuthAccount;
 import com.itc.funkart.user.entity.User;
 import org.springframework.stereotype.Component;

@@ -3,6 +3,7 @@
 The Funkart User Service is the **central identity authority** of the entire system.
 
 It is responsible for:
+
 - Authentication (email/password + OAuth)
 - JWT generation + validation
 - Security context population
@@ -26,30 +27,33 @@ All downstream services trust this service for authentication correctness.
 
 ### Core Flow
 
-
 ### Components
 
 #### 1. JwtWebFilter
+
 - Extracts JWT from header or cookie
 - Delegates validation to JwtService
 - Delegates identity reconstruction to PrincipalFactory
 - Sets Spring SecurityContext
 
 #### 2. JwtService
+
 - Signs JWTs (login/signup/OAuth)
 - Validates token signature + expiry
 - Extracts claims safely
 
 #### 3. PrincipalFactory
+
 - Converts:
-  - User → Principal
-  - JWT Claims → Principal
+    - User → Principal
+    - JWT Claims → Principal
 - Enforces:
-  - Role whitelist
-  - Strict identity validation
-  - Claim integrity rules
+    - Role whitelist
+    - Strict identity validation
+    - Claim integrity rules
 
 #### 4. UserContextService
+
 - Fast path: SecurityContext access
 - DB rehydration path: enriched user fetch
 
@@ -64,6 +68,7 @@ Supported roles:
 - ROLE_ADMIN
 
 Rules:
+
 - All roles normalized to `ROLE_` prefix
 - Strict whitelist enforced in PrincipalFactory
 - Invalid roles → JWT rejected
@@ -76,10 +81,10 @@ Rules:
 
 1. GitHub returns OAuth code
 2. GithubOAuthService:
-   - exchanges code for access token
-   - fetches GitHub profile
-   - resolves or creates local user
-   - links OAuthAccount
+    - exchanges code for access token
+    - fetches GitHub profile
+    - resolves or creates local user
+    - links OAuthAccount
 3. JWT issued via AuthFacadeService
 
 ---
@@ -87,6 +92,7 @@ Rules:
 ## 👤 User Lifecycle
 
 ### Signup
+
 - validate input
 - hash password
 - persist user
@@ -94,6 +100,7 @@ Rules:
 - generate JWT
 
 ### Login
+
 - validate credentials
 - authenticate user
 - publish login event

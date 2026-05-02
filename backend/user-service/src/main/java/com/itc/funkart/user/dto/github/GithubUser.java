@@ -16,4 +16,5 @@ public record GithubUser(
         String login,
         String name,
         String email
-) {}
+) {
+}

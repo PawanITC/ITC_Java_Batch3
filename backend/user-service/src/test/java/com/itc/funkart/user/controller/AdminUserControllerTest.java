@@ -1,14 +1,14 @@
 package com.itc.funkart.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itc.funkart.common.dto.security.UserPrincipalDto;
+import com.itc.funkart.common.dto.user.UserDto;
 import com.itc.funkart.user.auth.JwtService;
 import com.itc.funkart.user.auth.PrincipalFactory;
 import com.itc.funkart.user.config.JwtConfig;
 import com.itc.funkart.user.config.SecurityConfig;
-import com.itc.funkart.user.dto.security.UserPrincipalDto;
 import com.itc.funkart.user.dto.user.RoleUpdateDto;
 import com.itc.funkart.user.dto.user.UserAdminSummary;
-import com.itc.funkart.user.dto.user.UserDto;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.BadRequestException;
 import com.itc.funkart.user.mapper.UserMapper;

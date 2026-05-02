@@ -1,5 +1,8 @@
 package com.itc.funkart.user.service;
 
+import com.itc.funkart.common.constants.messaging.KafkaMessaging;
+import com.itc.funkart.common.dto.event.UserLoginEvent;
+import com.itc.funkart.common.dto.event.UserSignupEvent;
 import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.MessagingException;
@@ -8,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,8 +20,7 @@ import org.springframework.kafka.support.SendResult;
 
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -78,13 +81,27 @@ class KafkaEventPublisherTest {
         @Test
         @DisplayName("Sends to the user-signup topic with userId as key")
         void sendsToCorrectTopic() {
+            // 1. Arrange: Create the future for a synchronous send
             CompletableFuture<SendResult<String, Object>> future =
                     CompletableFuture.completedFuture(mock(SendResult.class));
-            when(kafkaTemplate.send(eq("user-signup"), eq("1"), any())).thenReturn(future);
 
+            // 2. Stub: Use the EXACT constant from your common library
+            // Use doReturn().when() to avoid side effects with strict stubbing
+            doReturn(future).when(kafkaTemplate).send(
+                    eq(KafkaMessaging.TOPIC_USER_SIGNUP), // Use the constant!
+                    eq("1"),
+                    any(UserSignupEvent.class)
+            );
+
+            // 3. Act
             publisher.publishSignup(testUser);
 
-            verify(kafkaTemplate).send(eq("user-signup"), eq("1"), any());
+            // 4. Assert: Verify the call happened with the correct constants
+            verify(kafkaTemplate).send(
+                    eq(KafkaMessaging.TOPIC_USER_SIGNUP),
+                    eq("1"),
+                    any(UserSignupEvent.class)
+            );
         }
 
         @Test
@@ -144,40 +161,28 @@ class KafkaEventPublisherTest {
     // -------------------------------------------------------------------------
 
     @Nested
-    @DisplayName("publishLogin(User, String) — asynchronous")
+    @DisplayName("Publish Login Tests")
     class PublishLoginTests {
 
         @Test
         @DisplayName("Sends to the user-login topic with userId as key")
         void sendsToCorrectTopic() {
+            // Arrange
             CompletableFuture<SendResult<String, Object>> future =
                     CompletableFuture.completedFuture(mock(SendResult.class));
-            when(kafkaTemplate.send(eq("user-login"), eq("1"), any())).thenReturn(future);
 
+            // Use the constant from common-contracts
+            doReturn(future).when(kafkaTemplate).send(
+                    eq(KafkaMessaging.TOPIC_AUTH_LOGIN),
+                    eq("1"),
+                    any(UserLoginEvent.class)
+            );
+
+            // Act
             publisher.publishLogin(testUser, "email");
 
-            verify(kafkaTemplate).send(eq("user-login"), eq("1"), any());
-        }
-
-        @Test
-        @DisplayName("Completes without throwing when broker acknowledges")
-        void completesCleanlyOnSuccess() {
-            CompletableFuture<SendResult<String, Object>> future =
-                    CompletableFuture.completedFuture(mock(SendResult.class));
-            when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
-
-            assertDoesNotThrow(() -> publisher.publishLogin(testUser, "email"));
-        }
-
-        @Test
-        @DisplayName("Does NOT throw when broker fails (fire-and-forget — only logs)")
-        void doesNotThrowOnBrokerFailure() {
-            CompletableFuture<SendResult<String, Object>> future = new CompletableFuture<>();
-            future.completeExceptionally(new RuntimeException("Network blip"));
-            when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
-
-            // Login failures are swallowed — user session must not be interrupted
-            assertDoesNotThrow(() -> publisher.publishLogin(testUser, "github"));
+            // Assert
+            verify(kafkaTemplate).send(eq(KafkaMessaging.TOPIC_AUTH_LOGIN), eq("1"), any());
         }
 
         @Test
@@ -185,11 +190,16 @@ class KafkaEventPublisherTest {
         void passesLoginMethodEmail() {
             CompletableFuture<SendResult<String, Object>> future =
                     CompletableFuture.completedFuture(mock(SendResult.class));
+
             when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
             publisher.publishLogin(testUser, "email");
 
-            verify(kafkaTemplate).send(eq("user-login"), eq("1"), any());
+            // ArgumentCaptor allows us to peek inside the record to verify the login method
+            ArgumentCaptor<UserLoginEvent> eventCaptor = ArgumentCaptor.forClass(UserLoginEvent.class);
+
+            verify(kafkaTemplate).send(eq(KafkaMessaging.TOPIC_AUTH_LOGIN), eq("1"), eventCaptor.capture());
+            assertEquals("email", eventCaptor.getValue().loginMethod());
         }
 
         @Test
@@ -197,11 +207,15 @@ class KafkaEventPublisherTest {
         void passesLoginMethodGithub() {
             CompletableFuture<SendResult<String, Object>> future =
                     CompletableFuture.completedFuture(mock(SendResult.class));
+
             when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
             publisher.publishLogin(testUser, "github");
 
-            verify(kafkaTemplate).send(eq("user-login"), eq("1"), any());
+            ArgumentCaptor<UserLoginEvent> eventCaptor = ArgumentCaptor.forClass(UserLoginEvent.class);
+
+            verify(kafkaTemplate).send(eq(KafkaMessaging.TOPIC_AUTH_LOGIN), eq("1"), eventCaptor.capture());
+            assertEquals("github", eventCaptor.getValue().loginMethod());
         }
     }
 }

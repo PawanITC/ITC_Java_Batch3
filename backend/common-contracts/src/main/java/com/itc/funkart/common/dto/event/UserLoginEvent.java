@@ -1,7 +1,8 @@
-package com.itc.funkart.user.dto.event;
+package com.itc.funkart.common.dto.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
+
+import java.time.Instant;
 
 /**
  * Event published to Kafka whenever a user successfully authenticates.
@@ -12,7 +13,6 @@ import lombok.Builder;
  * @param role        The user's current role.
  * @param timestamp   Epoch milliseconds of the login occurrence.
  */
-@Builder
 public record UserLoginEvent(
         @JsonProperty("user_id") Long userId,
         String email,
@@ -20,4 +20,16 @@ public record UserLoginEvent(
         String role,
         Long timestamp
 ) {
+    /**
+     * Business Factory Method.
+     */
+    public static UserLoginEvent of(Long userId, String email, String method, String role) {
+        return new UserLoginEvent(
+                userId,
+                email,
+                method,
+                role,
+                Instant.now().toEpochMilli()
+        );
+    }
 }

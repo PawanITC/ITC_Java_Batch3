@@ -279,7 +279,10 @@ class GithubOAuthServiceTest {
             when(config.getClientSecret()).thenReturn("mock-client-secret");
             when(config.getRedirectUri()).thenReturn("http://localhost");
 
-            mockServer.enqueue(new MockResponse().setResponseCode(401));
+            mockServer.enqueue(new MockResponse()
+                    .setResponseCode(401)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("{}")); // Explicit body prevents stream-read hangs
 
             assertThrows(OAuthException.class, () -> service.processCode("bad-code"));
         }

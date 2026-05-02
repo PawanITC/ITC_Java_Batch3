@@ -64,4 +64,18 @@ public class ApiResponse<T> {
         response.setError(error);
         return response;
     }
+
+    /**
+     * Overloaded helper to create an error response directly from strings.
+     *
+     * @param code    Standardized error code (e.g., "NOT_FOUND")
+     * @param message Human-readable error message
+     * @param field   Specific field that caused the error (optional)
+     * @return A populated ApiResponse instance.
+     */
+    public static <T> ApiResponse<T> error(String code, String message, String field) {
+        ApiResponse<T> response = new ApiResponse<>();
+        response.setError(new ErrorDetails(code, message, field));
+        return response;
+    }
 }

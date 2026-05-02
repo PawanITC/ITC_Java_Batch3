@@ -1,8 +1,8 @@
 package com.itc.funkart.user.auth;
 
-import com.itc.funkart.user.auth.jwt.JwtClaims;
+import com.itc.funkart.common.constants.auth.JwtClaims;
+import com.itc.funkart.common.dto.security.UserPrincipalDto;
 import com.itc.funkart.user.config.JwtConfig;
-import com.itc.funkart.user.dto.security.UserPrincipalDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -68,8 +68,11 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(user.userId().toString())
+                // ADD THESE: The PrincipalFactory.fromClaims() expects name and email!
                 .claim(JwtClaims.ROLE, user.role())
-                // Most modern JWT libs (like JJWT 0.12+) accept Instant directly
+                .claim(JwtClaims.NAME, user.name())
+                .claim(JwtClaims.EMAIL, user.email())
+                .issuer(JwtClaims.ISSUER) // Critical: parseJwtToken() requires this
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiry))
                 .signWith(key)

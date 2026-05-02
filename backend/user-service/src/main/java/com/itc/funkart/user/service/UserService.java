@@ -1,9 +1,9 @@
 package com.itc.funkart.user.service;
 
+import com.itc.funkart.common.dto.user.UserProfileDto;
 import com.itc.funkart.user.dto.user.LoginRequest;
 import com.itc.funkart.user.dto.user.OAuthUserResult;
 import com.itc.funkart.user.dto.user.SignupRequest;
-import com.itc.funkart.user.dto.user.UserProfileDto;
 import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.AlreadyExistsException;

@@ -1,5 +1,6 @@
 package com.itc.funkart.user.dto.user;
 
+import com.itc.funkart.common.dto.user.UserDto;
 import lombok.Builder;
 
 /**
@@ -16,4 +17,5 @@ import lombok.Builder;
 public record SuccessfulLoginResponse(
         UserDto user,
         String token
-) {}
+) {
+}

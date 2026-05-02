@@ -44,7 +44,7 @@ spring:
           - id: user-service
             uri: ${internal.service-urls.user}
             predicates:
-              - Path=/api/v1/users/**,/api/v1/oauth/**
+              - Path=/api/v1/users/**
             filters:
               - StripPrefix=2
 

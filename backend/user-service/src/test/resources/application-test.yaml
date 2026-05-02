@@ -34,6 +34,8 @@ spring:
         reconnect.backoff.ms: 100
         reconnect.backoff.max.ms: 500
 
+
+
 # ---------------------------------------------------------------------------
 # Application custom config — must satisfy @ConfigurationProperties exactly
 # ---------------------------------------------------------------------------
@@ -43,7 +45,7 @@ api:
 jwt:
   # Base64 of "this-is-a-very-long-and-secure-test-secret-key-for-jwt" (>= 32 bytes decoded)
   secret: dGhpcy1pcy1hLXZlcnktbG9uZy1hbmQtc2VjdXJlLXRlc3Qtc2VjcmV0LWtleS1mb3Itand0
-  expiration-ms: 3600000
+  expiration-ms: 3600s
   cookie-max-age-seconds: 3600
 
 github:

@@ -1,9 +1,9 @@
 package com.itc.funkart.user.controller;
 
-import com.itc.funkart.user.dto.security.UserPrincipalDto;
+import com.itc.funkart.common.dto.security.UserPrincipalDto;
+import com.itc.funkart.common.dto.user.UserDto;
 import com.itc.funkart.user.dto.user.RoleUpdateDto;
 import com.itc.funkart.user.dto.user.UserAdminSummary;
-import com.itc.funkart.user.dto.user.UserDto;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.mapper.UserMapper;
 import com.itc.funkart.user.service.UserService;
@@ -63,7 +63,7 @@ public class AdminUserController {
      * @param userId         The unique database identifier of the user to update.
      * @param request        Data transfer object containing the target role.
      * @param authentication The current security context.
-     * @return               {@link ResponseEntity} containing the updated {@link UserDto}.
+     * @return {@link ResponseEntity} containing the updated {@link UserDto}.
      */
     @PatchMapping("/{userId}/role")
     public ResponseEntity<UserDto> updateUserRole(

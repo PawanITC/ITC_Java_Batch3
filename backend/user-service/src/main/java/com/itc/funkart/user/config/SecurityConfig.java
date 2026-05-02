@@ -72,8 +72,9 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Paths are relative to the service after Gateway stripping
-                        .requestMatchers("/users/login", "/users/signup", "/users/health").permitAll()                        .requestMatchers("/oauth/**").permitAll()
-                        .requestMatchers("/actuator/**", "/users/actuator/**").permitAll()                        // Admin routes and other business logic require valid JWT
+                        .requestMatchers("/users/login", "/users/signup", "/users/health").permitAll()
+                        .requestMatchers("/oauth/**").permitAll()
+                        .requestMatchers("/actuator/**", "/users/actuator/**").permitAll()// Admin routes and other business logic require valid JWT
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

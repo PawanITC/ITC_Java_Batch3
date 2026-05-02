@@ -10,25 +10,26 @@ version = '0.0.1-SNAPSHOT'
 description = 'user-service'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.release = 17
+    options.encoding = 'UTF-8'
 }
 
 repositories {
     mavenCentral()
 }
 
-dependencyManagement {
-    imports {
-        mavenBom "org.springframework.boot:spring-boot-dependencies:3.5.12"
-    }
-}
-
 dependencies {
+    // =====================
+    // Shared Contracts
+    // =====================
+    // This connects the User Service to your common library
+    implementation project(':common-contracts')
 
     // =====================
     // Core Framework
@@ -43,15 +44,14 @@ dependencies {
     // =====================
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.postgresql:postgresql:42.7.7'
-    implementation 'org.flywaydb:flyway-core'             // Core migration engine
-    implementation 'org.flywaydb:flyway-database-postgresql' // Postgres support for Flyway
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
     runtimeOnly 'com.h2database:h2'
 
     // =====================
     // Security
     // =====================
     implementation 'org.springframework.boot:spring-boot-starter-security'
-
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
@@ -93,10 +93,12 @@ tasks.named('test') {
     finalizedBy jacocoTestReport
 }
 
+// Disabling plain JAR to avoid confusion in the build/libs folder
 tasks.named('jar') {
     enabled = false
 }
 
+// Ensure the executable JAR name matches what the Dockerfile expects
 tasks.named('bootJar') {
     archiveFileName = "user-service.jar"
 }

@@ -24,6 +24,7 @@ public class OAuthAccountService {
     /**
      * Look up an OAuth mapping based on the provider name and their unique remote ID.
      * * @param provider   The name of the OAuth service (e.g., {@code "github"}).
+     *
      * @param providerId The unique identifier string returned by the provider.
      * @return An {@link Optional} containing the account if found.
      */
@@ -34,6 +35,7 @@ public class OAuthAccountService {
     /**
      * Persists a new OAuth mapping for an existing user.
      * * @param userId     The local database ID of the user.
+     *
      * @param provider   The OAuth provider name.
      * @param providerId The remote provider's unique user ID.
      * @return The saved {@link OAuthAccount} entity.
