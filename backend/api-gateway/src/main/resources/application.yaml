@@ -1,6 +1,5 @@
 # ==============================================================================
 # MASTER SERVICE REGISTRY (The "Master Key")
-# Define URLs here once so they are synchronized across the entire JVM context.
 # ==============================================================================
 internal:
   service-urls:
@@ -13,6 +12,11 @@ spring:
   application:
     name: api-gateway
 
+  # FORCING REACTIVE MODE: This prevents the JVM from loading Servlet beans
+  main:
+    web-application-type: reactive
+    allow-bean-definition-overriding: true
+
   # ----------------------------------------------------------------------------
   # REDIS (Reactive Configuration)
   # ----------------------------------------------------------------------------
@@ -24,63 +28,61 @@ spring:
 
   # ----------------------------------------------------------------------------
   # EXCLUSIONS
-  # Prevent Spring from trying to initialize a heavy RDBMS/Hibernate context
-  # in a non-blocking Gateway environment.
   # ----------------------------------------------------------------------------
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 
   # ----------------------------------------------------------------------------
-  # GATEWAY ROUTES (The "Public Map")
-  # Uses internal references to ensure alignment with Java Service beans.
+  # WEBFLUX & GATEWAY (The Reactive Heart)
   # ----------------------------------------------------------------------------
+  webflux:
+    # Keeps WebFlux explicitly defined for global handling
+    base-path: /
+
   cloud:
     gateway:
-      webflux:
-        routes:
-          # USER SERVICE
-          - id: user-service
-            uri: ${internal.service-urls.user}
-            predicates:
-              - Path=/api/v1/users/**
-            filters:
-              - StripPrefix=2
+      server:
+        webflux:
+          # This is the NEW standard location for routes
+          routes:
+            - id: user-service
+              uri: ${internal.service-urls.user}
+              predicates:
+                - Path=/api/v1/users/**
+              filters:
+                - StripPrefix=2
 
-          # PRODUCT SERVICE
-          - id: product-service
-            uri: ${internal.service-urls.product}
-            predicates:
-              - Path=/api/v1/products/**,/api/v1/admin/products/**,/api/v1/categories/**,/api/v1/admin/categories/**,/api/v1/cart/**
-            filters:
-              - StripPrefix=2
+            - id: product-service
+              uri: ${internal.service-urls.product}
+              predicates:
+                - Path=/api/v1/products/**,/api/v1/admin/products/**,/api/v1/categories/**,/api/v1/admin/categories/**,/api/v1/cart/**
+              filters:
+                - StripPrefix=2
 
-          # ORDER SERVICE
-          - id: order-service
-            uri: ${internal.service-urls.order}
-            predicates:
-              - Path=/api/v1/orders/**,/api/v1/admin/orders/**
-            filters:
-              - StripPrefix=2
+            - id: order-service
+              uri: ${internal.service-urls.order}
+              predicates:
+                - Path=/api/v1/orders/**,/api/v1/admin/orders/**
+              filters:
+                - StripPrefix=2
 
-          # PAYMENT SERVICE
-          - id: payment-service
-            uri: ${internal.service-urls.payment}
-            predicates:
-              - Path=/api/v1/payments/**
-            filters:
-              - StripPrefix=2
+            - id: payment-service
+              uri: ${internal.service-urls.payment}
+              predicates:
+                - Path=/api/v1/payments/**
+              filters:
+                - StripPrefix=2
 
 # ==============================================================================
-# APP CONFIG (The "Java Context Map")
-# Binds to AppConfig.java record via @ConfigurationProperties.
+# APP CONFIG (Binds to AppConfig.java record)
 # ==============================================================================
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   oauth-success-path: ${OAUTH_SUCCESS_PATH:/oauth-success}
 
-  # These references link directly to the internal registry above
   services:
     user-service: ${internal.service-urls.user}
     payment-service: ${internal.service-urls.payment}
@@ -103,67 +105,47 @@ server:
   port: ${PORT:8060}
 
 # ==============================================================================
-# OBSERVABILITY (The "Flight Recorder" - Collector Edition)
+# OBSERVABILITY
 # ==============================================================================
 management:
   endpoints:
     web:
       exposure:
-        # Senior Note: 'prometheus' and 'metrics' are essential for the
-        # Scraper/Collector to pull JVM health data.
         include: health,info,prometheus,metrics
-
   health:
     show-details: always
-    # Senior Practice: Enable specific health indicators for the JVM stack
     redis:
       enabled: true
 
-  # ----------------------------------------------------------------------------
-  # OBSERVATIONS & TRACING (OTLP Pipeline)
-  # ----------------------------------------------------------------------------
   observations:
     key-values:
       application: ${spring.application.name}
 
   tracing:
     sampling:
-      # 1.0 (100%) is fine for your dev environment.
-      # High-traffic production JVMs use 0.05 - 0.1 to prevent disk-IO saturation.
       probability: 1.0
 
   otlp:
     tracing:
-      # Provide only the base URL for OTLP/HTTP
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}
     metrics:
       export:
-        # Same here; avoid appending /v1/metrics manually
         url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}
 
-  # ----------------------------------------------------------------------------
-  # LOGGING & METRICS TAGGING
-  # ----------------------------------------------------------------------------
   metrics:
     tags:
       application: ${spring.application.name}
 
-
   loki:
     endpoint: ${LOKI_URL:http://loki:3100/loki/api/v1/push}
 
-
 # ==============================================================================
-# LOGGING (The "Black Box" Config)
+# LOGGING
 # ==============================================================================
 logging:
   pattern:
-    # The [traceId, spanId] is injected via the JVM's MDC (Mapped Diagnostic Context).
-    # This correlates your logs in Loki to your traces in Jaeger.
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %m%n"
   level:
     root: INFO
-    # Debugging the Gateway's reactive routes and JWT filter logic
     com.itc.funkart.gateway: DEBUG
-    # Monitor the OTLP export activity
     io.micrometer.tracing: DEBUG

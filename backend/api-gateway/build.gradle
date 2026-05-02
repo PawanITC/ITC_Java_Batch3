@@ -28,28 +28,29 @@ dependencyManagement {
     }
 }
 
-dependencies {
+// ============================================================
+// GLOBAL REACTIVE ENFORCEMENT
+// This prevents ANY dependency from sneaking in the Servlet stack.
+// ============================================================
+configurations {
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-web'
+        exclude group: 'org.apache.tomcat.embed', module: 'tomcat-embed-core'
+    }
+}
 
-    // =====================
+dependencies {
     // Shared Contracts
-    // =====================
     implementation project(':common-contracts')
-    // =====================
-    // Core Gateway Stack
-    // =====================
+
+    // Core Gateway Stack (Reactive)
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-
-    // Required for @NotBlank, @NotNull, etc.
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-    // Required for @ConfigurationProperties Records
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
-    // =====================
-    // Security
-    // =====================
+    // Security - Strictly Reactive
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
@@ -57,29 +58,21 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // =====================
-    // Redis / Cache
-    // =====================
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    // Redis / Cache (Reactive)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
 
-    // =====================
     // Observability
-    // =====================
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
-    implementation 'com.github.loki4j:loki-logback-appender:1.5.2'
+    implementation 'com.github.loki4j:loki-logback-appender:1.6.0'
 
-    // =====================
     // Utilities
-    // =====================
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
-    // =====================
-    // Testing
-    // =====================
+    // Testing - Use webtestclient for Reactive testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'io.projectreactor:reactor-test'
@@ -101,9 +94,7 @@ tasks.named('test') {
     finalizedBy jacocoTestReport
 }
 
-tasks.named('jar') {
-    enabled = false
-}
+tasks.named('jar') { enabled = false }
 
 tasks.named('bootJar') {
     archiveFileName = "api-gateway.jar"
