@@ -1,59 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Catalogue Service Docker Test">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Catalogue Test">
       <boolProp name="TestPlan.functional_mode">false</boolProp>
-      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
 
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Dynamic Load Test">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Dynamic Test">
 
-        <!-- THREADS -->
-        <intProp name="ThreadGroup.num_threads">
-          ${__groovy(
-            def t = vars.get("testType");
-            if(t=="normal") return 5;
-            if(t=="concurrency") return 50;
-            if(t=="ratelimit") return 800;
-            if(t=="high") return 800;
-            if(t=="veryhigh") return 1200;
-            if(t=="extremehigh") return 1200;
-            if(t=="ultimate") return 12000;
-            return 5;
-          )}
-        </intProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(threads,5)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(ramp,1)}</stringProp>
 
-        <!-- RAMP -->
-        <intProp name="ThreadGroup.ramp_time">
-          ${__groovy(
-            def t = vars.get("testType");
-            if(t=="veryhigh") return 10;
-            if(t=="extremehigh") return 60;
-            if(t=="ultimate") return 180;
-            return 1;
-          )}
-        </intProp>
-
-        <!-- ENABLE SCHEDULER -->
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
 
-        <!-- DURATION -->
-        <longProp name="ThreadGroup.duration">
-          ${__groovy(
-            def t = vars.get("testType");
-            if(t=="extremehigh") return 180;
-            if(t=="ultimate") return 220;
-            return 60;
-          )}
-        </longProp>
+        <stringProp name="ThreadGroup.duration">${__P(duration,60)}</stringProp>
+        <stringProp name="ThreadGroup.delay">0</stringProp>
 
-        <longProp name="ThreadGroup.delay">0</longProp>
-
-        <!-- LOOP -->
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
           <intProp name="LoopController.loops">-1</intProp>
-          <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
 
       </ThreadGroup>
@@ -65,28 +29,14 @@
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.path">/catalogue/products</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
-          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree/>
       </hashTree>
 
-      <!-- PARAM -->
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Test Config">
-        <collectionProp name="Arguments.arguments">
-          <elementProp name="testType" elementType="Argument">
-            <stringProp name="Argument.name">testType</stringProp>
-            <stringProp name="Argument.value">${__P(testType,normal)}</stringProp>
-          </elementProp>
-        </collectionProp>
-      </Arguments>
-      <hashTree/>
-
-      <!-- RESULT -->
-      <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="Results">
-        <boolProp name="ResultCollector.error_logging">false</boolProp>
+      <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector">
         <stringProp name="filename">/results.jtl</stringProp>
       </ResultCollector>
+
       <hashTree/>
 
     </hashTree>
