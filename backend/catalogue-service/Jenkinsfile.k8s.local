@@ -79,7 +79,7 @@ spec:
                 container('kubectl') {
                     sh '''
                     kubectl apply -n catalogue-service -f backend/catalogue-service/k8s/local/apps/
-                    kubectl rollout restart deployment catalogue-service -n catalogue-service
+                    kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service
                     '''
                 }
             }
@@ -115,23 +115,6 @@ spec:
                         elapsed=$((elapsed+3))
                     done
                     '''
-                }
-            }
-        }
-
-        stage('Scale Up Pods') {
-            steps {
-                container('kubectl') {
-                    sh 'kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service'
-                }
-            }
-        }
-
-        stage('Wait After Scaling') {
-            steps {
-                container('kubectl') {
-                    sh 'kubectl rollout status deployment catalogue-service -n catalogue-service'
-                    sh 'kubectl wait --for=condition=ready pod -l app=catalogue-service -n catalogue-service --timeout=120s'
                 }
             }
         }
