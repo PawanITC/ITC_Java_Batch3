@@ -133,7 +133,7 @@ spec:
         stage('Scale JMeter Workers') {
             steps {
                 container('kubectl') {
-                    sh 'kubectl scale deployment jmeter-worker --replicas=2 -n catalogue-service'
+                    sh 'kubectl scale deployment jmeter-worker --replicas=1 -n catalogue-service'
                 }
             }
         }
@@ -141,7 +141,7 @@ spec:
         stage('Wait for JMeter Workers') {
             steps {
                 container('kubectl') {
-                    sh 'kubectl rollout status deployment jmeter-worker -n catalogue-service'
+                    sh 'kubectl rollout status deployment jmeter-worker -n catalogue-service --timeout=120s'
                     sh 'kubectl wait --for=condition=ready pod -l app=jmeter-worker -n catalogue-service --timeout=120s'
                 }
             }
