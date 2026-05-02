@@ -122,7 +122,7 @@ spec:
         stage('Scale Up Pods') {
             steps {
                 container('kubectl') {
-                    sh 'kubectl scale deployment catalogue-service --replicas=2 -n catalogue-service'
+                    sh 'kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service'
                 }
             }
         }
@@ -140,6 +140,9 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
+                    kubectl rollout restart deployment jmeter -n catalogue-service
+                    kubectl rollout status deployment jmeter -n catalogue-service
+
                     kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/jmeter:/catalogue-docker-test.jmx
 
                     kubectl exec jmeter -n catalogue-service -- rm -rf /results.jtl /report* || true
@@ -148,7 +151,7 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -JtestType=ultimate
+                      -JtestType=extremehigh
 
                     kubectl exec jmeter -n catalogue-service -- jmeter \
                       -g /results.jtl \
