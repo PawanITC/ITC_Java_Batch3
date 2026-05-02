@@ -18,3 +18,15 @@ spec:
           image: justb4/jmeter:latest
           command: ["/bin/sh"]
           args: ["-c", "sleep infinity"]
+
+          resources:
+            requests:
+              memory: "1500Mi"
+              cpu: "500m"
+            limits:
+              memory: "1500Mi"
+              cpu: "1"
+
+          env:
+            - name: JVM_ARGS
+              value: "-Xms1g -Xmx1200m"
