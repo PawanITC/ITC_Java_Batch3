@@ -1,4 +1,3 @@
-# k8s/local/apps/jmeter-worker.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,10 +20,10 @@ spec:
           args:
             - -c
             - |
-              export JVM_ARGS="-Xms512m -Xmx1024m -Dserver.rmi.ssl.disable=true"
-              export SERVER_PORT=1099
-              export SERVER_RMI_LOCALPORT=50000
-              jmeter-server
+              jmeter-server \
+                -Dserver.rmi.ssl.disable=true \
+                -Dserver.rmi.localport=50000 \
+                -Dserver_port=1099
           ports:
             - containerPort: 1099
             - containerPort: 50000

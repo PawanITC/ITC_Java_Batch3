@@ -157,16 +157,9 @@ spec:
 
                     WORKERS=$(kubectl get pods -n catalogue-service -l app=jmeter-worker -o jsonpath="{.items[*].status.podIP}" | tr " " ",")
 
-                    kubectl exec jmeter -n catalogue-service -- jmeter \
-                      -n \
-                      -t /catalogue-docker-test.jmx \
-                      -l /results.jtl \
-                      -JtestType=extremehigh \
-                      -R $WORKERS
+                    kubectl exec jmeter -n catalogue-service -- sh -c "JVM_ARGS='-Dserver.rmi.ssl.disable=true' jmeter -n -t /catalogue-docker-test.jmx -l /results.jtl -JtestType=extremehigh -R $WORKERS"
 
-                    kubectl exec jmeter -n catalogue-service -- jmeter \
-                      -g /results.jtl \
-                      -o /report-${BUILD_NUMBER}
+                    kubectl exec jmeter -n catalogue-service -- jmeter -g /results.jtl -o /report-${BUILD_NUMBER}
 
                     kubectl cp catalogue-service/jmeter:/results.jtl backend/catalogue-service/jmeter/results-${BUILD_NUMBER}.jtl
                     kubectl cp catalogue-service/jmeter:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}

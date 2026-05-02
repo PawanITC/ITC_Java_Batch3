@@ -8,4 +8,8 @@ spec:
     - name: jmeter
       image: justb4/jmeter:latest
       command: ["/bin/sh"]
-      args: ["-c", "sleep infinity"]
+      args:
+        - -c
+        - |
+          export JVM_ARGS="-Dserver.rmi.ssl.disable=true"
+          sleep infinity
