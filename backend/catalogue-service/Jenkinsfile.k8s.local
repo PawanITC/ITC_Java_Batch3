@@ -100,7 +100,7 @@ spec:
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout restart deployment jmeter-slave -n catalogue-service
 
-                    kubectl scale deployment jmeter-slave --replicas=2 -n catalogue-service
+                    kubectl scale deployment jmeter-slave --replicas=1 -n catalogue-service
 
                     kubectl rollout status deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter-slave -n catalogue-service
