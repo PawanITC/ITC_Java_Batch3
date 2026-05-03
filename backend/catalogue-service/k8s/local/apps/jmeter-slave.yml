@@ -27,11 +27,11 @@ spec:
 
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "300m"
-            limits:
               memory: "1Gi"
               cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
 
           env:
             - name: POD_IP
@@ -40,21 +40,4 @@ spec:
                   fieldPath: status.podIP
 
             - name: JVM_ARGS
-              value: "-Xms256m -Xmx512m -Djava.rmi.server.hostname=$(POD_IP)"
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: jmeter-slave
-  namespace: catalogue-service
-spec:
-  selector:
-    app: jmeter-slave
-  ports:
-    - name: rmi
-      port: 1099
-      targetPort: 1099
-    - name: data
-      port: 50000
-      targetPort: 50000
+              value: "-Xms512m -Xmx1200m -Djava.rmi.server.hostname=$(POD_IP)"
