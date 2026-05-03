@@ -127,24 +127,28 @@ spec:
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter -n catalogue-service
 
-                    # then scale
+                    # scale
                     kubectl scale deployment jmeter --replicas=2 -n catalogue-service
                     kubectl rollout status deployment jmeter -n catalogue-service
 
-                    # wait for pods ready
+                    # wait ready
                     kubectl wait --for=condition=Ready pod -l app=jmeter -n catalogue-service --timeout=120s
 
-                    # get ONLY running pods
-                    PODS=$(kubectl get pods -n catalogue-service -l app=jmeter \
+                    # latest ReplicaSet
+                    RS=$(kubectl get rs -n catalogue-service -l app=jmeter \
+                      --sort-by=.metadata.creationTimestamp \
+                      -o jsonpath="{.items[-1:].metadata.name}")
+
+                    # pods from latest RS only
+                    PODS=$(kubectl get pods -n catalogue-service \
+                      -l app=jmeter \
                       --field-selector=status.phase=Running \
-                      -o jsonpath="{.items[*].metadata.name}")
+                      -o jsonpath="{.items[?(@.metadata.ownerReferences[0].name=='$RS')].metadata.name}")
 
                     echo "Using pods: $PODS"
 
                     # run tests
                     for POD in $PODS; do
-                      kubectl wait --for=condition=Ready pod/$POD -n catalogue-service --timeout=60s
-
                       kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$POD:/test.jmx
 
                       kubectl exec $POD -n catalogue-service -- jmeter \
@@ -160,9 +164,8 @@ spec:
 
                     wait
 
-                    # copy results safely
+                    # copy results
                     for POD in $PODS; do
-                      kubectl wait --for=condition=Ready pod/$POD -n catalogue-service --timeout=60s
                       kubectl cp catalogue-service/$POD:/results-$POD.jtl backend/catalogue-service/jmeter/results-$POD.jtl
                     done
 
