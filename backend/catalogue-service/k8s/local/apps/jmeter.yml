@@ -24,7 +24,7 @@ spec:
               memory: "1Gi"
               cpu: "300m"
             limits:
-              memory: "1500Mi"
+              memory: "2Gi"
               cpu: "1"
 
           env:
