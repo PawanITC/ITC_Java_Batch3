@@ -19,7 +19,7 @@ spec:
           command: ["/bin/sh"]
           args:
             - -c
-            - "jmeter-server -Dserver.rmi.ssl.disable=true"
+            - "jmeter-server -Dserver.rmi.ssl.disable=true -Dserver.rmi.localport=50000 -Dserver_port=1099"
 
           ports:
             - containerPort: 1099
@@ -41,6 +41,7 @@ spec:
 
             - name: JVM_ARGS
               value: "-Xms256m -Xmx512m -Djava.rmi.server.hostname=$(POD_IP)"
+
 ---
 apiVersion: v1
 kind: Service
