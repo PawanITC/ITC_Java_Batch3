@@ -174,7 +174,9 @@ spec:
 
     post {
         always {
-            sh 'kubectl scale deployment catalogue-service --replicas=1 -n catalogue-service'
+            container('kubectl') {
+                sh 'kubectl scale deployment catalogue-service --replicas=1 -n catalogue-service'
+            }
 
             archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
 
