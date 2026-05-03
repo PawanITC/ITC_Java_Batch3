@@ -21,10 +21,10 @@ spec:
 
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "500m"
+              memory: "1Gi"
+              cpu: "300m"
             limits:
-              memory: "2Gi"
+              memory: "1500Mi"
               cpu: "1"
 
           env:
