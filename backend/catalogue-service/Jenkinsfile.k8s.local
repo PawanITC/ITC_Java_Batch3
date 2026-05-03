@@ -125,8 +125,8 @@ spec:
                       -R $SLAVES \
                       -l /results.jtl \
                       -Jthreads=600 \
-                      -Jramp=120 \
-                      -Jduration=180 \
+                      -Jramp=30 \
+                      -Jduration=120 \
                       -Jjmeter.save.saveservice.response_data=false \
                       -Jjmeter.save.saveservice.samplerData=false \
                       -Dserver.rmi.ssl.disable=true
