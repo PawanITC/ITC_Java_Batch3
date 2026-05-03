@@ -97,7 +97,7 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    # ensure master + slave fresh
+                    # restart clean
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout restart deployment jmeter-slave -n catalogue-service
 
@@ -113,13 +113,14 @@ spec:
                     # copy test plan
                     kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$MASTER:/test.jmx
 
-                    # get slave IP
+                    # get slave
                     SLAVE=$(kubectl get pod -n catalogue-service -l app=jmeter-slave -o jsonpath="{.items[0].status.podIP}")
 
                     echo "Using slave: $SLAVE"
 
-                    # run distributed test (CRITICAL FIX INCLUDED)
-                    kubectl exec $MASTER -n catalogue-service -- jmeter -n \
+                    # 🔥 CRITICAL FIX: run inside shell (prevents hang)
+                    kubectl exec $MASTER -n catalogue-service -- sh -c "
+                    jmeter -n \
                       -t /test.jmx \
                       -R $SLAVE \
                       -l /results.jtl \
@@ -129,6 +130,7 @@ spec:
                       -Jjmeter.save.saveservice.response_data=false \
                       -Jjmeter.save.saveservice.samplerData=false \
                       -Dserver.rmi.ssl.disable=true
+                    "
 
                     # generate report
                     kubectl exec $MASTER -n catalogue-service -- jmeter \
