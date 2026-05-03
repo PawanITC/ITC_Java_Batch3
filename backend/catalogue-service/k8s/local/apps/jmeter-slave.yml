@@ -4,7 +4,7 @@ metadata:
   name: jmeter-slave
   namespace: catalogue-service
 spec:
-  replicas: 1   # keep 1 for now
+  replicas: 1
   selector:
     matchLabels:
       app: jmeter-slave
@@ -34,8 +34,13 @@ spec:
               cpu: "500m"
 
           env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
             - name: JVM_ARGS
-              value: "-Xms256m -Xmx512m"
+              value: "-Xms256m -Xmx512m -Djava.rmi.server.hostname=$(POD_IP)"
 ---
 apiVersion: v1
 kind: Service
