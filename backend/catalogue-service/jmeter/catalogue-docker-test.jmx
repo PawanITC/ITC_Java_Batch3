@@ -33,10 +33,10 @@
         <hashTree/>
       </hashTree>
 
-      <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector">
+      <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="Results">
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
         <stringProp name="filename">/results.jtl</stringProp>
       </ResultCollector>
-
       <hashTree/>
 
     </hashTree>
