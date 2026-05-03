@@ -67,7 +67,7 @@ spec:
             }
         }
 
-        stage('Deploy to Local K8s') {
+        stage('Deploy') {
             steps {
                 container('kubectl') {
                     sh '''
@@ -81,49 +81,23 @@ spec:
             }
         }
 
-        stage('Wait for Deployments Ready') {
+        stage('Wait Ready') {
             steps {
                 container('kubectl') {
                     sh '''
+                    kubectl rollout status deployment catalogue-service -n catalogue-service
                     kubectl rollout status deployment kafka -n catalogue-service
                     kubectl rollout status deployment redis -n catalogue-service
-                    kubectl rollout status deployment catalogue-service -n catalogue-service
-                    kubectl rollout status deployment otel-collector -n catalogue-service
-                    kubectl rollout status deployment jaeger -n catalogue-service
                     '''
                 }
             }
         }
 
-        stage('Wait for App Health') {
+        stage('Perf Test') {
             steps {
                 container('kubectl') {
                     sh '''
-                    timeout=60
-                    elapsed=0
-
-                    until kubectl run curl-test --rm -i --restart=Never \
-                      --image=curlimages/curl:latest \
-                      -n catalogue-service \
-                      -- curl -s http://catalogue-service:8081/actuator/health | grep '"status":"UP"' > /dev/null; do
-
-                        if [ $elapsed -ge $timeout ]; then
-                            exit 1
-                        fi
-
-                        sleep 3
-                        elapsed=$((elapsed+3))
-                    done
-                    '''
-                }
-            }
-        }
-
-        stage('Performance Test (JMeter)') {
-            steps {
-                container('kubectl') {
-                    sh '''
-                    # restart FIRST
+                    # restart clean
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter -n catalogue-service
 
@@ -131,15 +105,9 @@ spec:
                     kubectl scale deployment jmeter --replicas=2 -n catalogue-service
                     kubectl rollout status deployment jmeter -n catalogue-service
 
-                    # wait ready
-                    kubectl wait --for=condition=Ready pod -l app=jmeter -n catalogue-service --timeout=120s
+                    # get ONLY NEW pods (latest RS)
+                    RS=$(kubectl get rs -n catalogue-service -l app=jmeter --sort-by=.metadata.creationTimestamp -o jsonpath="{.items[-1:].metadata.name}")
 
-                    # latest ReplicaSet
-                    RS=$(kubectl get rs -n catalogue-service -l app=jmeter \
-                      --sort-by=.metadata.creationTimestamp \
-                      -o jsonpath="{.items[-1:].metadata.name}")
-
-                    # pods from latest RS only
                     PODS=$(kubectl get pods -n catalogue-service \
                       -l app=jmeter \
                       --field-selector=status.phase=Running \
@@ -147,7 +115,7 @@ spec:
 
                     echo "Using pods: $PODS"
 
-                    # run tests
+                    # run tests (sequential → stable)
                     for POD in $PODS; do
                       kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$POD:/test.jmx
 
@@ -159,18 +127,16 @@ spec:
                         -Jramp=120 \
                         -Jduration=180 \
                         -Jjmeter.save.saveservice.response_data=false \
-                        -Jjmeter.save.saveservice.samplerData=false &
+                        -Jjmeter.save.saveservice.samplerData=false
                     done
 
-                    wait
+                    # copy ONLY current results
+                    > backend/catalogue-service/jmeter/merged.jtl
 
-                    # copy results
                     for POD in $PODS; do
                       kubectl cp catalogue-service/$POD:/results-$POD.jtl backend/catalogue-service/jmeter/results-$POD.jtl
+                      cat backend/catalogue-service/jmeter/results-$POD.jtl >> backend/catalogue-service/jmeter/merged.jtl
                     done
-
-                    # merge
-                    cat backend/catalogue-service/jmeter/results-*.jtl > backend/catalogue-service/jmeter/merged.jtl
 
                     # generate report
                     FIRST_POD=$(echo $PODS | awk '{print $1}')
@@ -191,7 +157,6 @@ spec:
             steps {
                 container('kubectl') {
                     sh 'kubectl get pods -n catalogue-service'
-                    sh 'kubectl get svc -n catalogue-service'
                 }
             }
         }
