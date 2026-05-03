@@ -147,7 +147,9 @@ spec:
                       -l /results.jtl \
                       -Jthreads=250 \
                       -Jramp=60 \
-                      -Jduration=180
+                      -Jduration=180 \
+                      -Jjmeter.save.saveservice.response_data=false \
+                      -Jjmeter.save.saveservice.samplerData=false
 
                     kubectl exec $JMETER_POD -n catalogue-service -- jmeter \
                       -g /results.jtl \
