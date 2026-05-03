@@ -145,7 +145,7 @@ spec:
                       -n \
                       -t /catalogue-docker-test.jmx \
                       -l /results.jtl \
-                      -Jthreads=250 \
+                      -Jthreads=200 \
                       -Jramp=180 \
                       -Jduration=220 \
                       -Jjmeter.save.saveservice.response_data=false \
