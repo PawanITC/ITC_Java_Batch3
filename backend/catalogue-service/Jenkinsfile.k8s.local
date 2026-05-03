@@ -93,61 +93,43 @@ spec:
             }
         }
 
-        stage('Perf Test') {
+        stage('Performance Test') {
             steps {
                 container('kubectl') {
                     sh '''
-                    # restart clean
-                    kubectl rollout restart deployment jmeter -n catalogue-service
-                    kubectl rollout status deployment jmeter -n catalogue-service
+                    # ensure slave is ready (only 1)
+                    kubectl rollout status deployment jmeter-slave -n catalogue-service
+                    kubectl wait --for=condition=Ready pod -l app=jmeter-slave -n catalogue-service --timeout=120s
 
-                    # scale
-                    kubectl scale deployment jmeter --replicas=2 -n catalogue-service
-                    kubectl rollout status deployment jmeter -n catalogue-service
+                    # get master pod
+                    MASTER=$(kubectl get pod -n catalogue-service -l app=jmeter -o jsonpath="{.items[0].metadata.name}")
 
-                    # get ONLY NEW pods (latest RS)
-                    RS=$(kubectl get rs -n catalogue-service -l app=jmeter --sort-by=.metadata.creationTimestamp -o jsonpath="{.items[-1:].metadata.name}")
+                    # copy test plan
+                    kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$MASTER:/test.jmx
 
-                    PODS=$(kubectl get pods -n catalogue-service \
-                      -l app=jmeter \
-                      --field-selector=status.phase=Running \
-                      -o jsonpath="{.items[?(@.metadata.ownerReferences[0].name=='$RS')].metadata.name}")
+                    # run test (single slave but still distributed mode safe)
+                    SLAVE=$(kubectl get pod -n catalogue-service -l app=jmeter-slave -o jsonpath="{.items[0].status.podIP}")
 
-                    echo "Using pods: $PODS"
+                    echo "Using slave: $SLAVE"
 
-                    # run tests (sequential → stable)
-                    for POD in $PODS; do
-                      kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$POD:/test.jmx
-
-                      kubectl exec $POD -n catalogue-service -- jmeter \
-                        -n \
-                        -t /test.jmx \
-                        -l /results-$POD.jtl \
-                        -Jthreads=100 \
-                        -Jramp=120 \
-                        -Jduration=180 \
-                        -Jjmeter.save.saveservice.response_data=false \
-                        -Jjmeter.save.saveservice.samplerData=false
-                    done
-
-                    # copy ONLY current results
-                    > backend/catalogue-service/jmeter/merged.jtl
-
-                    for POD in $PODS; do
-                      kubectl cp catalogue-service/$POD:/results-$POD.jtl backend/catalogue-service/jmeter/results-$POD.jtl
-                      cat backend/catalogue-service/jmeter/results-$POD.jtl >> backend/catalogue-service/jmeter/merged.jtl
-                    done
+                    kubectl exec $MASTER -n catalogue-service -- jmeter -n \
+                      -t /test.jmx \
+                      -R $SLAVE \
+                      -l /results.jtl \
+                      -Jthreads=100 \
+                      -Jramp=120 \
+                      -Jduration=180 \
+                      -Jjmeter.save.saveservice.response_data=false \
+                      -Jjmeter.save.saveservice.samplerData=false
 
                     # generate report
-                    FIRST_POD=$(echo $PODS | awk '{print $1}')
-
-                    kubectl cp backend/catalogue-service/jmeter/merged.jtl catalogue-service/$FIRST_POD:/merged.jtl
-
-                    kubectl exec $FIRST_POD -n catalogue-service -- jmeter \
-                      -g /merged.jtl \
+                    kubectl exec $MASTER -n catalogue-service -- jmeter \
+                      -g /results.jtl \
                       -o /report-${BUILD_NUMBER}
 
-                    kubectl cp catalogue-service/$FIRST_POD:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
+                    # copy results
+                    kubectl cp catalogue-service/$MASTER:/results.jtl backend/catalogue-service/jmeter/results-${BUILD_NUMBER}.jtl
+                    kubectl cp catalogue-service/$MASTER:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
                     '''
                 }
             }
@@ -166,7 +148,7 @@ spec:
         always {
             container('kubectl') {
                 sh 'kubectl scale deployment catalogue-service --replicas=1 -n catalogue-service'
-                sh 'kubectl scale deployment jmeter --replicas=1 -n catalogue-service'
+                sh 'kubectl scale deployment jmeter-slave --replicas=1 -n catalogue-service'
             }
 
             archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true

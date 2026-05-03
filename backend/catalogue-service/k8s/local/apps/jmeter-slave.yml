@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jmeter-slave
+  namespace: catalogue-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: jmeter-slave
+  template:
+    metadata:
+      labels:
+        app: jmeter-slave
+    spec:
+      containers:
+        - name: jmeter
+          image: justb4/jmeter:latest
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - "jmeter-server -Dserver.rmi.localport=50000 -Dserver_port=1099"
+
+          ports:
+            - containerPort: 1099
+            - containerPort: 50000
+
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
+
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+            - name: JVM_ARGS
+              value: "-Xms512m -Xmx1024m -Djava.rmi.server.hostname=$(POD_IP)"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jmeter-slave
+  namespace: catalogue-service
+spec:
+  selector:
+    app: jmeter-slave
+  ports:
+    - name: rmi
+      port: 1099
+      targetPort: 1099
+    - name: data
+      port: 50000
+      targetPort: 50000
