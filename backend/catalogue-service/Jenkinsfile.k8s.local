@@ -97,10 +97,14 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    # CLEAN START
+                    # CLEAN START (FIXED)
                     kubectl scale deployment jmeter --replicas=0 -n catalogue-service
                     kubectl scale deployment jmeter-slave --replicas=0 -n catalogue-service
 
+                    kubectl wait --for=delete pod -l app=jmeter -n catalogue-service --timeout=120s || true
+                    kubectl wait --for=delete pod -l app=jmeter-slave -n catalogue-service --timeout=120s || true
+
+                    # SCALE UP
                     kubectl scale deployment jmeter --replicas=1 -n catalogue-service
                     kubectl scale deployment jmeter-slave --replicas=2 -n catalogue-service
 
