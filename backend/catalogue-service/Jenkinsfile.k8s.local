@@ -97,13 +97,12 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    kubectl rollout restart deployment jmeter -n catalogue-service
-                    kubectl rollout restart deployment jmeter-slave -n catalogue-service
+                    # CLEAN START
+                    kubectl scale deployment jmeter --replicas=0 -n catalogue-service
+                    kubectl scale deployment jmeter-slave --replicas=0 -n catalogue-service
 
+                    kubectl scale deployment jmeter --replicas=1 -n catalogue-service
                     kubectl scale deployment jmeter-slave --replicas=2 -n catalogue-service
-
-                    kubectl rollout status deployment jmeter -n catalogue-service
-                    kubectl rollout status deployment jmeter-slave -n catalogue-service
 
                     kubectl wait --for=condition=Ready pod -l app=jmeter -n catalogue-service --timeout=120s
                     kubectl wait --for=condition=Ready pod -l app=jmeter-slave -n catalogue-service --timeout=120s
@@ -153,7 +152,7 @@ spec:
         always {
             container('kubectl') {
                 sh 'kubectl scale deployment catalogue-service --replicas=1 -n catalogue-service'
-                sh 'kubectl scale deployment jmeter-slave --replicas=1 -n catalogue-service'
+                sh 'kubectl scale deployment jmeter-slave --replicas=0 -n catalogue-service'
             }
 
             archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
