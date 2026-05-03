@@ -97,21 +97,28 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    # ensure slave is ready (only 1)
+                    # ensure master + slave fresh
+                    kubectl rollout restart deployment jmeter -n catalogue-service
+                    kubectl rollout restart deployment jmeter-slave -n catalogue-service
+
+                    kubectl rollout status deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter-slave -n catalogue-service
+
+                    kubectl wait --for=condition=Ready pod -l app=jmeter -n catalogue-service --timeout=120s
                     kubectl wait --for=condition=Ready pod -l app=jmeter-slave -n catalogue-service --timeout=120s
 
-                    # get master pod
+                    # get master
                     MASTER=$(kubectl get pod -n catalogue-service -l app=jmeter -o jsonpath="{.items[0].metadata.name}")
 
                     # copy test plan
                     kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$MASTER:/test.jmx
 
-                    # run test (single slave but still distributed mode safe)
+                    # get slave IP
                     SLAVE=$(kubectl get pod -n catalogue-service -l app=jmeter-slave -o jsonpath="{.items[0].status.podIP}")
 
                     echo "Using slave: $SLAVE"
 
+                    # run distributed test (CRITICAL FIX INCLUDED)
                     kubectl exec $MASTER -n catalogue-service -- jmeter -n \
                       -t /test.jmx \
                       -R $SLAVE \
@@ -120,7 +127,8 @@ spec:
                       -Jramp=120 \
                       -Jduration=180 \
                       -Jjmeter.save.saveservice.response_data=false \
-                      -Jjmeter.save.saveservice.samplerData=false
+                      -Jjmeter.save.saveservice.samplerData=false \
+                      -Dserver.rmi.ssl.disable=true
 
                     # generate report
                     kubectl exec $MASTER -n catalogue-service -- jmeter \

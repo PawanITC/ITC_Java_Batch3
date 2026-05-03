@@ -29,4 +29,4 @@ spec:
 
           env:
             - name: JVM_ARGS
-              value: "-Xms128m -Xmx256m"
+              value: "-Xms128m -Xmx256m -Dserver.rmi.ssl.disable=true"

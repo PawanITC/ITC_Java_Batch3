@@ -4,7 +4,7 @@ metadata:
   name: jmeter-slave
   namespace: catalogue-service
 spec:
-  replicas: 2
+  replicas: 1   # keep 1 for now
   selector:
     matchLabels:
       app: jmeter-slave
@@ -19,7 +19,7 @@ spec:
           command: ["/bin/sh"]
           args:
             - -c
-            - "jmeter-server -Dserver.rmi.localport=50000 -Dserver_port=1099"
+            - "jmeter-server -Dserver.rmi.ssl.disable=true"
 
           ports:
             - containerPort: 1099
@@ -27,21 +27,15 @@ spec:
 
           resources:
             requests:
+              memory: "512Mi"
+              cpu: "300m"
+            limits:
               memory: "1Gi"
               cpu: "500m"
-            limits:
-              memory: "2Gi"
-              cpu: "1"
 
           env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-
             - name: JVM_ARGS
-              value: "-Xms512m -Xmx1024m -Djava.rmi.server.hostname=$(POD_IP)"
-
+              value: "-Xms256m -Xmx512m"
 ---
 apiVersion: v1
 kind: Service
