@@ -123,14 +123,28 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    kubectl scale deployment jmeter --replicas=2 -n catalogue-service
+                    # restart FIRST
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter -n catalogue-service
 
-                    PODS=$(kubectl get pods -n catalogue-service -l app=jmeter -o jsonpath="{.items[*].metadata.name}")
+                    # then scale
+                    kubectl scale deployment jmeter --replicas=2 -n catalogue-service
+                    kubectl rollout status deployment jmeter -n catalogue-service
 
-                    # Run tests on both pods
+                    # wait for pods ready
+                    kubectl wait --for=condition=Ready pod -l app=jmeter -n catalogue-service --timeout=120s
+
+                    # get ONLY running pods
+                    PODS=$(kubectl get pods -n catalogue-service -l app=jmeter \
+                      --field-selector=status.phase=Running \
+                      -o jsonpath="{.items[*].metadata.name}")
+
+                    echo "Using pods: $PODS"
+
+                    # run tests
                     for POD in $PODS; do
+                      kubectl wait --for=condition=Ready pod/$POD -n catalogue-service --timeout=60s
+
                       kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$POD:/test.jmx
 
                       kubectl exec $POD -n catalogue-service -- jmeter \
@@ -146,16 +160,18 @@ spec:
 
                     wait
 
-                    # Copy results back
+                    # copy results safely
                     for POD in $PODS; do
+                      kubectl wait --for=condition=Ready pod/$POD -n catalogue-service --timeout=60s
                       kubectl cp catalogue-service/$POD:/results-$POD.jtl backend/catalogue-service/jmeter/results-$POD.jtl
                     done
 
-                    # Merge results
+                    # merge
                     cat backend/catalogue-service/jmeter/results-*.jtl > backend/catalogue-service/jmeter/merged.jtl
 
-                    # Generate report
+                    # generate report
                     FIRST_POD=$(echo $PODS | awk '{print $1}')
+
                     kubectl cp backend/catalogue-service/jmeter/merged.jtl catalogue-service/$FIRST_POD:/merged.jtl
 
                     kubectl exec $FIRST_POD -n catalogue-service -- jmeter \
