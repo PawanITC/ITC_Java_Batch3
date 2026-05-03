@@ -82,7 +82,7 @@ spec:
                     kubectl apply -n catalogue-service -f backend/catalogue-service/k8s/local/apps/observability/
 
                     kubectl rollout restart deployment catalogue-service -n catalogue-service
-                    kubectl scale deployment catalogue-service --replicas=5 -n catalogue-service
+                    kubectl scale deployment catalogue-service --replicas=4 -n catalogue-service
                     '''
                 }
             }
