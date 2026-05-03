@@ -19,11 +19,8 @@ spec:
 
     - name: kubectl
       image: alpine/k8s:1.29.0
-      command:
-        - /bin/sh
-        - -c
-      args:
-        - cat
+      command: ["/bin/sh", "-c"]
+      args: ["cat"]
       tty: true
 '''
         }
@@ -36,15 +33,11 @@ spec:
     stages {
 
         stage('Clean Workspace') {
-            steps {
-                cleanWs()
-            }
+            steps { cleanWs() }
         }
 
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Test') {
@@ -130,33 +123,46 @@ spec:
             steps {
                 container('kubectl') {
                     sh '''
-                    kubectl scale deployment jmeter --replicas=1 -n catalogue-service
+                    kubectl scale deployment jmeter --replicas=2 -n catalogue-service
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter -n catalogue-service
-                    kubectl wait --for=condition=Ready pod -l app=jmeter -n catalogue-service --timeout=120s
 
-                    JMETER_POD=$(kubectl get pods -n catalogue-service -l app=jmeter -o jsonpath="{.items[0].metadata.name}")
+                    PODS=$(kubectl get pods -n catalogue-service -l app=jmeter -o jsonpath="{.items[*].metadata.name}")
 
-                    kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$JMETER_POD:/catalogue-docker-test.jmx
+                    # Run tests on both pods
+                    for POD in $PODS; do
+                      kubectl cp backend/catalogue-service/jmeter/catalogue-docker-test.jmx catalogue-service/$POD:/test.jmx
 
-                    kubectl exec $JMETER_POD -n catalogue-service -- rm -rf /results.jtl /report* || true
+                      kubectl exec $POD -n catalogue-service -- jmeter \
+                        -n \
+                        -t /test.jmx \
+                        -l /results-$POD.jtl \
+                        -Jthreads=100 \
+                        -Jramp=120 \
+                        -Jduration=180 \
+                        -Jjmeter.save.saveservice.response_data=false \
+                        -Jjmeter.save.saveservice.samplerData=false &
+                    done
 
-                    kubectl exec $JMETER_POD -n catalogue-service -- jmeter \
-                      -n \
-                      -t /catalogue-docker-test.jmx \
-                      -l /results.jtl \
-                      -Jthreads=200 \
-                      -Jramp=180 \
-                      -Jduration=220 \
-                      -Jjmeter.save.saveservice.response_data=false \
-                      -Jjmeter.save.saveservice.samplerData=false
+                    wait
 
-                    kubectl exec $JMETER_POD -n catalogue-service -- jmeter \
-                      -g /results.jtl \
+                    # Copy results back
+                    for POD in $PODS; do
+                      kubectl cp catalogue-service/$POD:/results-$POD.jtl backend/catalogue-service/jmeter/results-$POD.jtl
+                    done
+
+                    # Merge results
+                    cat backend/catalogue-service/jmeter/results-*.jtl > backend/catalogue-service/jmeter/merged.jtl
+
+                    # Generate report
+                    FIRST_POD=$(echo $PODS | awk '{print $1}')
+                    kubectl cp backend/catalogue-service/jmeter/merged.jtl catalogue-service/$FIRST_POD:/merged.jtl
+
+                    kubectl exec $FIRST_POD -n catalogue-service -- jmeter \
+                      -g /merged.jtl \
                       -o /report-${BUILD_NUMBER}
 
-                    kubectl cp catalogue-service/$JMETER_POD:/results.jtl backend/catalogue-service/jmeter/results-${BUILD_NUMBER}.jtl
-                    kubectl cp catalogue-service/$JMETER_POD:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
+                    kubectl cp catalogue-service/$FIRST_POD:/report-${BUILD_NUMBER} backend/catalogue-service/jmeter/report-${BUILD_NUMBER}
                     '''
                 }
             }
@@ -176,6 +182,7 @@ spec:
         always {
             container('kubectl') {
                 sh 'kubectl scale deployment catalogue-service --replicas=1 -n catalogue-service'
+                sh 'kubectl scale deployment jmeter --replicas=1 -n catalogue-service'
             }
 
             archiveArtifacts artifacts: 'backend/catalogue-service/jmeter/**', fingerprint: true
