@@ -1,7 +1,7 @@
 package com.itc.funkart.config;
 
-import com.itc.funkart.constants.JwtClaims;
-import com.itc.funkart.dto.jwt.JwtUserDto;
+import com.itc.funkart.common.constants.auth.JwtClaims;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import io.jsonwebtoken.Claims;
 import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
@@ -31,7 +31,7 @@ import java.util.List;
  * <ul>
  * <li>Extract raw JWT strings from incoming HTTP requests.</li>
  * <li>Invoke {@link JwtService} for cryptographic validation.</li>
- * <li>Convert JWT claims into a {@link com.itc.funkart.dto.jwt.JwtUserDto}.</li>
+ * <li>Convert JWT claims into a {@link JwtUserDto}.</li>
  * <li>Populate the {@link org.springframework.security.core.context.SecurityContextHolder}
  * with an authenticated token for downstream role-based access control.</li>
  * </ul>

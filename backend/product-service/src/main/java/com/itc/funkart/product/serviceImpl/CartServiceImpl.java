@@ -1,6 +1,6 @@
 package com.itc.funkart.product.serviceImpl;
 
-import com.itc.funkart.common.dto.event.order.OrderEvent;
+import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
 import com.itc.funkart.common.enums.order.OrderEventType;
 import com.itc.funkart.product.dto.request.AddToCartRequest;
 import com.itc.funkart.product.dto.request.CartItemUpdateDto;
@@ -129,7 +129,7 @@ public class CartServiceImpl implements CartService {
             throw new IllegalStateException("Cannot checkout an empty cart");
         }
 
-        // Prepare Event Data
+        // 1. Prepare Product List & Total
         List<Long> productIds = cart.getItems().stream()
                 .map(item -> item.getProduct().getId())
                 .toList();
@@ -139,22 +139,28 @@ public class CartServiceImpl implements CartService {
                         .multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        OrderEvent event = OrderEvent.builder()
+        // 2. Build the split Event DTO
+        // Note: For 'Initiated' events, orderId might be null or a temporary tracking ID
+        OrderInitiatedEvent event = OrderInitiatedEvent.builder()
                 .eventType(OrderEventType.ORDER_INITIATED)
+                .orderId(null) // OrderService will assign the primary key upon receipt
                 .userId(cart.getUserId())
                 .totalAmount(total)
                 .productIds(productIds)
                 .build();
 
-        // Database change happens first
+        log.debug("🛒 Checkout initiated. Encapsulating {} items for User: {}",
+                productIds.size(), cart.getUserId());
+
+        // 3. Clear the Cart (Database Update)
         cart.getItems().clear();
         cartRepository.save(cart);
 
-        // Kafka message only fires after the DB COMMIT
+        // 4. Synchronize with Kafka
         registerOrderEvent(event);
     }
 
-    private void registerOrderEvent(OrderEvent event) {
+    private void registerOrderEvent(OrderInitiatedEvent event) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override

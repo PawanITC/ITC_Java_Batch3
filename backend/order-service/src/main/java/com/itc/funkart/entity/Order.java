@@ -1,5 +1,6 @@
 package com.itc.funkart.entity;
 
+import com.itc.funkart.common.enums.order.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,8 +12,9 @@ import java.util.List;
 /**
  * <h2>Order Entity</h2>
  * <p>
- * Serves as the aggregate root for a purchase transaction.
- * Manages the lifecycle and total financial calculation for multiple {@link OrderItem}s.
+ * The Aggregate Root representing a customer's purchase. It maintains the
+ * financial integrity of the transaction and coordinates the lifecycle of
+ * {@link OrderItem}s.
  * </p>
  */
 @Entity
@@ -39,9 +41,13 @@ public class Order {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal totalAmount;
 
+    /**
+     * Bidirectional relationship to line items.
+     * cascade = ALL ensures items are persisted/deleted with the parent order.
+     */
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @ToString.Exclude // Prevent circular reference in logs
+    @ToString.Exclude
     private List<OrderItem> items = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
@@ -50,7 +56,10 @@ public class Order {
     private LocalDateTime updatedAt;
 
     /**
-     * Synchronizes the bidirectional relationship between Order and Item.
+     * Synchronizes the bidirectional relationship to maintain
+     * Heap integrity within the Hibernate session.
+     *
+     * @param item The line item to attach to this order.
      */
     public void addOrderItem(OrderItem item) {
         if (items == null) items = new ArrayList<>();

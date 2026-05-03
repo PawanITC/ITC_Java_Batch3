@@ -14,7 +14,10 @@ import java.util.Map;
 
 /**
  * <h2>KafkaProducerConfig</h2>
- * <p>Configures the production environment for order domain events.</p>
+ * <p>
+ * Configures the Kafka Producer to handle multiple Order Event types.
+ * Optimized for JVM memory efficiency and cross-service compatibility.
+ * </p>
  */
 @Configuration
 @EnableKafka
@@ -28,14 +31,23 @@ public class KafkaProducerConfig {
 
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
+        // Pulls base config from application.yml (brokers, retries, etc.)
         Map<String, Object> configProps = kafkaProperties.buildProducerProperties(null);
 
-        // Strip Java-specific headers for cross-language compatibility
+        /*
+         * STRATEGY: Cross-Language Compatibility vs. Java Type Info
+         * Setting this to 'false' prevents Spring from adding the "__TypeId__" header.
+         * This keeps the message payload clean for non-Java consumers (like Go or Node).
+         */
         configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
 
-        // Instance identification for monitoring
-        String hostname = System.getenv().getOrDefault("HOSTNAME", "order-service-instance");
-        configProps.put(ProducerConfig.CLIENT_ID_CONFIG, "order-service-producer-" + hostname);
+        // Standard reliability settings for Order Services
+        configProps.put(ProducerConfig.ACKS_CONFIG, "all"); // Guarantee delivery
+        configProps.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 3000);
+
+        // Instance identification for the Kafka Cluster
+        String hostname = System.getenv().getOrDefault("HOSTNAME", "order-svc-prod");
+        configProps.put(ProducerConfig.CLIENT_ID_CONFIG, "order-producer-" + hostname);
 
         return new DefaultKafkaProducerFactory<>(configProps);
     }

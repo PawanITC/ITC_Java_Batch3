@@ -1,7 +1,6 @@
 package com.itc.funkart.exception;
 
-import com.itc.funkart.response.ApiResponse;
-import com.itc.funkart.response.ErrorDetails;
+import com.itc.funkart.common.dto.response.ApiResponse;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import jakarta.validation.ConstraintViolationException;
@@ -21,6 +20,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    /**
+     * Centralized builder to ensure all error responses follow the static factory pattern.
+     */
     private ResponseEntity<ApiResponse<Void>> buildErrorResponse(
             HttpStatus status,
             String message,
@@ -34,8 +36,9 @@ public class GlobalExceptionHandler {
             log.warn("Order Service Warning [{}]: {}", status.value(), message);
         }
 
-        ErrorDetails errorDetails = new ErrorDetails(status.name(), message, field);
-        return ResponseEntity.status(status).body(new ApiResponse<>(errorDetails));
+        // Use the static factory method from your ApiResponse class
+        return ResponseEntity.status(status)
+                .body(ApiResponse.error(status.name(), message, field));
     }
 
     // --- Resilience4j Handlers ---

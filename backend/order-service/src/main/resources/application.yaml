@@ -2,19 +2,21 @@ spring:
   application:
     name: order-service
 
+  # --- WEB & PAGINATION ---
   data:
     web:
       pageable:
         default-page-size: 10
         max-page-size: 100
-        one-indexed-parameters: false
+        one-indexed-parameters: false # Keeps the JVM stack aligned with 0-based arrays
 
+  # --- KAFKA CORE ---
   kafka:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.add.type.headers: false
+        spring.json.add.type.headers: true # Enabled to support polymorphic Record types
 
     consumer:
       group-id: order-service-group-v1
@@ -22,12 +24,15 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "com.itc.funkart.dto"
-        spring.json.value.default.type: com.itc.funkart.dto.OrderEvent
+        # Trust the common DTO package where our Records live
+        spring.json.trusted.packages: "com.itc.funkart.common.dto.event.order"
 
+# --- SECURITY & IDENTITY ---
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: ${JWT_EXPIRATION:3600000}
 
+# --- SERVER RUNTIME ---
 server:
   port: 8080
+  shutdown: graceful # Allows the JVM to finish processing events before exiting

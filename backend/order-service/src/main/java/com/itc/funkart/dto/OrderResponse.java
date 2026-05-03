@@ -1,6 +1,6 @@
 package com.itc.funkart.dto;
 
-import com.itc.funkart.entity.OrderStatus;
+import com.itc.funkart.common.enums.order.OrderStatus;
 import lombok.Builder;
 import lombok.Data;
 

@@ -1,11 +1,10 @@
 package com.itc.funkart.service.impl;
 
-import com.itc.funkart.dto.OrderItemRequest;
-import com.itc.funkart.dto.OrderRequest;
+import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
+import com.itc.funkart.common.enums.order.OrderEventType;
+import com.itc.funkart.common.enums.order.OrderStatus;
 import com.itc.funkart.dto.OrderResponse;
 import com.itc.funkart.entity.Order;
-import com.itc.funkart.entity.OrderItem;
-import com.itc.funkart.entity.OrderStatus;
 import com.itc.funkart.exception.OrderBadRequestException;
 import com.itc.funkart.exception.OrderNotFoundException;
 import com.itc.funkart.mapper.OrderMapper;
@@ -21,22 +20,25 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for OrderServiceImpl covering:
- * - happy paths
- * - validation branches
- * - exception branches
- * - circuit breaker fallback
+ * <h2>OrderServiceImplTest</h2>
+ * <p>
+ * Comprehensive suite verifying business logic, event broadcasting,
+ * and terminal state transitions in the Order domain.
+ * </p>
  */
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 class OrderServiceImplTest {
 
     @Mock
@@ -51,185 +53,122 @@ class OrderServiceImplTest {
     @InjectMocks
     private OrderServiceImpl service;
 
-
-    // ---------------- CREATE ORDER ----------------
+    // ---------------- INITIATION FLOW ----------------
 
     @Test
-    @DisplayName("createOrder - success path publishes event")
-    void createOrder_success() {
-
-        // ----- REQUEST -----
-        OrderItemRequest itemRequest = new OrderItemRequest();
-        itemRequest.setProductId(10L);
-        itemRequest.setQuantity(2);
-
-        OrderRequest request = new OrderRequest();
-        request.setItems(List.of(itemRequest));
-
-        // ----- ENTITY (after mapper) -----
-        OrderItem item = new OrderItem();
-        item.setProductId(10L);
-        item.setQuantity(2);
-        item.setPriceAtPurchase(BigDecimal.valueOf(100));
-
-        Order entity = new Order();
-        entity.setItems(List.of(item));
-
-        // ----- SAVED ENTITY -----
-        Order saved = new Order();
-        saved.setId(1L);
-        saved.setStatus(OrderStatus.PENDING);
-        saved.setCustomerId(10L);
-        saved.setItems(List.of(item));
-
-        when(mapper.toEntity(request)).thenReturn(entity);
-        when(repository.save(any(Order.class))).thenReturn(saved);
-        when(mapper.toResponse(saved)).thenReturn(
-                OrderResponse.builder()
-                        .orderId(1L)
-                        .build()
+    @DisplayName("processOrderInitiation - success path persists and triggers Kafka")
+    void processOrderInitiation_success() {
+        // Arrange
+        OrderInitiatedEvent event = new OrderInitiatedEvent(
+                OrderEventType.ORDER_INITIATED, 2001L, 100L, new BigDecimal("500.00"), List.of(1L, 2L)
         );
 
-        when(eventService.sendOrderEvent(saved)).thenReturn(true);
-
-        // ACT
-        OrderResponse response = service.createOrder(request, 10L);
-
-        // ASSERT
-        assertEquals(1L, response.getOrderId());
-        assertNotNull(response);
-        assertEquals("PUBLISHED", response.getEventStatus());
-
-        verify(repository).save(any(Order.class));
-        verify(eventService).sendOrderEvent(any(Order.class));
-    }
-
-    @Test
-    @DisplayName("createOrder - empty items throws exception")
-    void createOrder_emptyItems() {
-
-        OrderRequest request = new OrderRequest();
-        request.setItems(List.of());
-
-        assertThrows(OrderBadRequestException.class,
-                () -> service.createOrder(request, 1L));
-    }
-
-    @Test
-    @DisplayName("createOrder - event failure branch sets PENDING_RETRY")
-    void createOrder_eventFailure() {
-
-        // ----- REQUEST -----
-        OrderItemRequest itemRequest = new OrderItemRequest();
-        itemRequest.setProductId(10L);
-        itemRequest.setQuantity(1);
-
-        OrderRequest request = new OrderRequest();
-        request.setItems(List.of(itemRequest));
-
-        // ----- ENTITY -----
-        OrderItem item = new OrderItem();
-        item.setProductId(10L);
-        item.setQuantity(1);
-        item.setPriceAtPurchase(BigDecimal.valueOf(100));
-
         Order entity = new Order();
-        entity.setItems(List.of(item));
+        entity.setCustomerId(100L);
 
-        // ----- SAVED -----
         Order saved = new Order();
-        saved.setId(1L);
-        saved.setStatus(OrderStatus.PENDING);
-        saved.setCustomerId(1L);
-        saved.setItems(List.of(item));
+        saved.setId(2001L);
+        saved.setCustomerId(100L);
 
-        when(mapper.toEntity(request)).thenReturn(entity);
+        when(mapper.toEntity(event)).thenReturn(entity);
         when(repository.save(any(Order.class))).thenReturn(saved);
-        when(mapper.toResponse(saved)).thenReturn(
-                OrderResponse.builder()
-                        .orderId(1L)
-                        .build()
-        );
 
-        when(eventService.sendOrderEvent(saved)).thenReturn(false);
+        // Act
+        service.processOrderInitiation(event);
 
-        // ACT
-        OrderResponse response = service.createOrder(request, 1L);
-
-        // ASSERT
-        assertEquals("PENDING_RETRY", response.getEventStatus());
-
-        verify(repository).save(any(Order.class));
-        verify(eventService).sendOrderEvent(saved);
+        // Assert:
+        // 3. UPDATE VERIFICATION: Verify the service call, not the producer call
+        verify(repository).save(entity);
+        verify(eventService).sendOrderEvent(eq(saved), eq(OrderEventType.ORDER_INITIATED));
     }
 
-    // ---------------- GET ORDER ----------------
+    // ---------------- UPDATE STATUS FLOW ----------------
 
     @Test
-    void getOrder_notFound() {
-        when(repository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(OrderNotFoundException.class, () -> service.getOrder(1L));
-    }
-
-    // ---------------- UPDATE STATUS ----------------
-
-    @Test
-    void updateStatus_terminalState_blocked() {
-
-        Order order = new Order();
-        order.setId(1L);
-        order.setStatus(OrderStatus.CANCELLED);
-
-        when(repository.findById(1L)).thenReturn(Optional.of(order));
-
-        assertThrows(OrderBadRequestException.class,
-                () -> service.updateOrderStatus(1L, OrderStatus.SHIPPED));
-
-        verify(repository, never()).save(any());
-    }
-
-    @Test
+    @DisplayName("updateOrderStatus - SHIPPED success persists and broadcasts")
     void updateStatus_success() {
-
+        // Arrange
         Order order = new Order();
         order.setId(1L);
         order.setStatus(OrderStatus.PENDING);
 
         when(repository.findById(1L)).thenReturn(Optional.of(order));
         when(repository.save(any())).thenReturn(order);
-        when(mapper.toResponse(any())).thenReturn(OrderResponse.builder().build());
+        when(mapper.toResponse(any())).thenReturn(OrderResponse.builder().orderId(1L).build());
 
-        OrderResponse res = service.updateOrderStatus(1L, OrderStatus.SHIPPED);
+        // Act
+        service.updateOrderStatus(1L, OrderStatus.SHIPPED);
 
-        assertNotNull(res);
-        verify(eventService).sendOrderEvent(order);
+        // Assert
+        verify(repository).save(argThat(o -> o.getStatus() == OrderStatus.SHIPPED));
+
+        // UPDATED: Now that ORDER_SHIPPED exists, we verify it!
+        verify(eventService).sendOrderEvent(eq(order), eq(OrderEventType.ORDER_SHIPPED));
     }
 
-    // ---------------- SEARCH BRANCH ----------------
+    @Test
+    @DisplayName("updateOrderStatus - CANCELLED triggers specialized record via EventService")
+    void updateStatus_cancellation_success() {
+        // Arrange
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.PENDING);
+
+        when(repository.findById(1L)).thenReturn(Optional.of(order));
+        when(repository.save(any(Order.class))).thenReturn(order);
+        when(mapper.toResponse(any())).thenReturn(OrderResponse.builder().build());
+
+        // Act
+        service.updateOrderStatus(1L, OrderStatus.CANCELLED);
+
+        // Assert
+        verify(repository).save(argThat(o -> o.getStatus() == OrderStatus.CANCELLED));
+        verify(eventService).sendOrderEvent(eq(order), eq(OrderEventType.ORDER_CANCELLED));
+    }
 
     @Test
-    void searchOrders_statusFilterBranch() {
+    @DisplayName("updateOrderStatus - terminal state (CANCELLED) blocks updates")
+    void updateStatus_terminalState_blocked() {
+        // Arrange
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.CANCELLED);
 
+        when(repository.findById(1L)).thenReturn(Optional.of(order));
+
+        // Act & Assert
+        assertThrows(OrderBadRequestException.class,
+                () -> service.updateOrderStatus(1L, OrderStatus.SHIPPED));
+
+        verify(repository, never()).save(any());
+        verifyNoInteractions(eventService);
+    }
+
+    // ---------------- GET & SEARCH ----------------
+
+    @Test
+    @DisplayName("getOrder - throws NotFound if ID is invalid")
+    void getOrder_notFound() {
+        when(repository.findById(999L)).thenReturn(Optional.empty());
+        assertThrows(OrderNotFoundException.class, () -> service.getOrder(999L));
+    }
+
+    @Test
+    @DisplayName("getAllOrders - returns paginated responses")
+    void getAllOrders_success() {
+        // Arrange
         Pageable pageable = PageRequest.of(0, 10);
-        when(repository.findByStatus(eq(OrderStatus.PENDING), eq(pageable)))
-                .thenReturn(new PageImpl<>(List.of(new Order())));
+        Order order = new Order();
+        Page<Order> orderPage = new PageImpl<>(List.of(order));
 
-        when(mapper.toResponse(any())).thenReturn(OrderResponse.builder().build());
+        when(repository.findAll(pageable)).thenReturn(orderPage);
+        when(mapper.toResponse(order)).thenReturn(OrderResponse.builder().orderId(1L).build());
 
-        Page<OrderResponse> result =
-                service.searchOrders(null, OrderStatus.PENDING, null, null, pageable);
+        // Act
+        Page<OrderResponse> result = service.getAllOrders(pageable);
 
-        assertEquals(1, result.getTotalElements());
-        verify(repository).findByStatus(OrderStatus.PENDING, pageable);
-    }
-
-    // ---------------- FALLBACK ----------------
-
-    @Test
-    void fallback_createOrder() {
-        OrderResponse res = service.fallbackCreateOrder(
-                new OrderRequest(), 1L, new RuntimeException("down"));
-
-        assertEquals("SERVICE_BUSY_RETRY_LATER", res.getEventStatus());
+        // Assert
+        assertEquals(1, result.getContent().size());
+        verify(repository).findAll(pageable);
     }
 }

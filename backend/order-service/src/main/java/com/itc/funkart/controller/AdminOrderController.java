@@ -1,8 +1,8 @@
 package com.itc.funkart.controller;
 
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.enums.order.OrderStatus;
 import com.itc.funkart.dto.OrderResponse;
-import com.itc.funkart.entity.OrderStatus;
-import com.itc.funkart.response.ApiResponse;
 import com.itc.funkart.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,22 +14,20 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * <h2>Admin Order Controller</h2>
- * <p>Privileged endpoints for support and operations staff to manage all system orders.</p>
+ * <p>
+ * Privileged operations for managing the order ecosystem.
+ * </p>
  */
 @RestController
-@RequestMapping("/admin/orders")
+@RequestMapping("/api/v1/admin/orders")
 @RequiredArgsConstructor
-@PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminOrderController {
 
     private final OrderService orderService;
 
     /**
-     * <h3>Search & Filter Orders</h3>
-     * <p>Allows admins to browse orders with pagination and status filtering.</p>
-     *
-     * @param status   Optional filter for order state (PENDING, SHIPPED, etc.)
-     * @param pageable Standard Spring Pageable (supports ?page=0&size=20&sort=createdAt,desc)
+     * Retrieves a paginated list of orders, optionally filtered by status.
      */
     @GetMapping
     public ResponseEntity<ApiResponse<Page<OrderResponse>>> getAllOrders(
@@ -40,15 +38,18 @@ public class AdminOrderController {
                 ? orderService.getOrdersByStatus(status, pageable)
                 : orderService.getAllOrders(pageable);
 
-        return ResponseEntity.ok(new ApiResponse<>(orders, "Admin order list retrieved"));
+        return ResponseEntity.ok(ApiResponse.success(orders, "Admin order list retrieved"));
     }
 
+    /**
+     * Manually overrides an order status (e.g., to SHIPPED or DELIVERED).
+     */
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<OrderResponse>> updateStatus(
             @PathVariable Long id,
             @RequestParam OrderStatus newStatus) {
 
         OrderResponse updated = orderService.updateOrderStatus(id, newStatus);
-        return ResponseEntity.ok(new ApiResponse<>(updated, "Order status updated to " + newStatus));
+        return ResponseEntity.ok(ApiResponse.success(updated, "Order status updated to " + newStatus));
     }
 }

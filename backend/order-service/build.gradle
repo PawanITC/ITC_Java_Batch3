@@ -23,6 +23,13 @@ repositories {
 }
 
 dependencies {
+
+    // =====================
+    // Shared Contracts
+    // =====================
+    // This connects the User Service to your common library
+    implementation project(':common-contracts')
+
     // === 1. BOILERPLATE & TOOLS ===
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
@@ -82,6 +89,10 @@ jacocoTestReport {
 // Ensures we only get one fat JAR for deployment
 tasks.named('jar') {
     enabled = false
+}
+
+tasks.withType(Test).configureEach {
+    jvmArgs("-javaagent:${configurations.testRuntimeClasspath.find { it.name.contains('mockito-core') }.absolutePath}")
 }
 
 tasks.named('bootJar') {

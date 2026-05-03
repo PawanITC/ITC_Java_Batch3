@@ -40,7 +40,7 @@ spring:
 
 # --- Security Overrides for Testing ---
 jwt:
-  secret: dGVzdC1zZWNyZXQtZm9yLXVuaXQtdGVzdGluZy1wdXJwb3Nlcy1vbmx5-256bits # Base64 test string
+  secret: dGVzdC1zZWNyZXQtZm9yLXVuaXQtdGVzdGluZy1wdXJwb3Nlcy1vbmx5MjU2Yml0cw== # Base64 test string
   expiration-ms: 3600000
 
 # --- Management/Metrics ---

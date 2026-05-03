@@ -1,32 +1,40 @@
 package com.itc.funkart.kafka;
 
-import com.itc.funkart.dto.OrderEvent;
-import com.itc.funkart.entity.Order;
-import com.itc.funkart.entity.OrderStatus;
-import org.junit.jupiter.api.BeforeEach;
+import com.itc.funkart.common.constants.messaging.KafkaTopics;
+import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
+import com.itc.funkart.common.dto.event.order.OrderEvent;
+import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
+import com.itc.funkart.common.enums.order.OrderEventType;
+import com.itc.funkart.kafka.producer.OrderEventProducer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * <h2>OrderEventProducerTest</h2>
+ * <p>
+ * Verifies that domain events are correctly dispatched to the Kafka broker.
+ * These tests ensure that the <b>Execution Engine</b> correctly maps Record fields
+ * to Kafka message keys for partition affinity.
+ * </p>
  */
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 class OrderEventProducerTest {
 
     @Mock
@@ -35,75 +43,80 @@ class OrderEventProducerTest {
     @InjectMocks
     private OrderEventProducer producer;
 
-    @Captor
-    private ArgumentCaptor<OrderEvent> eventCaptor;
-
-    private Order sampleOrder;
-
-    @BeforeEach
-    void setUp() {
-        sampleOrder = new Order();
-        sampleOrder.setId(101L);
-        sampleOrder.setCustomerId(1L);
-        sampleOrder.setStatus(OrderStatus.PENDING);
-        sampleOrder.setTotalAmount(BigDecimal.valueOf(250.00));
-    }
-
+    /**
+     * Verifies that {@link OrderInitiatedEvent} uses the Order ID as the partition key.
+     */
     @Test
-    @DisplayName("Publish Order Created - Should send DTO to order-events topic")
+    @DisplayName("Publish Order Created - Should use OrderId as key and send to orders topic")
     void publishOrderCreated_shouldSendExpectedPayload() {
+        // Arrange: Using canonical constructor for the Record
+        OrderInitiatedEvent event = new OrderInitiatedEvent(
+                OrderEventType.ORDER_INITIATED,
+                101L, // orderId (The Key)
+                1L,   // userId
+                BigDecimal.valueOf(250.00),
+                List.of(50L, 51L)
+        );
 
-        when(kafkaTemplate.send(anyString(), anyString(), any()))
-                .thenReturn(CompletableFuture.completedFuture(null));
+        // Mocking the async CompletableFuture returned by KafkaTemplate
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(null);
+        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
-        producer.publishOrderCreated(sampleOrder);
+        // Act
+        producer.publishOrderCreated(event);
 
-        verify(kafkaTemplate).send(eq("order-events"), anyString(), eventCaptor.capture());
-
-        OrderEvent capturedEvent = eventCaptor.getValue();
-
-        assertEquals("ORDER_CREATED", capturedEvent.getEventType());
-        assertEquals(101L, capturedEvent.getOrderId());
-        assertEquals(1L, capturedEvent.getCustomerId());
-        assertEquals(BigDecimal.valueOf(250.00), capturedEvent.getTotalAmount());
-        assertNotNull(capturedEvent.getTimestamp());
+        // Assert: Ensure the orderId (101) is converted to String key for Kafka partitioning
+        verify(kafkaTemplate).send(eq(KafkaTopics.ORDERS), eq("101"), eq(event));
     }
 
+    /**
+     * Verifies that the full lifecycle {@link OrderEvent} is correctly broadcasted.
+     */
     @Test
-    @DisplayName("Publish Order Updated - Should broadcast status changes")
-    void publishOrderUpdated_shouldSendUpdateEvent() {
+    @DisplayName("Publish Full Order Event - Should broadcast snapshot with items")
+    void publishOrderEvent_shouldSendFullPayload() {
+        // Arrange
+        OrderEvent event = new OrderEvent(
+                OrderEventType.PAYMENT_SUCCESS,
+                101L,
+                1L,
+                BigDecimal.valueOf(250.00),
+                LocalDateTime.now(),
+                List.of() // Items payload
+        );
 
-        when(kafkaTemplate.send(anyString(), anyString(), any()))
-                .thenReturn(CompletableFuture.completedFuture(null));
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(null);
+        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
-        sampleOrder.setStatus(OrderStatus.SHIPPED);
+        // Act
+        producer.publishOrderEvent(event);
 
-        producer.publishOrderUpdated(sampleOrder);
-
-        verify(kafkaTemplate).send(eq("order-events"), anyString(), eventCaptor.capture());
-
-        OrderEvent capturedEvent = eventCaptor.getValue();
-
-        assertEquals("ORDER_UPDATED", capturedEvent.getEventType());
-        assertEquals(101L, capturedEvent.getOrderId());
+        // Assert
+        verify(kafkaTemplate).send(eq(KafkaTopics.ORDERS), eq("101"), eq(event));
     }
 
+    /**
+     * Verifies that the specialized {@link OrderCancelledEvent} is dispatched correctly.
+     */
     @Test
-    @DisplayName("Publish Order Cancelled - Should handle raw ID input")
+    @DisplayName("Publish Order Cancelled - Should send lightweight cancellation record")
     void publishOrderCancelled_shouldSendCancelEvent() {
+        // Arrange: Testing the Builder pattern often used for cancellation reasons
+        OrderCancelledEvent event = OrderCancelledEvent.builder()
+                .orderId(101L)
+                .userId(1L)
+                .eventType(OrderEventType.ORDER_CANCELLED)
+                .reason("Inventory Shortage")
+                .timestamp(LocalDateTime.now())
+                .build();
 
-        when(kafkaTemplate.send(anyString(), anyString(), any()))
-                .thenReturn(CompletableFuture.completedFuture(null));
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(null);
+        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
-        Long orderId = 101L;
+        // Act
+        producer.publishOrderCancelled(event);
 
-        producer.publishOrderCancelled(orderId);
-
-        verify(kafkaTemplate).send(eq("order-events"), anyString(), eventCaptor.capture());
-
-        OrderEvent capturedEvent = eventCaptor.getValue();
-
-        assertEquals("ORDER_CANCELLED", capturedEvent.getEventType());
-        assertEquals(orderId, capturedEvent.getOrderId());
+        // Assert
+        verify(kafkaTemplate).send(eq(KafkaTopics.ORDERS), eq("101"), eq(event));
     }
 }

@@ -1,7 +1,7 @@
 package com.itc.funkart.product.kafka.producer;
 
 import com.itc.funkart.common.constants.messaging.KafkaTopics;
-import com.itc.funkart.common.dto.event.order.OrderEvent;
+import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -26,7 +26,7 @@ public class OrderProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     /**
-     * Dispatches an {@link OrderEvent} to the Kafka cluster.
+     * Dispatches an {@link OrderInitiatedEvent} to the Kafka cluster.
      * <p>
      * Uses the User ID as the message key to ensure partition affinity (all orders
      * from one user go to the same partition, preserving chronological order).
@@ -34,7 +34,7 @@ public class OrderProducer {
      *
      * @param event The event payload containing cart details.
      */
-    public void sendOrderEvent(OrderEvent event) {
+    public void sendOrderEvent(OrderInitiatedEvent event) {
         if (event == null || event.userId() == null) {
             log.error(">>>> [KAFKA] Aborting: OrderEvent or UserId is null.");
             return;
