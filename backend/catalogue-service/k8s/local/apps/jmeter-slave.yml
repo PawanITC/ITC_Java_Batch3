@@ -4,7 +4,7 @@ metadata:
   name: jmeter-slave
   namespace: catalogue-service
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: jmeter-slave
@@ -27,10 +27,10 @@ spec:
 
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "500m"
+              memory: "1Gi"
+              cpu: "300m"
             limits:
-              memory: "3Gi"
+              memory: "2Gi"
               cpu: "1"
 
           env:
@@ -40,21 +40,4 @@ spec:
                   fieldPath: status.podIP
 
             - name: JVM_ARGS
-              value: "-Xms1g -Xmx2g -Djava.rmi.server.hostname=$(POD_IP)"
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: jmeter-slave
-  namespace: catalogue-service
-spec:
-  selector:
-    app: jmeter-slave
-  ports:
-    - name: rmi
-      port: 1099
-      targetPort: 1099
-    - name: data
-      port: 50000
-      targetPort: 50000
+              value: "-Xms512m -Xmx1g -Djava.rmi.server.hostname=$(POD_IP)"

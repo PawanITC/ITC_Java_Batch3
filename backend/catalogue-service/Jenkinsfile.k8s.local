@@ -100,7 +100,7 @@ spec:
                     kubectl rollout restart deployment jmeter -n catalogue-service
                     kubectl rollout restart deployment jmeter-slave -n catalogue-service
 
-                    kubectl scale deployment jmeter-slave --replicas=1 -n catalogue-service
+                    kubectl scale deployment jmeter-slave --replicas=2 -n catalogue-service
 
                     kubectl rollout status deployment jmeter -n catalogue-service
                     kubectl rollout status deployment jmeter-slave -n catalogue-service
@@ -121,7 +121,7 @@ spec:
                       -t /test.jmx \
                       -R $SLAVES \
                       -l /results.jtl \
-                      -Jthreads=150 \
+                      -Jthreads=100 \
                       -Jramp=120 \
                       -Jduration=180 \
                       -Jjmeter.save.saveservice.response_data=false \
