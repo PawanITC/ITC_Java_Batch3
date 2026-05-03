@@ -1,8 +1,8 @@
 package com.itc.funkart.user.service;
 
-import com.itc.funkart.common.constants.messaging.KafkaMessaging;
-import com.itc.funkart.common.dto.event.UserLoginEvent;
-import com.itc.funkart.common.dto.event.UserSignupEvent;
+import com.itc.funkart.common.constants.messaging.KafkaTopics;
+import com.itc.funkart.common.dto.event.login.UserLoginEvent;
+import com.itc.funkart.common.dto.event.signup.UserSignupEvent;
 import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.MessagingException;
@@ -88,7 +88,7 @@ class KafkaEventPublisherTest {
             // 2. Stub: Use the EXACT constant from your common library
             // Use doReturn().when() to avoid side effects with strict stubbing
             doReturn(future).when(kafkaTemplate).send(
-                    eq(KafkaMessaging.TOPIC_USER_SIGNUP), // Use the constant!
+                    eq(KafkaTopics.USER_SIGNUP), // Use the constant!
                     eq("1"),
                     any(UserSignupEvent.class)
             );
@@ -98,7 +98,7 @@ class KafkaEventPublisherTest {
 
             // 4. Assert: Verify the call happened with the correct constants
             verify(kafkaTemplate).send(
-                    eq(KafkaMessaging.TOPIC_USER_SIGNUP),
+                    eq(KafkaTopics.USER_SIGNUP),
                     eq("1"),
                     any(UserSignupEvent.class)
             );
@@ -173,7 +173,7 @@ class KafkaEventPublisherTest {
 
             // Use the constant from common-contracts
             doReturn(future).when(kafkaTemplate).send(
-                    eq(KafkaMessaging.TOPIC_AUTH_LOGIN),
+                    eq(KafkaTopics.AUTH_LOGIN),
                     eq("1"),
                     any(UserLoginEvent.class)
             );
@@ -182,7 +182,7 @@ class KafkaEventPublisherTest {
             publisher.publishLogin(testUser, "email");
 
             // Assert
-            verify(kafkaTemplate).send(eq(KafkaMessaging.TOPIC_AUTH_LOGIN), eq("1"), any());
+            verify(kafkaTemplate).send(eq(KafkaTopics.AUTH_LOGIN), eq("1"), any());
         }
 
         @Test
@@ -198,7 +198,7 @@ class KafkaEventPublisherTest {
             // ArgumentCaptor allows us to peek inside the record to verify the login method
             ArgumentCaptor<UserLoginEvent> eventCaptor = ArgumentCaptor.forClass(UserLoginEvent.class);
 
-            verify(kafkaTemplate).send(eq(KafkaMessaging.TOPIC_AUTH_LOGIN), eq("1"), eventCaptor.capture());
+            verify(kafkaTemplate).send(eq(KafkaTopics.AUTH_LOGIN), eq("1"), eventCaptor.capture());
             assertEquals("email", eventCaptor.getValue().loginMethod());
         }
 
@@ -214,7 +214,7 @@ class KafkaEventPublisherTest {
 
             ArgumentCaptor<UserLoginEvent> eventCaptor = ArgumentCaptor.forClass(UserLoginEvent.class);
 
-            verify(kafkaTemplate).send(eq(KafkaMessaging.TOPIC_AUTH_LOGIN), eq("1"), eventCaptor.capture());
+            verify(kafkaTemplate).send(eq(KafkaTopics.AUTH_LOGIN), eq("1"), eventCaptor.capture());
             assertEquals("github", eventCaptor.getValue().loginMethod());
         }
     }

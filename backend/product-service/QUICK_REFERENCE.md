@@ -3,24 +3,27 @@
 ## Run Tests
 
 ### All Tests
+
 ```bash
 cd backend/product-service
 ./gradlew.bat test
 ```
 
 ### Specific Layer
+
 ```bash
 # Repository tests only
-./gradlew.bat test --tests "com.itc.funkart.product_service.repository.*"
+./gradlew.bat test --tests "com.itc.funkart.product.repository.*"
 
 # Service tests only
-./gradlew.bat test --tests "com.itc.funkart.product_service.serviceImpl.*"
+./gradlew.bat test --tests "com.itc.funkart.product.serviceImpl.*"
 
 # Controller tests only
-./gradlew.bat test --tests "com.itc.funkart.product_service.controller.*"
+./gradlew.bat test --tests "com.itc.funkart.product.controller.*"
 ```
 
 ### Specific Feature
+
 ```bash
 # Category tests
 ./gradlew.bat test --tests "*Category*"
@@ -33,11 +36,13 @@ cd backend/product-service
 ```
 
 ### Specific Test Class
+
 ```bash
-./gradlew.bat test --tests "com.itc.funkart.product_service.controller.CartControllerTest"
+./gradlew.bat test --tests "com.itc.funkart.product.controller.CartControllerTest"
 ```
 
 ### Specific Test Method
+
 ```bash
 ./gradlew.bat test --tests "CartControllerTest.shouldAddItemToCartSuccessfully"
 ```
@@ -47,11 +52,13 @@ cd backend/product-service
 ## View Test Results
 
 ### Browser View
+
 ```
 Open: build/reports/tests/test/index.html
 ```
 
 ### Terminal View
+
 ```bash
 # Verbose output
 ./gradlew.bat test --info
@@ -65,6 +72,7 @@ Open: build/reports/tests/test/index.html
 ## Test File Locations
 
 ### Repository Tests
+
 ```
 src/test/java/com/itc/funkart/product_service/repository/
 ├── CartRepositoryTest.java (6 tests)
@@ -75,6 +83,7 @@ src/test/java/com/itc/funkart/product_service/repository/
 ```
 
 ### Service Tests
+
 ```
 src/test/java/com/itc/funkart/product_service/serviceImpl/
 ├── CategoryServiceImplTest.java (7 tests)
@@ -83,6 +92,7 @@ src/test/java/com/itc/funkart/product_service/serviceImpl/
 ```
 
 ### Controller Tests
+
 ```
 src/test/java/com/itc/funkart/product_service/controller/
 ├── CategoryControllerTest.java (7 tests)
@@ -95,6 +105,7 @@ src/test/java/com/itc/funkart/product_service/controller/
 ## Test Patterns Used
 
 ### Repository Test Pattern
+
 ```java
 @DataJpaTest
 @ActiveProfiles("test")
@@ -116,6 +127,7 @@ class SampleRepositoryTest {
 ```
 
 ### Service Test Pattern
+
 ```java
 @ExtendWith(MockitoExtension.class)
 class SampleServiceTest {
@@ -138,6 +150,7 @@ class SampleServiceTest {
 ```
 
 ### Controller Test Pattern
+
 ```java
 @WebMvcTest(SampleController.class)
 class SampleControllerTest {
@@ -162,6 +175,7 @@ class SampleControllerTest {
 ## Common Assertions
 
 ### AssertJ
+
 ```java
 // General
 assertThat(value).isNotNull();
@@ -184,6 +198,7 @@ assertThatThrownBy(() -> service.delete(999))
 ```
 
 ### Mockito
+
 ```java
 // Setup
 when(repo.findById(1L)).thenReturn(Optional.of(entity));
@@ -197,6 +212,7 @@ verify(repo, atLeastOnce()).save(any());
 ```
 
 ### MockMvc
+
 ```java
 // Requests
 mockMvc.perform(get("/api/items"))
@@ -215,26 +231,34 @@ mockMvc.perform(delete("/api/items/1"))
 ## Troubleshooting
 
 ### Test Fails: "Column not found"
+
 **Solution:** Ensure @DataJpaTest uses test database (H2)
+
 ```java
 @ActiveProfiles("test")
 ```
 
 ### Test Fails: "No beans found"
+
 **Solution:** For @WebMvcTest, mock all dependencies
+
 ```java
 @MockBean
 private ServiceClass service;
 ```
 
 ### Test Hangs
+
 **Solution:** Check for infinite loops or missing mocking
+
 ```bash
 ./gradlew.bat test --info --stack-trace
 ```
 
 ### Port Already in Use
+
 **Solution:** Use random ports for controller tests
+
 ```java
 @WebMvcTest // Uses random port automatically
 ```
@@ -244,6 +268,7 @@ private ServiceClass service;
 ## Best Practices
 
 ### ✅ DO
+
 - Use descriptive test names
 - Test one concept per test
 - Mock external dependencies
@@ -252,6 +277,7 @@ private ServiceClass service;
 - Test both success and failure cases
 
 ### ❌ DON'T
+
 - Test implementation details
 - Create dependencies between tests
 - Use sleep() for timing
@@ -264,6 +290,7 @@ private ServiceClass service;
 ## CI/CD Integration
 
 ### GitHub Actions Example
+
 ```yaml
 name: Tests
 on: [push, pull_request]
@@ -279,6 +306,7 @@ jobs:
 ```
 
 ### Jenkins Example
+
 ```groovy
 pipeline {
     stages {
@@ -301,17 +329,21 @@ pipeline {
 ## Coverage Reports
 
 ### Generate with JaCoCo
+
 ```bash
 ./gradlew test jacocoTestReport
 ```
 
 ### View Report
+
 ```
 build/reports/jacoco/test/html/index.html
 ```
 
 ### Minimum Coverage
+
 Add to build.gradle:
+
 ```gradle
 jacocoTestCoverageVerification {
     violationRules {
@@ -369,6 +401,7 @@ jacocoTestCoverageVerification {
 ## Support
 
 For questions or issues:
+
 1. Check test logs: `build/test-results/`
 2. View HTML report: `build/reports/tests/test/index.html`
 3. Review test code comments

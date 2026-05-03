@@ -1,8 +1,8 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.12'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'jacoco'
+    id 'java'
+    id 'org.springframework.boot' version '3.5.12'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.itc.funkart'
@@ -10,85 +10,92 @@ version = '0.0.1-SNAPSHOT'
 description = 'Product Service - Funkart E-commerce'
 
 java {
-	sourceCompatibility = JavaVersion.VERSION_17
-	targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 // Forces the compiler to strictly use Java 17 rules
 tasks.withType(JavaCompile).configureEach {
-	options.release = 17
+    options.release = 17
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	// === 1. BOILERPLATE & DEVELOPMENT TOOLS ===
-	compileOnly 'org.projectlombok:lombok:1.18.30'
-	annotationProcessor 'org.projectlombok:lombok:1.18.30'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
-	// === 2. CORE SPRING BOOT & WEB ===
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // =====================
+    // Shared Contracts
+    // =====================
+    // This connects the User Service to your common library
+    implementation project(':common-contracts')
 
-	// === 3. SECURITY & AUTHENTICATION (JWT) ===
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6' // Supports parsing JSON claims
+    // === 1. BOILERPLATE & DEVELOPMENT TOOLS ===
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+
+    // === 2. CORE SPRING BOOT & WEB ===
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // === 3. SECURITY & AUTHENTICATION (JWT) ===
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6' // Supports parsing JSON claims
 
 
-	// === 4. DATABASE & PERSISTENCE ===
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.postgresql:postgresql'
-	// implementation 'org.springframework.boot:spring-boot-starter-data-mongodb' // Reserved for future metadata use
+    // === 4. DATABASE & PERSISTENCE ===
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.postgresql:postgresql'
+    // implementation 'org.springframework.boot:spring-boot-starter-data-mongodb' // Reserved for future metadata use
 
-	// === 5. CACHING & PERFORMANCE ===
-	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-	implementation 'org.springframework.boot:spring-boot-starter-cache'
+    // === 5. CACHING & PERFORMANCE ===
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
 
-	// === 6. MESSAGING & EVENTS ===
-	implementation 'org.springframework.kafka:spring-kafka'
+    // === 6. MESSAGING & EVENTS ===
+    implementation 'org.springframework.kafka:spring-kafka'
 
-	// === 7. OBSERVABILITY & TRACING ===
-	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
-	implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+    // === 7. OBSERVABILITY & TRACING ===
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
-	// === 8. TESTING ===
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testImplementation 'org.springframework.kafka:spring-kafka-test'
+    // === 8. TESTING ===
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
 
-	// H2 Database for fast integration tests
-	testImplementation 'com.h2database:h2'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // H2 Database for fast integration tests
+    testImplementation 'com.h2database:h2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 // === CONFIGURATION TASKS ===
 
 tasks.named('test') {
-	useJUnitPlatform()
-	// Suppresses the "Dynamic loading of agents" warning in modern Java toolchains
-	jvmArgs("-XX:+EnableDynamicAgentLoading")
-	finalizedBy jacocoTestReport
+    useJUnitPlatform()
+    // Suppresses the "Dynamic loading of agents" warning in modern Java toolchains
+    jvmArgs("-XX:+EnableDynamicAgentLoading")
+    finalizedBy jacocoTestReport
 }
 
 jacocoTestReport {
-	dependsOn test
-	reports {
-		xml.required = true
-		html.required = true
-	}
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
 
 tasks.named('jar') {
-	enabled = false // Ensures only the executable bootJar is generated
+    enabled = false // Ensures only the executable bootJar is generated
 }
 
 tasks.named('bootJar') {
-	archiveFileName = "product-service.jar"
+    archiveFileName = "product-service.jar"
 }

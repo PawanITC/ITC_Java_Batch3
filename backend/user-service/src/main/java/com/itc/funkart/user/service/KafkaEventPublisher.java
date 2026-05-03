@@ -1,8 +1,8 @@
 package com.itc.funkart.user.service;
 
-import com.itc.funkart.common.constants.messaging.KafkaMessaging;
-import com.itc.funkart.common.dto.event.UserLoginEvent;
-import com.itc.funkart.common.dto.event.UserSignupEvent;
+import com.itc.funkart.common.constants.messaging.KafkaTopics;
+import com.itc.funkart.common.dto.event.login.UserLoginEvent;
+import com.itc.funkart.common.dto.event.signup.UserSignupEvent;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.InvalidEventException;
 import com.itc.funkart.user.exceptions.MessagingException;
@@ -70,8 +70,8 @@ public class KafkaEventPublisher {
 
         try {
             // Uses KafkaMessaging.TOPIC_USER_SIGNUP constant from common-contracts
-            kafkaTemplate.send(KafkaMessaging.TOPIC_USER_SIGNUP, event.userId().toString(), event).get();
-            log.info("✓ Sync success: Topic [{}] for user: {}", KafkaMessaging.TOPIC_USER_SIGNUP, event.userId());
+            kafkaTemplate.send(KafkaTopics.USER_SIGNUP, event.userId().toString(), event).get();
+            log.info("✓ Sync success: Topic [{}] for user: {}", KafkaTopics.USER_SIGNUP, event.userId());
 
         } catch (InterruptedException | ExecutionException ex) {
             log.error("✗ Sync failure: User {}: {}", event.userId(), ex.getMessage());
@@ -88,11 +88,11 @@ public class KafkaEventPublisher {
      */
     private void sendLoginAsync(UserLoginEvent event) {
         // Uses KafkaMessaging.TOPIC_AUTH_LOGIN constant from common-contracts
-        kafkaTemplate.send(KafkaMessaging.TOPIC_AUTH_LOGIN, event.userId().toString(), event)
+        kafkaTemplate.send(KafkaTopics.AUTH_LOGIN, event.userId().toString(), event)
                 .whenComplete((result, ex) -> {
                     if (ex == null) {
                         log.info("✓ Async success: Topic [{}] offset {}",
-                                KafkaMessaging.TOPIC_AUTH_LOGIN, result.getRecordMetadata().offset());
+                                KafkaTopics.AUTH_LOGIN, result.getRecordMetadata().offset());
                     } else {
                         log.error("✗ Async failure: Login event lost for user {}: {}",
                                 event.userId(), ex.getMessage());

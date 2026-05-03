@@ -1,7 +1,9 @@
 # Test Coverage Summary - Product Service
 
 ## Overview
+
 Complete test coverage has been implemented for all layers of the Product Service application:
+
 - ✅ Repository Layer Tests
 - ✅ Service Layer Tests
 - ✅ Controller Layer Tests
@@ -11,6 +13,7 @@ Complete test coverage has been implemented for all layers of the Product Servic
 ## 1. REPOSITORY LAYER TESTS (19 Tests)
 
 ### CartRepositoryTest (6 tests)
+
 - ✅ Should save cart with userId
 - ✅ Should enforce unique userId constraint
 - ✅ Should find cart by userId
@@ -21,6 +24,7 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/repository/CartRepositoryTest.java`
 
 ### CartItemRepositoryTest (5 tests)
+
 - ✅ Should save cart item with cart and product
 - ✅ Should persist multiple cart items for one cart
 - ✅ Should allow same product in different carts
@@ -30,6 +34,7 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/repository/CartItemRepositoryTest.java`
 
 ### CategoryRepositoryTest (4 tests)
+
 - ✅ Should save category
 - ✅ Should find all categories
 - ✅ Should find category by id
@@ -38,6 +43,7 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/repository/CategoryRepositoryTest.java`
 
 ### ProductRepositoryTest (4 tests)
+
 - ✅ Should save product and set createdAt automatically
 - ✅ Should find product by slug
 - ✅ Should return empty when slug not found
@@ -47,6 +53,7 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/repository/ProductRepositoryTest.java`
 
 ### ProductImageRepositoryTest (2 tests)
+
 - ✅ Should save product image with product
 - ✅ Should persist multiple images for one product
 
@@ -57,6 +64,7 @@ Complete test coverage has been implemented for all layers of the Product Servic
 ## 2. SERVICE LAYER TESTS (27 Tests)
 
 ### CategoryServiceImplTest (7 tests)
+
 - ✅ Should create category successfully
 - ✅ Should get all categories
 - ✅ Should return empty list when no categories exist
@@ -68,11 +76,13 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/serviceImpl/CategoryServiceImplTest.java`
 
 **Testing Approach:**
+
 - Uses `@ExtendWith(MockitoExtension.class)` for isolated unit testing
 - Mocks `CategoryRepository` dependency
 - Tests both happy path and exception scenarios
 
 ### ProductServiceImplTest (10 tests)
+
 - ✅ Should create product with valid category
 - ✅ Should throw exception when category not found during product creation
 - ✅ Should get product by id
@@ -91,11 +101,13 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/serviceImpl/ProductServiceImplTest.java`
 
 **Testing Approach:**
+
 - Mocks `ProductRepository` and `CategoryRepository` dependencies
 - Tests CRUD operations and batch operations
 - Validates business logic constraints (max IDs, empty list checks)
 
 ### CartServiceImplTest (13 tests)
+
 - ✅ Should get existing cart by userId
 - ✅ Should create cart if it doesn't exist
 - ✅ Should add item to cart
@@ -115,6 +127,7 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/serviceImpl/CartServiceImplTest.java`
 
 **Testing Approach:**
+
 - Mocks `CartRepository`, `ProductRepository`, and `OrderProducer` dependencies
 - Tests cart lifecycle: create, add items, update, remove, checkout
 - Tests edge cases: empty cart, missing items, quantity adjustments
@@ -124,6 +137,7 @@ Complete test coverage has been implemented for all layers of the Product Servic
 ## 3. CONTROLLER LAYER TESTS (23 Tests)
 
 ### CategoryControllerTest (7 tests)
+
 - ✅ Should get all categories successfully
 - ✅ Should return empty list when no categories exist
 - ✅ Should get category by id successfully
@@ -135,16 +149,19 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/controller/CategoryControllerTest.java`
 
 **Testing Approach:**
+
 - Uses `@WebMvcTest(CategoryController.class)` for slice testing
 - Uses `MockMvc` to perform HTTP requests
 - Mocks `CategoryService` dependency
 - Tests HTTP status codes and response structure
 
 **Endpoints Tested:**
+
 - `GET /api/categories` - Get all categories
 - `GET /api/categories/{id}` - Get category by id
 
 ### ProductControllerTest (9 tests)
+
 - ✅ Should get all products successfully
 - ✅ Should return empty list when no products exist
 - ✅ Should get product by id successfully
@@ -160,16 +177,19 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/controller/ProductControllerTest.java`
 
 **Testing Approach:**
+
 - Uses `@WebMvcTest(ProductController.class)` for slice testing
 - Tests JSON serialization/deserialization
 - Validates response body with JSONPath assertions
 
 **Endpoints Tested:**
+
 - `GET /api/products` - Get all products
 - `GET /api/products/{id}` - Get product by id
 - `POST /api/products/by-ids` - Get products by multiple ids
 
 ### CartControllerTest (11 tests)
+
 - ✅ Should get cart by user id successfully
 - ✅ Should return empty cart when user has no items
 - ✅ Should add item to cart successfully
@@ -188,11 +208,13 @@ Complete test coverage has been implemented for all layers of the Product Servic
 **File:** `src/test/java/com/itc/funkart/product_service/controller/CartControllerTest.java`
 
 **Testing Approach:**
+
 - Tests all CRUD operations on cart
 - Validates request validation (required fields)
 - Tests cart operations: add, remove, update, checkout
 
 **Endpoints Tested:**
+
 - `GET /api/cart/{userId}` - Get cart
 - `POST /api/cart/{userId}/items` - Add item to cart
 - `DELETE /api/cart/{userId}/items/{productId}` - Remove item
@@ -204,29 +226,33 @@ Complete test coverage has been implemented for all layers of the Product Servic
 ## Test Execution Summary
 
 ### Build Command
+
 ```bash
 ./gradlew.bat test
 ```
 
 ### Test Results
+
 - **Total Tests:** 69
 - **Status:** ✅ **ALL PASS**
 - **Build Time:** ~1m 41s
 - **Test Profile:** `test` (H2 in-memory database)
 
 ### Test Coverage by Layer
-| Layer | Tests | Status |
-|-------|-------|--------|
-| Repository | 19 | ✅ Pass |
-| Service | 27 | ✅ Pass |
-| Controller | 23 | ✅ Pass |
-| **TOTAL** | **69** | **✅ Pass** |
+
+| Layer      | Tests  | Status     |
+|------------|--------|------------|
+| Repository | 19     | ✅ Pass     |
+| Service    | 27     | ✅ Pass     |
+| Controller | 23     | ✅ Pass     |
+| **TOTAL**  | **69** | **✅ Pass** |
 
 ---
 
 ## Key Testing Patterns Used
 
 ### 1. Repository Layer (@DataJpaTest)
+
 ```java
 @DataJpaTest
 @ActiveProfiles("test")
@@ -238,6 +264,7 @@ class CartRepositoryTest {
 ```
 
 ### 2. Service Layer (Unit Tests with Mockito)
+
 ```java
 @ExtendWith(MockitoExtension.class)
 class CartServiceImplTest {
@@ -251,6 +278,7 @@ class CartServiceImplTest {
 ```
 
 ### 3. Controller Layer (@WebMvcTest)
+
 ```java
 @WebMvcTest(CartController.class)
 class CartControllerTest {
@@ -281,6 +309,7 @@ class CartControllerTest {
 ## Ready for Production
 
 All tests are passing and comprehensive coverage has been achieved across:
+
 - ✅ Data Access Layer (Repository)
 - ✅ Business Logic Layer (Service)
 - ✅ API Layer (Controller)

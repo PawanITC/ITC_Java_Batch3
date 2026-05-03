@@ -1,8 +1,8 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.common.dto.auth.request.LoginRequest;
-import com.itc.funkart.common.dto.auth.request.SignupRequest;
-import com.itc.funkart.common.dto.auth.response.SuccessfulLoginResponse;
+import com.itc.funkart.common.dto.auth.request.login.LoginRequest;
+import com.itc.funkart.common.dto.auth.request.signup.SignupRequest;
+import com.itc.funkart.common.dto.auth.response.login.SuccessfulLoginResponse;
 import com.itc.funkart.common.dto.response.ApiResponse;
 import com.itc.funkart.gateway.service.UserGatewayService;
 import org.springframework.http.ResponseEntity;

@@ -40,9 +40,11 @@ Complete overview of the testing architecture and approach.
 ## Testing Levels Explained
 
 ### Level 1: Repository Tests (Base)
+
 **Purpose:** Validate data persistence
 
 **Approach:**
+
 - Direct database testing with H2 in-memory
 - No mocking, real entities
 - Test CRUD operations
@@ -50,6 +52,7 @@ Complete overview of the testing architecture and approach.
 **Count:** 19 tests
 
 **Example:**
+
 ```java
 @DataJpaTest
 class CartRepositoryTest {
@@ -61,9 +64,11 @@ class CartRepositoryTest {
 ---
 
 ### Level 2: Service Tests
+
 **Purpose:** Validate business logic
 
 **Approach:**
+
 - Unit testing with mocks
 - Isolated from database
 - Test service interactions
@@ -71,6 +76,7 @@ class CartRepositoryTest {
 **Count:** 27 tests
 
 **Example:**
+
 ```java
 @ExtendWith(MockitoExtension.class)
 class CartServiceImplTest {
@@ -84,9 +90,11 @@ class CartServiceImplTest {
 ---
 
 ### Level 3: Controller Tests
+
 **Purpose:** Validate REST endpoints
 
 **Approach:**
+
 - Slice testing with MockMvc
 - Test HTTP layer
 - Mock services
@@ -94,6 +102,7 @@ class CartServiceImplTest {
 **Count:** 23 tests
 
 **Example:**
+
 ```java
 @WebMvcTest(CartController.class)
 class CartControllerTest {
@@ -107,9 +116,11 @@ class CartControllerTest {
 ---
 
 ### Level 4: Integration Tests
+
 **Purpose:** Validate complete workflows
 
 **Approach:**
+
 - Full Spring context
 - Real all dependencies
 - End-to-end scenarios
@@ -117,6 +128,7 @@ class CartControllerTest {
 **Count:** 41 tests
 
 **Example:**
+
 ```java
 @SpringBootTest
 @Transactional
@@ -129,9 +141,11 @@ class CartServiceIntegrationTest {
 ---
 
 ### Level 5: Performance Tests
+
 **Purpose:** Validate performance & scalability
 
 **Approach:**
+
 - Measure response times
 - Monitor throughput
 - Check resource usage
@@ -139,6 +153,7 @@ class CartServiceIntegrationTest {
 **Count:** 21 tests
 
 **Example:**
+
 ```java
 @SpringBootTest
 class ProductServicePerformanceTest {
@@ -152,26 +167,31 @@ class ProductServicePerformanceTest {
 ## Load Testing (JMeter)
 
 ### Purpose
+
 Test system behavior under increasing load and sudden spikes.
 
 ### 4 Scenarios
 
 **Scenario 1: Light Load**
+
 - 50 concurrent users
 - 5 minutes duration
 - Category endpoints
 
 **Scenario 2: Medium Load**
+
 - 100 concurrent users
 - 10 minutes duration
 - Product endpoints
 
 **Scenario 3: Heavy Load**
+
 - 200 concurrent users
 - 10 minutes duration
 - Complete shopping workflow
 
 **Scenario 4: Spike Test**
+
 - 500 concurrent users
 - 2 minutes duration
 - Sudden traffic surge
@@ -181,6 +201,7 @@ Test system behavior under increasing load and sudden spikes.
 ## Testing Statistics
 
 ### Coverage by Count
+
 ```
 Repository:  19 tests  (12.3%)  ████████░░░░░░░░░░░
 Service:     27 tests  (17.4%)  ███████████░░░░░░░░
@@ -193,6 +214,7 @@ TOTAL:      155 tests (100%)
 ```
 
 ### Coverage by Feature
+
 ```
 Category:  18 tests  (11.6%)
 Product:   46 tests  (29.7%)
@@ -204,6 +226,7 @@ Cart:      83 tests  (53.5%)
 ## Testing Approach
 
 ### Unit Tests (Repository + Service)
+
 ```
 Characteristics:
 ✓ Fast (< 100ms each)
@@ -218,6 +241,7 @@ Use:
 ```
 
 ### Integration Tests
+
 ```
 Characteristics:
 ✓ Full context
@@ -232,6 +256,7 @@ Use:
 ```
 
 ### Performance Tests
+
 ```
 Characteristics:
 ✓ Measure response times
@@ -246,6 +271,7 @@ Use:
 ```
 
 ### Load Tests
+
 ```
 Characteristics:
 ✓ Concurrent users
@@ -264,6 +290,7 @@ Use:
 ## Execution Order
 
 ### Development Cycle
+
 ```
 1. Write code
    ↓
@@ -281,6 +308,7 @@ Use:
 ```
 
 ### Before Release
+
 ```
 1. Unit tests pass ✓
 2. Integration tests pass ✓
@@ -296,12 +324,14 @@ Use:
 ## Technology Stack
 
 ### Testing Frameworks
+
 - **JUnit 5** - Test execution
 - **Mockito** - Mocking
 - **AssertJ** - Assertions
 - **Spring Test** - Spring integration
 
 ### Testing Tools
+
 - **@DataJpaTest** - Repository testing
 - **@ExtendWith** - Extension mechanism
 - **@WebMvcTest** - Controller testing
@@ -310,6 +340,7 @@ Use:
 - **H2** - In-memory database
 
 ### Load Testing
+
 - **JMeter** - Load & performance testing
 - **HTML Reports** - Result visualization
 
@@ -318,6 +349,7 @@ Use:
 ## Test Isolation Strategy
 
 ### Repository Tests
+
 ```
 Each test:
 ✓ Gets fresh H2 database
@@ -327,6 +359,7 @@ Each test:
 ```
 
 ### Service Tests
+
 ```
 Each test:
 ✓ Mock dependencies
@@ -336,6 +369,7 @@ Each test:
 ```
 
 ### Controller Tests
+
 ```
 Each test:
 ✓ MockMvc (no real server)
@@ -345,6 +379,7 @@ Each test:
 ```
 
 ### Integration Tests
+
 ```
 Each test:
 ✓ @Transactional (auto-rollback)
@@ -390,6 +425,7 @@ Load Testing:
 ## Continuous Integration
 
 ### Automated Testing
+
 ```
 On every commit:
 1. Compile code
@@ -401,6 +437,7 @@ On every commit:
 ```
 
 ### Scheduled Testing
+
 ```
 Daily/Weekly:
 1. Run full test suite
@@ -416,18 +453,21 @@ Daily/Weekly:
 ### What We Measure
 
 **Execution Metrics**
+
 - Total tests run
 - Tests passed/failed
 - Execution time
 - Pass rate %
 
 **Performance Metrics**
+
 - Average response time
 - Percentile response times (50th, 95th, 99th)
 - Throughput (requests/second)
 - Error rate %
 
 **Resource Metrics**
+
 - Memory usage
 - CPU usage
 - Database connections
@@ -438,18 +478,21 @@ Daily/Weekly:
 ## Quality Gates
 
 ### Before Committing
+
 - [ ] All unit tests pass
 - [ ] All integration tests pass
 - [ ] No new failures
 - [ ] Code compiles
 
 ### Before Merging
+
 - [ ] All tests pass
 - [ ] Performance acceptable
 - [ ] No regressions
 - [ ] Code reviewed
 
 ### Before Release
+
 - [ ] 155+ tests pass
 - [ ] Load tests pass
 - [ ] No known issues
@@ -461,6 +504,7 @@ Daily/Weekly:
 ## Best Practices
 
 ### ✅ DO
+
 - ✅ Write tests before code (TDD)
 - ✅ Keep tests simple and focused
 - ✅ Use meaningful test names
@@ -471,6 +515,7 @@ Daily/Weekly:
 - ✅ Maintain baseline metrics
 
 ### ❌ DON'T
+
 - ❌ Test implementation details
 - ❌ Create test dependencies
 - ❌ Use sleep() for timing
@@ -518,16 +563,16 @@ src/test/java/com/itc/funkart/product_service/
 
 ## Summary
 
-| Aspect | Value |
-|--------|-------|
-| Total Tests | 155 |
-| Test Layers | 5 |
-| Load Scenarios | 4 |
-| Test Execution | ~5 minutes |
+| Aspect             | Value       |
+|--------------------|-------------|
+| Total Tests        | 155         |
+| Test Layers        | 5           |
+| Load Scenarios     | 4           |
+| Test Execution     | ~5 minutes  |
 | Load Test Duration | ~32 minutes |
-| Pass Rate Target | 100% |
+| Pass Rate Target   | 100%        |
 | Performance Target | < 200ms avg |
-| Error Rate Target | < 1% |
+| Error Rate Target  | < 1%        |
 
 ---
 

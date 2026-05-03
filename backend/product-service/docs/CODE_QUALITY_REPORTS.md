@@ -1,14 +1,18 @@
 # Code Quality Reports - Product Service
 
 ## Overview
-This document provides access to all code quality reports generated for the Product Service. These reports include test coverage, test results, and other quality metrics.
+
+This document provides access to all code quality reports generated for the Product Service. These reports include test
+coverage, test results, and other quality metrics.
 
 ## Generated Reports
 
 ### 1. JaCoCo Test Coverage Report
+
 **Location:** `docs/code-quality-reports/jacoco/index.html`
 
 **Description:** Detailed code coverage report showing:
+
 - Line coverage percentage
 - Branch coverage percentage
 - Class coverage percentage
@@ -16,27 +20,33 @@ This document provides access to all code quality reports generated for the Prod
 - Coverage breakdown by package and class
 
 **How to View:**
+
 - Open `docs/code-quality-reports/jacoco/index.html` in any web browser
 - Navigate through packages and classes to see coverage details
 - Green lines indicate covered code, red lines indicate uncovered code
 
 ### 2. Test Results Report
+
 **Location:** `docs/code-quality-reports/tests/index.html`
 
 **Description:** Comprehensive test execution results showing:
+
 - Total number of tests executed
 - Number of passed/failed tests
 - Test execution time
 - Detailed results for each test class and method
 
 **How to View:**
+
 - Open `docs/code-quality-reports/tests/index.html` in any web browser
 - View test execution summary and detailed results
 
 ### 3. JaCoCo XML Report
+
 **Location:** `build/reports/jacoco/test/jacocoTestReport.xml`
 
 **Description:** Machine-readable XML format of the coverage report, useful for:
+
 - CI/CD pipeline integration
 - Integration with other tools
 - Automated analysis
@@ -50,6 +60,7 @@ Run the following command to generate all reports:
 ```
 
 This command will:
+
 1. Run all tests
 2. Generate JaCoCo coverage reports
 3. Copy reports to the `docs/code-quality-reports/` directory
@@ -68,6 +79,7 @@ The current coverage metrics can be found in the JaCoCo HTML report. Key metrics
 ## Test Statistics
 
 Test execution statistics are available in the test results report, including:
+
 - Total tests run
 - Tests passed/failed
 - Test execution duration
@@ -76,15 +88,18 @@ Test execution statistics are available in the test results report, including:
 ## Integration with Development Workflow
 
 ### During Development
+
 - Run `./gradlew test jacocoTestReport` for quick coverage checks
 - Run `./gradlew generateAllReports` to update documentation reports
 
 ### Before Commits
+
 - Ensure all tests pass
 - Check that coverage meets minimum requirements
 - Review coverage gaps in the HTML report
 
 ### CI/CD Integration
+
 - Use the XML reports for automated quality gates
 - Set minimum coverage thresholds
 - Archive HTML reports for team access
@@ -105,16 +120,19 @@ docs/
 ## Troubleshooting
 
 ### Reports Not Generated
+
 - Ensure all tests pass: `./gradlew test`
 - Check for build errors
 - Verify JaCoCo plugin is properly configured
 
 ### Coverage Appears Low
+
 - Check if tests are actually running
 - Verify test configuration in `build.gradle`
 - Ensure test classes are properly annotated
 
 ### Browser Issues
+
 - HTML reports work in any modern web browser
 - Ensure JavaScript is enabled for interactive features
 - Check file permissions if reports don't load

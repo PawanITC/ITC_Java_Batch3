@@ -3,6 +3,7 @@
 Guide for setting up your development environment for Product Service testing.
 
 ## Table of Contents
+
 1. [Prerequisites](#prerequisites)
 2. [Project Setup](#project-setup)
 3. [IDE Configuration](#ide-configuration)
@@ -15,11 +16,13 @@ Guide for setting up your development environment for Product Service testing.
 ## Prerequisites
 
 ### Required
+
 - **Java 11+** - [Download JDK](https://www.oracle.com/java/technologies/downloads/)
 - **Git** - [Download Git](https://git-scm.com/)
 - **Gradle 9.3+** - Included in project wrapper (`gradlew`)
 
 ### Optional but Recommended
+
 - **IDE** - IntelliJ IDEA, VS Code, or Eclipse
 - **JMeter** - For load testing [Download](https://jmeter.apache.org/download_jmeter.cgi)
 - **Docker** - For running databases (optional)
@@ -29,18 +32,21 @@ Guide for setting up your development environment for Product Service testing.
 ## Project Setup
 
 ### Step 1: Clone Repository
+
 ```bash
 git clone <repository-url>
 cd product-service
 ```
 
 ### Step 2: Verify Java Installation
+
 ```bash
 java -version
 # Expected: Java 11 or higher
 ```
 
 ### Step 3: Build Project
+
 ```bash
 # Windows
 ./gradlew.bat clean build
@@ -50,6 +56,7 @@ java -version
 ```
 
 ### Step 4: Verify Installation
+
 ```bash
 # Run tests to verify setup
 ./gradlew.bat test
@@ -64,39 +71,47 @@ java -version
 ### IntelliJ IDEA
 
 #### 1. Open Project
+
 - File → Open
 - Select project root folder
 - Click "Open as Project"
 
 #### 2. Configure Java
+
 - File → Project Structure
 - Project
-  - SDK: Select Java 11+
-  - Language Level: 11
+    - SDK: Select Java 11+
+    - Language Level: 11
 
 #### 3. Configure Gradle
+
 - File → Settings → Build, Execution, Deployment → Gradle
-  - Gradle: Use Gradle wrapper
-  - Run Tests Using: Gradle
+    - Gradle: Use Gradle wrapper
+    - Run Tests Using: Gradle
 
 #### 4. Mark Test Folders
+
 - Right-click `src/test/java` → Mark Directory as → Test Sources Root
 - Right-click `src/test/resources` → Mark Directory as → Test Resources Root
 
 ### VS Code
 
 #### 1. Install Extensions
+
 - Extension Pack for Java (Microsoft)
 - Gradle for Java (Microsoft)
 - Spring Boot Extension Pack (VMware)
 
 #### 2. Open Workspace
+
 ```bash
 code .
 ```
 
 #### 3. Configure Settings
+
 Create `.vscode/settings.json`:
+
 ```json
 {
   "java.home": "/path/to/jdk11",
@@ -111,11 +126,13 @@ Create `.vscode/settings.json`:
 ### Eclipse
 
 #### 1. Import Project
+
 - File → Import → Gradle → Existing Gradle Project
 - Select project folder
 - Click Finish
 
 #### 2. Configure Build Path
+
 - Right-click project → Build Path → Configure Build Path
 - Source: Ensure `src/test/java` is included
 - Libraries: Ensure JRE System Library is set to Java 11+
@@ -178,6 +195,7 @@ product-service/
 ## Running Tests
 
 ### First Time Setup
+
 ```bash
 # Clean and build
 ./gradlew.bat clean build
@@ -187,6 +205,7 @@ product-service/
 ```
 
 ### Run Tests During Development
+
 ```bash
 # Quick test (just compiles, doesn't run)
 ./gradlew.bat compileTestJava
@@ -202,6 +221,7 @@ product-service/
 ```
 
 ### View Test Results
+
 ```
 HTML Report: build/reports/tests/test/index.html
 JUnit XML: build/test-results/test/
@@ -214,11 +234,13 @@ JUnit XML: build/test-results/test/
 ### Installation
 
 **Option 1: Download & Extract**
+
 1. Download from https://jmeter.apache.org/download_jmeter.cgi
 2. Extract to a folder
 3. Add `bin` folder to PATH
 
 **Option 2: Package Manager**
+
 ```bash
 # macOS
 brew install jmeter
@@ -231,12 +253,14 @@ choco install jmeter
 ```
 
 ### Verify Installation
+
 ```bash
 jmeter --version
 # Expected: Apache JMeter 5.5 (or newer)
 ```
 
 ### First Load Test
+
 ```bash
 # Navigate to jmeter_tests
 cd jmeter_tests
@@ -256,6 +280,7 @@ load_test_results/CategoryLoadTest_*/index.html
 ## Application Configuration
 
 ### Test Profile (application-test.yml)
+
 ```yaml
 spring:
   application:
@@ -284,11 +309,13 @@ server:
 ### Properties for Testing
 
 **Database**
+
 - H2 in-memory database (no persistence)
 - Auto schema creation (`create-drop`)
 - Cleaned between test runs
 
 **Logging**
+
 - DEBUG level for product service
 - INFO level for Spring
 - WARN level for libraries
@@ -298,29 +325,34 @@ server:
 ## Verification Checklist
 
 ### Environment Setup
+
 - [ ] Java 11+ installed
 - [ ] Gradle works (`./gradlew.bat --version`)
 - [ ] Git configured
 
 ### Project Setup
+
 - [ ] Project cloned/opened
 - [ ] IDE configured
 - [ ] Gradle dependencies downloaded
 - [ ] Project builds successfully
 
 ### Testing Setup
+
 - [ ] Unit tests run and pass
 - [ ] Integration tests run and pass
 - [ ] Performance tests run and pass
 - [ ] Test reports generated
 
 ### Load Testing Setup
+
 - [ ] JMeter installed
 - [ ] JMeter version verified
 - [ ] Load tests run successfully
 - [ ] Load test reports generated
 
 ### All Tests Pass?
+
 ```bash
 ./gradlew.bat clean test
 # Expected: BUILD SUCCESSFUL with all tests passing
@@ -331,6 +363,7 @@ server:
 ## Troubleshooting Setup
 
 ### Issue: "gradle command not found"
+
 ```
 Solution:
 1. Ensure you're in project root directory
@@ -339,6 +372,7 @@ Solution:
 ```
 
 ### Issue: "JAVA_HOME not set"
+
 ```
 Solution:
 # Linux/macOS
@@ -349,6 +383,7 @@ set JAVA_HOME=C:\path\to\jdk11
 ```
 
 ### Issue: Gradle build fails
+
 ```
 Solution:
 1. Delete .gradle folder: rm -rf .gradle
@@ -357,6 +392,7 @@ Solution:
 ```
 
 ### Issue: Tests fail with "Connection refused"
+
 ```
 Solution:
 1. Ensure H2 is in test dependencies
@@ -365,6 +401,7 @@ Solution:
 ```
 
 ### Issue: IDE doesn't recognize test classes
+
 ```
 Solution:
 1. Right-click src/test/java → Mark Directory as → Test Sources Root
@@ -379,42 +416,43 @@ Solution:
 After setup is complete:
 
 1. **Read Documentation**
-   - Start with [docs/README.md](../docs/README.md)
-   - Review [docs/TESTING_GUIDE.md](../docs/TESTING_GUIDE.md)
+    - Start with [docs/README.md](../docs/README.md)
+    - Review [docs/TESTING_GUIDE.md](../docs/TESTING_GUIDE.md)
 
 2. **Run Tests**
-   - Execute: `./gradlew.bat test`
-   - View report: `build/reports/tests/test/index.html`
+    - Execute: `./gradlew.bat test`
+    - View report: `build/reports/tests/test/index.html`
 
 3. **Explore Test Code**
-   - Repository tests: `src/test/java/.../repository/`
-   - Service tests: `src/test/java/.../serviceImpl/`
-   - Controller tests: `src/test/java/.../controller/`
+    - Repository tests: `src/test/java/.../repository/`
+    - Service tests: `src/test/java/.../serviceImpl/`
+    - Controller tests: `src/test/java/.../controller/`
 
 4. **Run Load Tests**
-   - Navigate: `cd jmeter_tests`
-   - Execute: `run_load_tests.bat` (Windows) or `./run_load_tests.sh`
-   - View results: `load_test_results/*/index.html`
+    - Navigate: `cd jmeter_tests`
+    - Execute: `run_load_tests.bat` (Windows) or `./run_load_tests.sh`
+    - View results: `load_test_results/*/index.html`
 
 ---
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Build project | `./gradlew.bat clean build` |
-| Run all tests | `./gradlew.bat test` |
-| Run specific test | `./gradlew.bat test --tests "ClassName"` |
-| View test report | `build/reports/tests/test/index.html` |
-| Run load tests | `cd jmeter_tests && run_load_tests.bat` |
-| Start JMeter GUI | `jmeter` |
-| Check Java version | `java -version` |
+| Task               | Command                                  |
+|--------------------|------------------------------------------|
+| Build project      | `./gradlew.bat clean build`              |
+| Run all tests      | `./gradlew.bat test`                     |
+| Run specific test  | `./gradlew.bat test --tests "ClassName"` |
+| View test report   | `build/reports/tests/test/index.html`    |
+| Run load tests     | `cd jmeter_tests && run_load_tests.bat`  |
+| Start JMeter GUI   | `jmeter`                                 |
+| Check Java version | `java -version`                          |
 
 ---
 
 ## Support
 
 If you encounter issues:
+
 1. Check [QUICK_REFERENCE.md](QUICK_REFERENCE.md) troubleshooting section
 2. Review test error messages carefully
 3. Check application logs

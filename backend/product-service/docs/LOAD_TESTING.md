@@ -18,6 +18,7 @@ Complete guide for setting up and running load tests using Apache JMeter.
 ## Installation
 
 ### Prerequisites
+
 - Java 11 or higher installed
 - Product Service running on `localhost:8080`
 - 1-5GB disk space for test results
@@ -25,12 +26,14 @@ Complete guide for setting up and running load tests using Apache JMeter.
 ### Step 1: Download JMeter
 
 **Option A: Manual Download**
+
 ```bash
 # From https://jmeter.apache.org/download_jmeter.cgi
 # Extract and add to PATH
 ```
 
 **Option B: Package Manager**
+
 ```bash
 # macOS
 brew install jmeter
@@ -43,6 +46,7 @@ choco install jmeter
 ```
 
 ### Step 2: Verify Installation
+
 ```bash
 jmeter --version
 # Expected: Apache JMeter 5.5 (or newer)
@@ -55,12 +59,14 @@ jmeter --version
 ### Fastest Way: Automated Scripts
 
 **Windows**
+
 ```bash
 cd jmeter_tests
 run_load_tests.bat
 ```
 
 **Linux/macOS**
+
 ```bash
 cd jmeter_tests
 chmod +x run_load_tests.sh
@@ -68,6 +74,7 @@ chmod +x run_load_tests.sh
 ```
 
 ### Manual Single Test
+
 ```bash
 jmeter -n -t jmeter_tests/CategoryLoadTest.jmx \
   -l results/category.jtl \
@@ -75,6 +82,7 @@ jmeter -n -t jmeter_tests/CategoryLoadTest.jmx \
 ```
 
 ### GUI (Interactive)
+
 ```bash
 jmeter
 # File → Open → Select test plan → Click Play button
@@ -85,6 +93,7 @@ jmeter
 ## Test Scenarios
 
 ### Scenario 1: Category Load Test (Light)
+
 ```
 Purpose: Validate category endpoints
 Users: 50 concurrent
@@ -96,6 +105,7 @@ Endpoints:
 ```
 
 ### Scenario 2: Product Load Test (Medium)
+
 ```
 Purpose: Validate product endpoints
 Users: 100 concurrent
@@ -108,6 +118,7 @@ Endpoints:
 ```
 
 ### Scenario 3: Cart Workflow Test (Heavy)
+
 ```
 Purpose: Simulate complete shopping workflow
 Users: 200 concurrent
@@ -122,6 +133,7 @@ Workflow:
 ```
 
 ### Scenario 4: Spike Test (Sudden Load)
+
 ```
 Purpose: Test system under sudden traffic surge
 Users: 500 concurrent (instant)
@@ -137,18 +149,21 @@ Use: CartLoadTest.jmx with adjusted parameters
 ### Automated Execution (Recommended)
 
 **Windows**
+
 ```batch
 cd jmeter_tests
 run_load_tests.bat
 ```
 
 **Linux/macOS**
+
 ```bash
 cd jmeter_tests
 ./run_load_tests.sh
 ```
 
 Script will:
+
 - Run all 4 test scenarios
 - Generate HTML reports
 - Create summary report
@@ -157,6 +172,7 @@ Script will:
 ### Manual Execution
 
 **Category Test**
+
 ```bash
 jmeter -n -t CategoryLoadTest.jmx \
   -l results/category.jtl \
@@ -165,6 +181,7 @@ jmeter -n -t CategoryLoadTest.jmx \
 ```
 
 **Product Test**
+
 ```bash
 jmeter -n -t ProductLoadTest.jmx \
   -l results/product.jtl \
@@ -173,6 +190,7 @@ jmeter -n -t ProductLoadTest.jmx \
 ```
 
 **Cart Test**
+
 ```bash
 jmeter -n -t CartLoadTest.jmx \
   -l results/cart.jtl \
@@ -181,6 +199,7 @@ jmeter -n -t CartLoadTest.jmx \
 ```
 
 **Spike Test**
+
 ```bash
 jmeter -n -t CartLoadTest.jmx \
   -l results/spike.jtl \
@@ -192,6 +211,7 @@ jmeter -n -t CartLoadTest.jmx \
 ```
 
 ### Custom Parameters
+
 ```bash
 jmeter -n -t test.jmx \
   -l results.jtl \
@@ -202,6 +222,7 @@ jmeter -n -t test.jmx \
 ```
 
 ### Increase JVM Memory
+
 ```bash
 jmeter -Xmx4g -n -t test.jmx -l results.jtl -e -o report
 ```
@@ -211,7 +232,9 @@ jmeter -Xmx4g -n -t test.jmx -l results.jtl -e -o report
 ## Analyzing Results
 
 ### View HTML Reports
+
 After tests complete, open in browser:
+
 ```
 load_test_results/CategoryLoadTest_*/index.html
 load_test_results/ProductLoadTest_*/index.html
@@ -222,6 +245,7 @@ load_test_results/SpikeTest_*/index.html
 ### Key Metrics in Reports
 
 **Summary Table**
+
 - **Samples:** Total requests sent
 - **Average:** Mean response time (ms)
 - **Median:** 50th percentile response time
@@ -233,16 +257,19 @@ load_test_results/SpikeTest_*/index.html
 - **Throughput:** Requests per second
 
 **Response Time Graph**
+
 - Shows response time distribution over test duration
 - Look for increases indicating slowdown
 - Identifies performance degradation patterns
 
 **Transactions Per Second (TPS)**
+
 - Shows throughput stability over time
 - Should remain stable or increase initially
 - Sudden drops indicate issues
 
 ### Analysis Tips
+
 ✅ Compare percentiles: 50th should be close to average
 ✅ Check 95th/99th percentiles for outliers
 ✅ Low error rate is crucial (< 1% is excellent)
@@ -252,17 +279,18 @@ load_test_results/SpikeTest_*/index.html
 
 ## Performance Targets
 
-| Metric | Target | Acceptable | Warning |
-|--------|--------|-----------|---------|
-| Average Response | < 200ms | < 500ms | > 500ms |
-| 95th Percentile | < 500ms | < 1000ms | > 1000ms |
-| 99th Percentile | < 1000ms | < 2000ms | > 2000ms |
-| Error Rate | < 1% | < 5% | > 5% |
-| Throughput | > 100 req/sec | > 50 req/sec | < 50 req/sec |
+| Metric           | Target        | Acceptable   | Warning      |
+|------------------|---------------|--------------|--------------|
+| Average Response | < 200ms       | < 500ms      | > 500ms      |
+| 95th Percentile  | < 500ms       | < 1000ms     | > 1000ms     |
+| 99th Percentile  | < 1000ms      | < 2000ms     | > 2000ms     |
+| Error Rate       | < 1%          | < 5%         | > 5%         |
+| Throughput       | > 100 req/sec | > 50 req/sec | < 50 req/sec |
 
 ### Interpreting Results
 
 ✅ **Good Results**
+
 - Error rate < 1%
 - Average response < 200ms
 - 95th percentile < 500ms
@@ -270,6 +298,7 @@ load_test_results/SpikeTest_*/index.html
 - No timeout errors
 
 ❌ **Red Flags**
+
 - Error rate > 5%
 - Response time increasing over time
 - System timeout errors
@@ -281,6 +310,7 @@ load_test_results/SpikeTest_*/index.html
 ## Troubleshooting
 
 ### Issue: "Connection refused"
+
 ```
 Problem: Cannot connect to application
 Solution:
@@ -290,6 +320,7 @@ Solution:
 ```
 
 ### Issue: "Out of Memory"
+
 ```
 Problem: JMeter runs out of memory
 Solution:
@@ -297,6 +328,7 @@ jmeter -Xmx4g -n -t test.jmx -l results.jtl
 ```
 
 ### Issue: High Error Rate
+
 ```
 Problem: Many requests failing
 Solutions:
@@ -308,6 +340,7 @@ Solutions:
 ```
 
 ### Issue: Inconsistent Results
+
 ```
 Problem: Results vary significantly
 Solutions:
@@ -325,24 +358,28 @@ Solutions:
 If tests reveal issues:
 
 ### 1. Database Level
+
 - Add missing indexes
 - Optimize queries
 - Check for N+1 problems
 - Monitor slow queries
 
 ### 2. Application Level
+
 - Implement caching (Redis)
 - Use connection pooling
 - Optimize batch sizes
 - Add pagination
 
 ### 3. Infrastructure
+
 - Increase JVM heap
 - Increase database connections
 - Use load balancing
 - Scale horizontally
 
 ### 4. JMeter Tuning
+
 - Increase think time
 - Reduce concurrent threads
 - Verify connection pooling
@@ -353,6 +390,7 @@ If tests reveal issues:
 ## CI/CD Integration
 
 ### GitHub Actions
+
 ```yaml
 name: Load Test
 on: [schedule]
@@ -376,6 +414,7 @@ jobs:
 ```
 
 ### Jenkins
+
 ```groovy
 stage('Load Test') {
     steps {
@@ -392,13 +431,13 @@ stage('Load Test') {
 
 ## Expected Test Duration
 
-| Test | Duration | Total Time |
-|------|----------|-----------|
-| Category Load | 5 min | 5 min |
-| Product Load | 10 min | 15 min |
-| Cart Load | 10 min | 25 min |
-| Spike Test | 2 min | 27 min |
-| Report Generation | ~5 min | ~32 min |
+| Test              | Duration | Total Time |
+|-------------------|----------|------------|
+| Category Load     | 5 min    | 5 min      |
+| Product Load      | 10 min   | 15 min     |
+| Cart Load         | 10 min   | 25 min     |
+| Spike Test        | 2 min    | 27 min     |
+| Report Generation | ~5 min   | ~32 min    |
 
 ---
 
@@ -434,24 +473,28 @@ jmeter_tests/
 ## Quick Reference
 
 ### Run All Tests (Automated)
+
 ```bash
 jmeter_tests/run_load_tests.bat    # Windows
 ./jmeter_tests/run_load_tests.sh   # Linux/macOS
 ```
 
 ### Run Single Test
+
 ```bash
 jmeter -n -t jmeter_tests/CategoryLoadTest.jmx \
   -l results.jtl -e -o results_report
 ```
 
 ### Run with GUI
+
 ```bash
 jmeter
 # File → Open → Select .jmx → Click Play
 ```
 
 ### Increase Memory
+
 ```bash
 jmeter -Xmx4g -n -t test.jmx -l results.jtl
 ```
@@ -460,14 +503,14 @@ jmeter -Xmx4g -n -t test.jmx -l results.jtl
 
 ## Summary
 
-| Aspect | Details |
-|--------|---------|
-| Test Plans | 4 scenarios (light → heavy → spike) |
-| Automation | Windows & Linux scripts |
-| Reports | HTML dashboards with graphs |
-| Performance Targets | Clear thresholds defined |
-| Documentation | Complete setup guides |
-| Status | Ready to run |
+| Aspect              | Details                             |
+|---------------------|-------------------------------------|
+| Test Plans          | 4 scenarios (light → heavy → spike) |
+| Automation          | Windows & Linux scripts             |
+| Reports             | HTML dashboards with graphs         |
+| Performance Targets | Clear thresholds defined            |
+| Documentation       | Complete setup guides               |
+| Status              | Ready to run                        |
 
 **Next Step:** Run load tests with `run_load_tests.bat` or `run_load_tests.sh`
 

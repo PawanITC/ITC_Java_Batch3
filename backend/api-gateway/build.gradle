@@ -40,8 +40,12 @@ configurations {
 }
 
 dependencies {
+    // =====================
     // Shared Contracts
+    // =====================
+    // This connects the User Service to your common library
     implementation project(':common-contracts')
+
 
     // Core Gateway Stack (Reactive)
     implementation 'org.springframework.boot:spring-boot-starter-webflux'

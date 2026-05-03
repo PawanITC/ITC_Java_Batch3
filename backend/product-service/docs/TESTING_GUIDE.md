@@ -3,6 +3,7 @@
 ## Overview
 
 This guide covers comprehensive testing at all layers of the Product Service:
+
 - **Repository Layer:** 19 tests (database operations)
 - **Service Layer:** 27 tests (business logic)
 - **Controller Layer:** 23 tests (REST endpoints)
@@ -50,9 +51,11 @@ This guide covers comprehensive testing at all layers of the Product Service:
 ## Repository Layer Tests (19 Tests)
 
 ### Purpose
+
 Test direct database operations, entity relationships, and constraints.
 
 ### Test Files
+
 ```
 src/test/java/com/itc/funkart/product_service/repository/
 ├── CartRepositoryTest.java (6 tests)
@@ -63,6 +66,7 @@ src/test/java/com/itc/funkart/product_service/repository/
 ```
 
 ### What's Tested
+
 ✅ CRUD operations (Create, Read, Update, Delete)
 ✅ Entity relationships (One-to-Many, Many-to-One)
 ✅ Unique constraints
@@ -71,6 +75,7 @@ src/test/java/com/itc/funkart/product_service/repository/
 ✅ Query methods
 
 ### Example Test
+
 ```java
 @DataJpaTest
 @ActiveProfiles("test")
@@ -97,9 +102,11 @@ class CartRepositoryTest {
 ## Service Layer Tests (27 Tests)
 
 ### Purpose
+
 Test business logic with mocked dependencies, exception handling, and edge cases.
 
 ### Test Files
+
 ```
 src/test/java/com/itc/funkart/product_service/serviceImpl/
 ├── CategoryServiceImplTest.java (7 tests)
@@ -108,6 +115,7 @@ src/test/java/com/itc/funkart/product_service/serviceImpl/
 ```
 
 ### What's Tested
+
 ✅ CRUD operations with validation
 ✅ Business logic
 ✅ Exception scenarios
@@ -116,6 +124,7 @@ src/test/java/com/itc/funkart/product_service/serviceImpl/
 ✅ Edge cases
 
 ### Example Test
+
 ```java
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceImplTest {
@@ -145,9 +154,11 @@ class CategoryServiceImplTest {
 ## Controller Layer Tests (23 Tests)
 
 ### Purpose
+
 Test REST API endpoints, HTTP status codes, and request/response validation.
 
 ### Test Files
+
 ```
 src/test/java/com/itc/funkart/product_service/controller/
 ├── CategoryControllerTest.java (7 tests)
@@ -156,6 +167,7 @@ src/test/java/com/itc/funkart/product_service/controller/
 ```
 
 ### What's Tested
+
 ✅ HTTP endpoints
 ✅ Status codes (200, 201, 400, 404, 500)
 ✅ Request validation
@@ -164,6 +176,7 @@ src/test/java/com/itc/funkart/product_service/controller/
 ✅ Content type negotiation
 
 ### Example Test
+
 ```java
 @WebMvcTest(CategoryController.class)
 class CategoryControllerTest {
@@ -189,9 +202,11 @@ class CategoryControllerTest {
 ## Integration Tests (41 Tests)
 
 ### Purpose
+
 Test full application context with all dependencies, complete workflows, and cross-feature interactions.
 
 ### Test Files
+
 ```
 src/test/java/com/itc/funkart/product_service/integration/
 ├── CategoryServiceIntegrationTest.java (8 tests)
@@ -201,6 +216,7 @@ src/test/java/com/itc/funkart/product_service/integration/
 ```
 
 ### What's Tested
+
 ✅ Complete workflows (Create → Read → Update → Delete)
 ✅ Real database operations
 ✅ Service interactions
@@ -210,6 +226,7 @@ src/test/java/com/itc/funkart/product_service/integration/
 ✅ Cross-feature interactions
 
 ### Example Workflow
+
 ```
 Create Category
     ↓
@@ -228,9 +245,11 @@ Checkout and Clear Cart
 ## Performance Tests (21 Tests)
 
 ### Purpose
+
 Test response times, throughput, memory usage, and load characteristics.
 
 ### Test Files
+
 ```
 src/test/java/com/itc/funkart/product_service/performance/
 ├── ProductServicePerformanceTest.java (11 tests)
@@ -238,6 +257,7 @@ src/test/java/com/itc/funkart/product_service/performance/
 ```
 
 ### What's Tested
+
 ✅ Response time < 500ms
 ✅ Throughput > 5 ops/second
 ✅ Memory efficiency
@@ -247,24 +267,26 @@ src/test/java/com/itc/funkart/product_service/performance/
 
 ### Performance Targets
 
-| Metric | Target | Acceptable |
-|--------|--------|-----------|
-| Single Operation | < 500ms | < 1000ms |
-| Average Response | < 200ms | < 500ms |
-| 95th Percentile | < 500ms | < 1000ms |
-| Throughput | > 5 ops/sec | > 3 ops/sec |
-| Memory (50 ops) | < 100MB | < 200MB |
+| Metric           | Target      | Acceptable  |
+|------------------|-------------|-------------|
+| Single Operation | < 500ms     | < 1000ms    |
+| Average Response | < 200ms     | < 500ms     |
+| 95th Percentile  | < 500ms     | < 1000ms    |
+| Throughput       | > 5 ops/sec | > 3 ops/sec |
+| Memory (50 ops)  | < 100MB     | < 200MB     |
 
 ---
 
 ## Running Tests
 
 ### All Tests
+
 ```bash
 ./gradlew.bat test
 ```
 
 ### By Layer
+
 ```bash
 # Repository tests
 ./gradlew.bat test --tests "*.repository.*"
@@ -283,11 +305,13 @@ src/test/java/com/itc/funkart/product_service/performance/
 ```
 
 ### Specific Test Class
+
 ```bash
 ./gradlew.bat test --tests "CategoryServiceIntegrationTest"
 ```
 
 ### Specific Test Method
+
 ```bash
 ./gradlew.bat test --tests "CartControllerTest.shouldAddItemToCartSuccessfully"
 ```
@@ -297,12 +321,14 @@ src/test/java/com/itc/funkart/product_service/performance/
 ## Analyzing Results
 
 ### Test Reports
+
 ```
 HTML Report: build/reports/tests/test/index.html
 JUnit XML: build/test-results/test/
 ```
 
 ### Key Metrics
+
 - **Samples:** Total number of test cases
 - **Passed:** Number of successful tests
 - **Failed:** Number of failed tests
@@ -310,13 +336,16 @@ JUnit XML: build/test-results/test/
 - **Execution Time:** How long tests took
 
 ### Interpreting Results
+
 ✅ **Good Results**
+
 - 100% pass rate
 - Fast execution (< 3 minutes total)
 - No errors
 - All assertions passing
 
 ❌ **Red Flags**
+
 - Failures > 0%
 - Slow execution (> 5 minutes)
 - Flaky tests (sometimes pass, sometimes fail)
@@ -327,7 +356,9 @@ JUnit XML: build/test-results/test/
 ## Test Configuration
 
 ### Test Profile
+
 Uses `@ActiveProfiles("test")` with:
+
 - H2 in-memory database
 - Separate test configuration
 - Isolated test data
@@ -335,22 +366,26 @@ Uses `@ActiveProfiles("test")` with:
 ### Annotations Used
 
 **Repository Tests**
+
 ```java
 @DataJpaTest
 @ActiveProfiles("test")
 ```
 
 **Service Tests**
+
 ```java
 @ExtendWith(MockitoExtension.class)
 ```
 
 **Controller Tests**
+
 ```java
 @WebMvcTest(SomeController.class)
 ```
 
 **Integration Tests**
+
 ```java
 @SpringBootTest
 @ActiveProfiles("test")
@@ -358,6 +393,7 @@ Uses `@ActiveProfiles("test")` with:
 ```
 
 **Performance Tests**
+
 ```java
 @SpringBootTest
 @ActiveProfiles("test")
@@ -382,6 +418,7 @@ Uses `@ActiveProfiles("test")` with:
 ## Test Maintenance
 
 ### When to Update Tests
+
 - ✅ When you change business logic
 - ✅ When you change API endpoints
 - ✅ When you change database schema
@@ -389,6 +426,7 @@ Uses `@ActiveProfiles("test")` with:
 - ✅ When you optimize performance
 
 ### Adding New Tests
+
 1. Create test class in appropriate layer folder
 2. Follow naming convention: `*Test.java` or `*Tests.java`
 3. Use existing tests as templates
@@ -399,15 +437,19 @@ Uses `@ActiveProfiles("test")` with:
 ## Troubleshooting
 
 ### Issue: Tests fail with "Connection refused"
+
 **Solution:** Ensure you're running application in test profile (H2 in-memory)
 
 ### Issue: Tests run slowly
+
 **Solution:** Check for missing indexes, N+1 queries, or external dependencies
 
 ### Issue: Flaky tests (sometimes pass, sometimes fail)
+
 **Solution:** Add proper setup/teardown, avoid timing assumptions, use `@Transactional` for isolation
 
 ### Issue: Out of memory during tests
+
 **Solution:** Increase JVM heap: `./gradlew.bat test -Xmx2g`
 
 ---
@@ -415,26 +457,29 @@ Uses `@ActiveProfiles("test")` with:
 ## CI/CD Integration
 
 ### GitHub Actions
+
 Tests run automatically on:
+
 - Every commit
 - Pull requests
 - Scheduled runs
 
 ### Jenkins
+
 Configure similar automation in your CI/CD pipeline.
 
 ---
 
 ## Summary
 
-| Component | Count | Status |
-|-----------|-------|--------|
-| Repository Tests | 19 | ✅ |
-| Service Tests | 27 | ✅ |
-| Controller Tests | 23 | ✅ |
-| Integration Tests | 41 | ✅ |
-| Performance Tests | 21 | ✅ |
-| **TOTAL** | **155** | **✅ ALL PASS** |
+| Component         | Count   | Status         |
+|-------------------|---------|----------------|
+| Repository Tests  | 19      | ✅              |
+| Service Tests     | 27      | ✅              |
+| Controller Tests  | 23      | ✅              |
+| Integration Tests | 41      | ✅              |
+| Performance Tests | 21      | ✅              |
+| **TOTAL**         | **155** | **✅ ALL PASS** |
 
 ---
 

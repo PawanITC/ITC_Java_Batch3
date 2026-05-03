@@ -1,6 +1,6 @@
 package com.itc.funkart.user.kafka;
 
-import com.itc.funkart.common.constants.messaging.KafkaMessaging;
+import com.itc.funkart.common.constants.messaging.KafkaTopics;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,7 +34,7 @@ public class KafkaTopicConfig {
      */
     @Bean
     public NewTopic signupTopic() {
-        return TopicBuilder.name(KafkaMessaging.TOPIC_USER_SIGNUP)
+        return TopicBuilder.name(KafkaTopics.USER_SIGNUP)
                 .partitions(3)
                 .replicas(1)
                 .build();
@@ -47,7 +47,7 @@ public class KafkaTopicConfig {
      */
     @Bean
     public NewTopic loginTopic() {
-        return TopicBuilder.name(KafkaMessaging.TOPIC_AUTH_LOGIN)
+        return TopicBuilder.name(KafkaTopics.AUTH_LOGIN)
                 .partitions(3)
                 .replicas(1)
                 .build();

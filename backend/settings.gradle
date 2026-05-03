@@ -7,3 +7,13 @@ include 'product-service'
 include 'order-service'
 include 'payment-service'
 include 'notification-service'
+
+// Since settings.gradle is ALREADY inside the 'backend' folder,
+// we just point to the subdirectories directly.
+project(':common-contracts').projectDir = file('common-contracts')
+project(':api-gateway').projectDir = file('api-gateway')
+project(':user-service').projectDir = file('user-service')
+project(':product-service').projectDir = file('product-service')
+project(':order-service').projectDir = file('order-service')
+project(':payment-service').projectDir = file('payment-service')
+project(':notification-service').projectDir = file('notification-service')

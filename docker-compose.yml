@@ -230,8 +230,9 @@ services:
     volumes:
       - ./infra/otel/otel-col-config.yaml:/etc/otel-col-config.yaml
     ports:
-      - "4318:4318" # OTLP HTTP
-      - "8888:8888" # Metrics
+      - "4318:4318" # OTLP HTTP (Traces/Logs/Metrics ingress)
+      - "8889:8889" # Prometheus Exporter (Your Metrics egress)
+      - "8888:8888" # Collector's own internal metrics
     networks:
       - db-network
     depends_on:

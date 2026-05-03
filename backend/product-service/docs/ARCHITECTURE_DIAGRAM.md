@@ -257,6 +257,7 @@
 ## Key Components
 
 ### 1. CorsConfig.java
+
 ```
 Purpose: Allow cross-origin requests
 Location: config/CorsConfig.java
@@ -266,6 +267,7 @@ Registers: Global CORS configuration
 ```
 
 ### 2. OpenAPIConfig.java
+
 ```
 Purpose: Configure OpenAPI/Swagger UI
 Location: config/OpenAPIConfig.java
@@ -275,6 +277,7 @@ Returns: Configured OpenAPI object
 ```
 
 ### 3. Controllers with Annotations
+
 ```
 Purpose: Provide detailed API documentation
 Location: controller/*.java
@@ -289,6 +292,7 @@ Annotations:
 ```
 
 ### 4. Application Configuration
+
 ```
 Purpose: Configure Swagger UI settings
 Location: application.yml
@@ -302,6 +306,7 @@ Settings:
 ---
 
 **This architecture ensures:**
+
 - ✅ Clean separation of concerns
 - ✅ CORS properly configured globally
 - ✅ Auto-generated, always-updated documentation
