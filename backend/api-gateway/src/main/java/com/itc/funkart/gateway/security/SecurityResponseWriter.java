@@ -1,8 +1,8 @@
 package com.itc.funkart.gateway.security;
 
-import com.itc.funkart.gateway.response.ApiResponse;
-import com.itc.funkart.gateway.response.ErrorDetails;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.response.ErrorDetails;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -23,7 +23,8 @@ public class SecurityResponseWriter {
         response.setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
-        ApiResponse<Void> body = new ApiResponse<>(
+        // Using the static factory method 'error' from your library
+        ApiResponse<Void> body = ApiResponse.error(
                 new ErrorDetails(
                         "UNAUTHORIZED",
                         "Invalid or expired token",

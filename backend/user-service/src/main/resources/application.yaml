@@ -1,30 +1,92 @@
-  spring:
-    application:
-      name: user-service
+spring:
+  application:
+    name: user-service
+  web:
+    resources:
+      add-mappings: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      client-id: ${spring.application.name}-producer-${HOSTNAME:local}
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 2147483647
+      properties:
+        enable.idempotence: true
+        max.block.ms: 5000
+        linger.ms: 5
+        batch.size: 16384
+        spring.json.add.type.headers: false
+        spring.json.use.type.headers: false
+    consumer:
+      group-id: user-service-group-v1
+      client-id: ${spring.application.name}-consumer-${HOSTNAME:local}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "com.itc.funkart.*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.itc.funkart.common.dto.event.user.UserCreatedEvent
+
+# ==============================================================
+# OBSERVABILITY
+# FIX: was indented under 'spring:' — management is a ROOT-LEVEL
+# key in Spring Boot, not a child of spring. When nested under
+# spring, actuator endpoints are never registered and OTEL
+# config is silently ignored.
+# ==============================================================
+management:
+  endpoints:
     web:
-      resources:
-        add-mappings: true
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
+    metrics:
+      export:
+        url: ${OTEL_METRICS_ENDPOINT:http://otel-collector:4318}
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  observations:
+    key-values:
+      application: ${spring.application.name}
+  loki:
+    endpoint: ${LOKI_URL:http://loki:3100/loki/api/v1/push}
 
-  api:
-    version: v1
+# --- NON-SPRING PROPERTIES ---
+api:
+  version: v1
 
-  jwt:
-    secret: ${JWT_SECRET}
-    expiration-ms: ${JWT_EXPIRATION_MS}
-    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS}
+  cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS}
 
-  frontend:
-    url: ${FRONTEND_URL}
+frontend:
+  url: ${FRONTEND_URL}
 
-  app:
-    secure-cookie: ${APP_SECURE_COOKIE}
+app:
+  secure-cookie: ${APP_SECURE_COOKIE}
 
-  logging:
-    level:
-      org.springframework.core.env: INFO
+github:
+  oauth:
+    client-id: ${GITHUB_CLIENT_ID}
+    client-secret: ${GITHUB_CLIENT_SECRET}
+    redirect-uri: ${GITHUB_REDIRECT_URI}
 
-  github:
-    oauth:
-      client-id: ${GITHUB_CLIENT_ID}
-      client-secret: ${GITHUB_CLIENT_SECRET}
-      redirect-uri: ${GITHUB_REDIRECT_URI}
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %m%n"
+  level:
+    org.springframework.core.env: INFO

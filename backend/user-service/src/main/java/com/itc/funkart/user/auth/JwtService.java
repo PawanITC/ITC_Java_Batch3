@@ -1,14 +1,15 @@
 package com.itc.funkart.user.auth;
 
-import com.itc.funkart.user.auth.jwt.JwtClaims;
+import com.itc.funkart.common.constants.auth.JwtClaims;
+import com.itc.funkart.common.dto.security.UserPrincipalDto;
 import com.itc.funkart.user.config.JwtConfig;
-import com.itc.funkart.user.dto.security.UserPrincipalDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 
@@ -61,18 +62,19 @@ public class JwtService {
      * @return compact signed JWT string
      */
     public String generateJwtToken(UserPrincipalDto user) {
-
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtConfig.getExpirationMs());
+        Instant now = Instant.now();
+        // Use the Duration object directly from your config
+        Instant expiry = now.plus(jwtConfig.getExpirationMs());
 
         return Jwts.builder()
                 .subject(user.userId().toString())
-                .issuer(JwtClaims.ISSUER)
+                // ADD THESE: The PrincipalFactory.fromClaims() expects name and email!
+                .claim(JwtClaims.ROLE, user.role())
                 .claim(JwtClaims.NAME, user.name())
                 .claim(JwtClaims.EMAIL, user.email())
-                .claim(JwtClaims.ROLE, user.role())
-                .issuedAt(now)
-                .expiration(expiryDate)
+                .issuer(JwtClaims.ISSUER) // Critical: parseJwtToken() requires this
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiry))
                 .signWith(key)
                 .compact();
     }

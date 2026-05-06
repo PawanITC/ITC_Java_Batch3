@@ -1,10 +1,12 @@
 package com.itc.funkart.gateway.security;
 
+import com.itc.funkart.gateway.config.AppConfig;
 import com.itc.funkart.gateway.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -47,6 +49,9 @@ class SecurityConfigTest {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @Mock
+    private AppConfig appConfig;
 
     /**
      * We mock the filter so tests can inject or withhold authentication at will.
@@ -128,7 +133,7 @@ class SecurityConfigTest {
         @DisplayName("/payments/webhook/** is accessible without a token")
         void paymentWebhook_isPublic() {
             webTestClient.post()
-                    .uri("/payments/webhook/stripe")
+                    .uri("/api/v1/payments/webhook/stripe")
                     .exchange()
                     .expectStatus().value(status ->
                             assertNotEquals(HttpStatus.UNAUTHORIZED.value(), status,

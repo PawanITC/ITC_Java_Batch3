@@ -1,11 +1,12 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.dto.UserDto;
-import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
+import com.itc.funkart.common.dto.auth.response.login.SuccessfulLoginResponse;
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.user.UserDto;
 import com.itc.funkart.gateway.exception.JwtAuthenticationException;
 import com.itc.funkart.gateway.exception.OAuthException;
-import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.JwtAuthWebFilter;
+import com.itc.funkart.gateway.service.JwtService;
 import com.itc.funkart.gateway.service.OAuthGatewayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +29,8 @@ import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 /**
  * <h2>GithubOAuthController — Web Layer Tests</h2>
@@ -55,9 +57,12 @@ class GithubOAuthControllerTest {
     @Autowired
     private WebTestClient webTestClient;
 
-    /** The sole collaborator of this controller. */
+    /**
+     * The sole collaborator of this controller.
+     */
     @MockitoBean
     private OAuthGatewayService oAuthGatewayService;
+
 
     /**
      * The {@link JwtAuthWebFilter} must be provided so the WebFlux security
@@ -66,6 +71,19 @@ class GithubOAuthControllerTest {
      */
     @MockitoBean
     private JwtAuthWebFilter jwtAuthWebFilter;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @BeforeEach
+    void setUp() {
+        // Use the robust pass-through to avoid NPEs
+        lenient().when(jwtAuthWebFilter.filter(any(), any())).thenAnswer(inv -> {
+            ServerWebExchange exchange = inv.getArgument(0);
+            WebFilterChain chain = inv.getArgument(1);
+            return (chain != null) ? chain.filter(exchange) : Mono.empty();
+        });
+    }
 
     /**
      * Disables all security rules and stubs the JWT filter so it transparently
@@ -83,20 +101,6 @@ class GithubOAuthControllerTest {
         }
     }
 
-    @BeforeEach
-    void setUp() {
-        // Use the robust pass-through to avoid NPEs
-        lenient().when(jwtAuthWebFilter.filter(any(), any())).thenAnswer(inv -> {
-            ServerWebExchange exchange = inv.getArgument(0);
-            WebFilterChain chain = inv.getArgument(1);
-            return (chain != null) ? chain.filter(exchange) : Mono.empty();
-        });
-    }
-
-//    @BeforeEach
-//    void resetMocks() {
-//        reset(oAuthGatewayService);
-//    }
 
     // -------------------------------------------------------------------------
     // GET /api/v1/oauth/github/login
@@ -162,19 +166,25 @@ class GithubOAuthControllerTest {
         @Test
         @DisplayName("Returns 200 with new tokens")
         void refresh_success() {
+            // 1. Prepare the data
             UserDto user = new UserDto(1L, "Alice", "alice@example.com", "ROLE_USER");
             SuccessfulLoginResponse resp = new SuccessfulLoginResponse(user, "new-token");
-            ApiResponse<SuccessfulLoginResponse> apiResp = new ApiResponse<>(resp, "Refreshed");
 
+            // 2. FIX: Use the static factory method 'success' instead of the constructor
+            ApiResponse<SuccessfulLoginResponse> apiResp = ApiResponse.success(resp, "Refreshed");
+
+            // 3. Mock the service
             when(oAuthGatewayService.refresh(anyString(), any())).thenReturn(Mono.just(apiResp));
 
+            // 4. Execute the call
             webTestClient.post()
                     .uri("/api/v1/oauth/github/refresh")
                     .cookie("refresh_token", "valid-token")
                     .exchange()
                     .expectStatus().isOk()
                     .expectBody()
-                    .jsonPath("$.data.token").isEqualTo("new-token");
+                    .jsonPath("$.data.token").isEqualTo("new-token")
+                    .jsonPath("$.message").isEqualTo("Refreshed"); // Added message check for completeness
         }
 
         @Test

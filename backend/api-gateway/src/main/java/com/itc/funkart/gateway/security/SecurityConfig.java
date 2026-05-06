@@ -41,34 +41,35 @@ public class SecurityConfig {
     ) {
 
         return http
-                // 1. Stateless gateway (no sessions, no CSRF)
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
-
-                // 2. CORS config (Enables frontend to talk to Gateway)
                 .cors(cors -> cors.configurationSource(corsSource))
 
-                // 3. JWT authentication filter
+                // Custom JWT validation filter placed in the Authentication slot
                 .addFilterAt(jwtAuthWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
 
-                // 4. Authorization rules
                 .authorizeExchange(auth -> auth
-                        .pathMatchers(HttpMethod.OPTIONS).permitAll() // Allow pre-flight requests
+                        .pathMatchers(HttpMethod.OPTIONS).permitAll()
 
-                        // PUBLIC ENDPOINTS: No JWT required
+                        /*
+                         * OBSERVABILITY & INFRASTRUCTURE:
+                         * Permit all Actuator endpoints. In a production EKS environment,
+                         * access to these should be restricted at the Network (Security Group) level,
+                         * but they must remain accessible to the Prometheus scraper and K8s Probes.
+                         */
+                        .pathMatchers("/actuator/**").permitAll()
+
+                        // PUBLIC BUSINESS ENDPOINTS
                         .pathMatchers(
                                 "/api/v1/users/login",
                                 "/api/v1/users/signup",
-                                "/api/v1/users/oauth/**",   // For your internal user service oauth paths
-                                "/api/v1/oauth/**",         // For the direct gateway oauth paths
-                                "/api/v1/users/health",
-                                "/actuator/**",             // Allow health checks
-                                "/api/v1/payments/webhook/**", // 1. External facing path
-                                "/payments/webhook/**"         // 2. Internal/Direct path (Just in case)
+                                "/api/v1/users/oauth/**",
+                                "/api/v1/oauth/**",
+                                "/api/v1/payments/webhook/**"
                         ).permitAll()
 
-                        // PROTECTED ENDPOINTS: Requires valid JWT (e.g., /api/v1/users/me)
+                        // PROTECTED DOMAIN
                         .anyExchange().authenticated()
                 )
                 .build();

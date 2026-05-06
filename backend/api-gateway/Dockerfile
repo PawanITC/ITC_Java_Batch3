@@ -1,30 +1,21 @@
 # ==================================================
-# API Gateway Microservice
+# API Gateway - Edge Service
 # ==================================================
-# Author: Abbas
-# Description: Central entry point for all client requests.
-#              Routes requests to appropriate backend microservices,
-#              handles authentication, and manages API versioning.
-# ==================================================
-
-# ---------------------------
-# Runtime Stage (Lean & Fast)
-# ---------------------------
-FROM eclipse-temurin:17-jdk-jammy
+FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
-# Metadata Labels
+# Security: Run as non-root user
+RUN addgroup --system spring && adduser --system spring --ingroup spring
+RUN chown -R spring:spring /app
+USER spring:spring
+
 LABEL maintainer="Abbas"
 LABEL service.name="api-gateway"
-LABEL service.description="API Gateway - Entry point for Funkart"
 
-# Copy the JAR built by Jenkins
-# IMPORTANT: Jenkins must produce this exact filename
-COPY build/libs/api-gateway.jar app.jar
+# Path relative to 'backend' root
+COPY --chown=spring:spring api-gateway/build/libs/api-gateway.jar app.jar
 
-# Gateway runs on 8080
-EXPOSE 8080
+EXPOSE 8060
 
-# JVM container-friendly settings
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-XX:+UseG1GC", "-Djava.net.preferIPv4Stack=true", "-jar", "app.jar"]

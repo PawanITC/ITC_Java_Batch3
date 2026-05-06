@@ -26,12 +26,12 @@ Use this checklist to verify that Swagger UI is properly configured and working.
   ```
   **Location:** `src/main/java/.../config/CorsConfig.java`
   **Check:**
-  - [ ] Has `@Configuration` annotation
-  - [ ] Implements `WebMvcConfigurer`
-  - [ ] Method: `addCorsMappings(CorsRegistry registry)`
-  - [ ] Allows localhost:9090
-  - [ ] Allows localhost:5173
-  - [ ] Allows all necessary HTTP methods
+    - [ ] Has `@Configuration` annotation
+    - [ ] Implements `WebMvcConfigurer`
+    - [ ] Method: `addCorsMappings(CorsRegistry registry)`
+    - [ ] Allows localhost:9090
+    - [ ] Allows localhost:5173
+    - [ ] Allows all necessary HTTP methods
 
 - [ ] **OpenAPIConfig.java Exists and is Properly Configured**
   ```java
@@ -40,12 +40,12 @@ Use this checklist to verify that Swagger UI is properly configured and working.
   ```
   **Location:** `src/main/java/.../config/OpenAPIConfig.java`
   **Check:**
-  - [ ] Has `@Configuration` annotation
-  - [ ] Method: `customOpenAPI()` returns `OpenAPI`
-  - [ ] Has API title, version, description
-  - [ ] Has contact information
-  - [ ] Has license information
-  - [ ] Defines servers (dev, production)
+    - [ ] Has `@Configuration` annotation
+    - [ ] Method: `customOpenAPI()` returns `OpenAPI`
+    - [ ] Has API title, version, description
+    - [ ] Has contact information
+    - [ ] Has license information
+    - [ ] Defines servers (dev, production)
 
 - [ ] **application.yml Configured**
   **Location:** `src/main/resources/application.yml`
@@ -58,15 +58,16 @@ Use this checklist to verify that Swagger UI is properly configured and working.
       path: /swagger-ui.html
       enabled: true
   ```
-  - [ ] `springdoc.api-docs.path` set to `/v3/api-docs`
-  - [ ] `springdoc.swagger-ui.path` set to `/swagger-ui.html`
-  - [ ] `springdoc.swagger-ui.enabled` is `true`
+    - [ ] `springdoc.api-docs.path` set to `/v3/api-docs`
+    - [ ] `springdoc.swagger-ui.path` set to `/swagger-ui.html`
+    - [ ] `springdoc.swagger-ui.enabled` is `true`
 
 ---
 
 ## 3. Controller Annotations Check ✓
 
 ### ProductController
+
 - [ ] Has `@RestController` annotation
 - [ ] Has `@RequestMapping("/api/products")`
 - [ ] Has `@Tag` annotation with name and description
@@ -83,6 +84,7 @@ Use this checklist to verify that Swagger UI is properly configured and working.
   ```
 
 ### CategoryController
+
 - [ ] Has `@RestController` annotation
 - [ ] Has `@RequestMapping("/api/categories")`
 - [ ] Has `@Tag` annotation
@@ -92,6 +94,7 @@ Use this checklist to verify that Swagger UI is properly configured and working.
 - [ ] All methods have `@ApiResponses` annotation
 
 ### CartController
+
 - [ ] Has `@RestController` annotation
 - [ ] Has `@RequestMapping("/api/cart")`
 - [ ] Has `@Tag` annotation
@@ -115,20 +118,21 @@ Use this checklist to verify that Swagger UI is properly configured and working.
   ```
 
 - [ ] **No Compilation Errors**
-  - [ ] No import errors for OpenAPI classes
-  - [ ] No annotation syntax errors
-  - [ ] All classes compile properly
+    - [ ] No import errors for OpenAPI classes
+    - [ ] No annotation syntax errors
+    - [ ] All classes compile properly
 
 - [ ] **Warnings are Only Minor**
-  - [ ] Lombok @Builder warnings (acceptable)
-  - [ ] Deprecation warnings (review only)
-  - [ ] No critical errors
+    - [ ] Lombok @Builder warnings (acceptable)
+    - [ ] Deprecation warnings (review only)
+    - [ ] No critical errors
 
 ---
 
 ## 5. Runtime Verification ✓
 
 ### Application Startup
+
 - [ ] **Application Starts Successfully**
   ```bash
   ./gradlew bootRun
@@ -146,16 +150,16 @@ Use this checklist to verify that Swagger UI is properly configured and working.
 
 - [ ] **Dependencies Loaded**
   Look for in logs:
-  - [ ] `Spring Data JPA`
-  - [ ] `Hibernate`
-  - [ ] `Springdoc-OpenAPI`
-  - [ ] `PostgreSQL driver`
+    - [ ] `Spring Data JPA`
+    - [ ] `Hibernate`
+    - [ ] `Springdoc-OpenAPI`
+    - [ ] `PostgreSQL driver`
 
 - [ ] **Database Connection**
   Look for in logs:
-  - [ ] PostgreSQL connection established
-  - [ ] No `Connection refused` errors
-  - [ ] Tables created/migrated
+    - [ ] PostgreSQL connection established
+    - [ ] No `Connection refused` errors
+    - [ ] Tables created/migrated
 
 ---
 
@@ -184,106 +188,110 @@ Use this checklist to verify that Swagger UI is properly configured and working.
 ## 7. Endpoint Testing ✓
 
 ### Products API
+
 - [ ] **GET /api/products**
-  - [ ] Click endpoint in Swagger UI
-  - [ ] Click "Try it out"
-  - [ ] Click "Execute"
-  - [ ] Response: 200 OK with product list
+    - [ ] Click endpoint in Swagger UI
+    - [ ] Click "Try it out"
+    - [ ] Click "Execute"
+    - [ ] Response: 200 OK with product list
 
 - [ ] **GET /api/products/{id}**
-  - [ ] Click endpoint
-  - [ ] Enter ID in parameter (e.g., 1)
-  - [ ] Click "Execute"
-  - [ ] Response: 200 OK with product details
+    - [ ] Click endpoint
+    - [ ] Enter ID in parameter (e.g., 1)
+    - [ ] Click "Execute"
+    - [ ] Response: 200 OK with product details
 
 - [ ] **POST /api/products/by-ids**
-  - [ ] Click endpoint
-  - [ ] Enter JSON array: `[1, 2, 3]`
-  - [ ] Click "Execute"
-  - [ ] Response: 200 OK with products
+    - [ ] Click endpoint
+    - [ ] Enter JSON array: `[1, 2, 3]`
+    - [ ] Click "Execute"
+    - [ ] Response: 200 OK with products
 
 ### Categories API
+
 - [ ] **GET /api/categories**
-  - [ ] Response: 200 OK with categories list
+    - [ ] Response: 200 OK with categories list
 
 - [ ] **GET /api/categories/{id}**
-  - [ ] Enter ID in parameter
-  - [ ] Response: 200 OK with category details
+    - [ ] Enter ID in parameter
+    - [ ] Response: 200 OK with category details
 
 ### Cart API
+
 - [ ] **GET /api/cart/{userId}**
-  - [ ] Enter userId (e.g., 1)
-  - [ ] Response: 200 OK with cart details
+    - [ ] Enter userId (e.g., 1)
+    - [ ] Response: 200 OK with cart details
 
 - [ ] **POST /api/cart/{userId}/items**
-  - [ ] Enter userId
-  - [ ] Enter body: `{"productId": 1, "quantity": 2}`
-  - [ ] Response: 200 OK with updated cart
+    - [ ] Enter userId
+    - [ ] Enter body: `{"productId": 1, "quantity": 2}`
+    - [ ] Response: 200 OK with updated cart
 
 - [ ] **DELETE /api/cart/{userId}/items/{productId}**
-  - [ ] Enter userId and productId
-  - [ ] Response: 200 OK with updated cart
+    - [ ] Enter userId and productId
+    - [ ] Response: 200 OK with updated cart
 
 - [ ] **PATCH /api/cart/{userId}/items/{productId}**
-  - [ ] Enter userId and productId
-  - [ ] Enter body: `{"quantity": 5}`
-  - [ ] Response: 200 OK with updated cart
+    - [ ] Enter userId and productId
+    - [ ] Enter body: `{"quantity": 5}`
+    - [ ] Response: 200 OK with updated cart
 
 - [ ] **POST /api/cart/{userId}/checkout**
-  - [ ] Enter userId
-  - [ ] Response: 200 OK with checkout message
+    - [ ] Enter userId
+    - [ ] Response: 200 OK with checkout message
 
 ---
 
 ## 8. Documentation Quality ✓
 
 - [ ] **All Endpoints Have Descriptions**
-  - [ ] Each @Operation has summary
-  - [ ] Each @Operation has description
-  - [ ] Each endpoint explains what it does
+    - [ ] Each @Operation has summary
+    - [ ] Each @Operation has description
+    - [ ] Each endpoint explains what it does
 
 - [ ] **All Parameters Documented**
-  - [ ] Each @Parameter has description
-  - [ ] Each @Parameter has example
-  - [ ] Parameter requirements are clear
+    - [ ] Each @Parameter has description
+    - [ ] Each @Parameter has example
+    - [ ] Parameter requirements are clear
 
 - [ ] **All Responses Documented**
-  - [ ] Success response (200) documented
-  - [ ] Error responses (400, 404, 500) documented
-  - [ ] Response structure is clear
-  - [ ] Response examples provided
+    - [ ] Success response (200) documented
+    - [ ] Error responses (400, 404, 500) documented
+    - [ ] Response structure is clear
+    - [ ] Response examples provided
 
 - [ ] **Error Codes Explained**
-  - [ ] 200 OK - Success
-  - [ ] 400 Bad Request - Invalid input
-  - [ ] 404 Not Found - Resource doesn't exist
-  - [ ] 500 Internal Server Error - Server error
+    - [ ] 200 OK - Success
+    - [ ] 400 Bad Request - Invalid input
+    - [ ] 404 Not Found - Resource doesn't exist
+    - [ ] 500 Internal Server Error - Server error
 
 ---
 
 ## 9. CORS Verification ✓
 
 - [ ] **No CORS Errors in Browser Console**
-  - [ ] Open browser DevTools (F12)
-  - [ ] Go to Console tab
-  - [ ] Execute Swagger UI requests
-  - [ ] No "CORS policy blocked" errors
-  - [ ] No "Access-Control-Allow-Origin" errors
+    - [ ] Open browser DevTools (F12)
+    - [ ] Go to Console tab
+    - [ ] Execute Swagger UI requests
+    - [ ] No "CORS policy blocked" errors
+    - [ ] No "Access-Control-Allow-Origin" errors
 
 - [ ] **CORS Headers Present in Response**
-  - [ ] Open browser DevTools
-  - [ ] Go to Network tab
-  - [ ] Execute a request
-  - [ ] Check response headers:
-    - [ ] `Access-Control-Allow-Origin: *`
-    - [ ] `Access-Control-Allow-Methods: GET, POST, ...`
-    - [ ] `Access-Control-Allow-Headers: *`
+    - [ ] Open browser DevTools
+    - [ ] Go to Network tab
+    - [ ] Execute a request
+    - [ ] Check response headers:
+        - [ ] `Access-Control-Allow-Origin: *`
+        - [ ] `Access-Control-Allow-Methods: GET, POST, ...`
+        - [ ] `Access-Control-Allow-Headers: *`
 
 ---
 
 ## 10. Documentation Files ✓
 
 Created Documentation Files:
+
 - [ ] `docs/API_DOCUMENTATION.md` - Comprehensive guide
 - [ ] `docs/SWAGGER_SETUP_GUIDE.md` - Detailed setup
 - [ ] `docs/SWAGGER_QUICK_FIX.md` - Quick reference
@@ -291,6 +299,7 @@ Created Documentation Files:
 - [ ] `docs/ARCHITECTURE_DIAGRAM.md` - Architecture diagrams
 
 Files Modified:
+
 - [ ] `build.gradle` - Springdoc dependency
 - [ ] `application.yml` - Springdoc configuration
 - [ ] `ProductController.java` - OpenAPI annotations
@@ -298,6 +307,7 @@ Files Modified:
 - [ ] `CartController.java` - OpenAPI annotations
 
 Files Created:
+
 - [ ] `CorsConfig.java` - CORS configuration
 - [ ] `OpenAPIConfig.java` - OpenAPI configuration
 
@@ -306,12 +316,14 @@ Files Created:
 ## 11. Browser Compatibility ✓
 
 Test in multiple browsers:
+
 - [ ] Chrome
 - [ ] Firefox
 - [ ] Edge
 - [ ] Safari (if available)
 
 For each browser:
+
 - [ ] Swagger UI loads correctly
 - [ ] "Try it out" button works
 - [ ] Responses display properly
@@ -322,70 +334,72 @@ For each browser:
 ## 12. Performance Check ✓
 
 - [ ] **Swagger UI Loads Quickly**
-  - Typical load time: < 3 seconds
+    - Typical load time: < 3 seconds
 
 - [ ] **Endpoints Respond Quickly**
-  - No timeout errors
-  - Responses within 1 second
+    - No timeout errors
+    - Responses within 1 second
 
 - [ ] **Database Queries Fast**
-  - Can retrieve all products quickly
-  - Can retrieve categories quickly
-  - Can retrieve cart quickly
+    - Can retrieve all products quickly
+    - Can retrieve categories quickly
+    - Can retrieve cart quickly
 
 ---
 
 ## 13. Integration Testing ✓
 
 - [ ] **Works with Postman**
-  - [ ] Can import OpenAPI spec: `http://localhost:9090/v3/api-docs`
-  - [ ] All endpoints appear in Postman
-  - [ ] Can execute requests from Postman
+    - [ ] Can import OpenAPI spec: `http://localhost:9090/v3/api-docs`
+    - [ ] All endpoints appear in Postman
+    - [ ] Can execute requests from Postman
 
 - [ ] **Works with External Tools**
-  - [ ] ReDoc can import spec
-  - [ ] Other API tools can import spec
-  - [ ] Client code generators can use spec
+    - [ ] ReDoc can import spec
+    - [ ] Other API tools can import spec
+    - [ ] Client code generators can use spec
 
 ---
 
 ## 14. Error Handling ✓
 
 Test error scenarios:
+
 - [ ] **Invalid Product ID**
-  - [ ] GET /api/products/99999
-  - [ ] Response: 404 Not Found
-  - [ ] Error message is clear
+    - [ ] GET /api/products/99999
+    - [ ] Response: 404 Not Found
+    - [ ] Error message is clear
 
 - [ ] **Invalid Request Body**
-  - [ ] POST /api/products/by-ids with invalid data
-  - [ ] Response: 400 Bad Request
-  - [ ] Error message explains the issue
+    - [ ] POST /api/products/by-ids with invalid data
+    - [ ] Response: 400 Bad Request
+    - [ ] Error message explains the issue
 
 - [ ] **Server Errors**
-  - [ ] Database down scenario shows 500
-  - [ ] Error response is consistent
-  - [ ] Stacktrace is not exposed
+    - [ ] Database down scenario shows 500
+    - [ ] Error response is consistent
+    - [ ] Stacktrace is not exposed
 
 ---
 
 ## 15. Security Check ✓
 
 - [ ] **CORS Restricted to Allowed Origins**
-  - [ ] Only specified origins can access
-  - [ ] Credentials are properly handled
-  - [ ] No overly permissive settings
+    - [ ] Only specified origins can access
+    - [ ] Credentials are properly handled
+    - [ ] No overly permissive settings
 
 - [ ] **API Endpoints Secure**
-  - [ ] No sensitive data in responses (if applicable)
-  - [ ] Proper error messages (no stack traces to clients)
-  - [ ] Input validation working
+    - [ ] No sensitive data in responses (if applicable)
+    - [ ] Proper error messages (no stack traces to clients)
+    - [ ] Input validation working
 
 ---
 
 ## 🎯 Final Checklist
 
 ### Before Going Live
+
 - [ ] All checkboxes above are checked ✓
 - [ ] No outstanding errors or warnings
 - [ ] Documentation is complete
@@ -395,6 +409,7 @@ Test error scenarios:
 - [ ] Performance is acceptable
 
 ### Ready to Deploy
+
 - [ ] Production deployment ready
 - [ ] Documentation URL shared with team
 - [ ] Backup/version control in place

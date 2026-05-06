@@ -1,8 +1,10 @@
 package com.itc.funkart.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itc.funkart.common.dto.security.UserPrincipalDto;
+import com.itc.funkart.common.dto.user.UserDto;
+import com.itc.funkart.common.dto.user.UserProfileDto;
 import com.itc.funkart.user.auth.AuthFacadeService;
-import com.itc.funkart.user.dto.security.UserPrincipalDto;
 import com.itc.funkart.user.dto.user.*;
 import com.itc.funkart.user.exceptions.AlreadyExistsException;
 import com.itc.funkart.user.exceptions.GlobalExceptionHandler;
@@ -314,8 +316,14 @@ class UserControllerTest {
          * {@code @AuthenticationPrincipal} resolves correctly in the controller.
          */
         private void authenticate(Long id, String email) {
+            // Ensuring the principal matches the type expected by the Controller
             UserPrincipalDto principal = UserPrincipalDto.builder()
-                    .userId(id).name("Alice").email(email).role("ROLE_USER").build();
+                    .userId(id)
+                    .name("Alice")
+                    .email(email)
+                    .role("ROLE_USER")
+                    .build();
+
             var auth = new UsernamePasswordAuthenticationToken(
                     principal, null, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(auth);

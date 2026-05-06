@@ -1,9 +1,9 @@
 package com.itc.funkart.user.service;
 
+import com.itc.funkart.common.dto.user.UserProfileDto;
 import com.itc.funkart.user.dto.user.LoginRequest;
 import com.itc.funkart.user.dto.user.OAuthUserResult;
 import com.itc.funkart.user.dto.user.SignupRequest;
-import com.itc.funkart.user.dto.user.UserProfileDto;
 import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.AlreadyExistsException;
@@ -23,7 +23,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -46,9 +47,12 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    @Mock private UserRepository       userRepository;
-    @Mock private PasswordEncoder      passwordEncoder;
-    @Mock private KafkaEventPublisher  kafkaEventPublisher;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private KafkaEventPublisher kafkaEventPublisher;
 
     @InjectMocks
     private UserService userService;

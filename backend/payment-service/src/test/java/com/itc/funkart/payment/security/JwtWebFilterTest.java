@@ -1,6 +1,7 @@
 package com.itc.funkart.payment.security;
 
-import com.itc.funkart.payment.auth.claims.JwtClaims;
+import com.itc.funkart.common.constants.auth.JwtClaims;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import com.itc.funkart.payment.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -11,18 +12,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
  * <h2>JwtWebFilterTest</h2>
  * <p>
- * Tests the security interceptor logic. Ensures that tokens from various
- * request sources (Headers, Cookies) are correctly translated into
- * Spring Security Authentication objects.
+ * Validates the security interceptor logic, ensuring tokens are extracted from
+ * multiple sources and correctly mapped to the {@link JwtUserDto} principal.
  * </p>
  */
 class JwtWebFilterTest {
@@ -45,106 +45,118 @@ class JwtWebFilterTest {
     }
 
     @Test
-    @DisplayName("Should extract Bearer token and set SecurityContext")
+    @DisplayName("Fast Pass: Should bypass JWT logic for Stripe Webhooks")
+    void shouldBypassForWebhooks() throws Exception {
+        // GIVEN: A request to the webhook endpoint
+        request.setServletPath("/payments/webhook");
+        request.addHeader("Authorization", "Bearer some-token");
+
+        // WHEN
+        jwtWebFilter.doFilterInternal(request, response, filterChain);
+
+        // THEN: SecurityContext remains empty, and jwtService is never called
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(jwtService, never()).parseJwtToken(any());
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    @DisplayName("Extraction: Should set JwtUserDto principal from Bearer Token")
     void shouldHandleBearerToken() throws Exception {
-        String token = "mock-token";
+        // GIVEN
+        String token = "valid-jwt";
         request.addHeader("Authorization", "Bearer " + token);
 
-        // Using the builder instead of internal 'impl' classes
         Claims claims = Jwts.claims()
-                .subject("1")
-                .add(JwtClaims.ROLE, "ROLE_USER")
+                .subject("42")
+                .add(JwtClaims.ROLE, "ROLE_PAYMENT_ADMIN")
                 .add(JwtClaims.NAME, "Abbas")
+                .add(JwtClaims.EMAIL, "abbas@funkart.com")
                 .build();
 
         when(jwtService.parseJwtToken(token)).thenReturn(claims);
 
+        // WHEN
         jwtWebFilter.doFilterInternal(request, response, filterChain);
 
+        // THEN
         var auth = SecurityContextHolder.getContext().getAuthentication();
         assertNotNull(auth);
+        assertInstanceOf(UsernamePasswordAuthenticationToken.class, auth);
+
+        JwtUserDto principal = (JwtUserDto) auth.getPrincipal();
+        assertEquals(42L, principal.id());
+        assertEquals("ROLE_PAYMENT_ADMIN", principal.role());
+
         verify(filterChain).doFilter(request, response);
     }
 
     @Test
-    @DisplayName("Should fallback to Cookie if Authorization header is missing")
+    @DisplayName("Extraction: Should fallback to 'token' Cookie")
     void shouldHandleCookieToken() throws Exception {
-        // Arrange
-        Cookie cookie = new Cookie("token", "cookie-token");
-        request.setCookies(cookie);
+        // GIVEN
+        Cookie authCookie = new Cookie("token", "cookie-jwt");
+        request.setCookies(authCookie);
 
-        // Using the builder to create the interface implementation
         Claims claims = Jwts.claims()
                 .subject("1")
                 .add(JwtClaims.ROLE, "ROLE_USER")
                 .build();
 
-        when(jwtService.parseJwtToken("cookie-token")).thenReturn(claims);
+        when(jwtService.parseJwtToken("cookie-jwt")).thenReturn(claims);
 
-        // Act
+        // WHEN
         jwtWebFilter.doFilterInternal(request, response, filterChain);
 
-        // Assert
-        assertNotNull(SecurityContextHolder.getContext().getAuthentication(), "Authentication should be set from Cookie");
-        verify(jwtService).parseJwtToken("cookie-token");
-        verify(filterChain).doFilter(request, response);
+        // THEN
+        assertNotNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(jwtService).parseJwtToken("cookie-jwt");
     }
 
     @Test
-    @DisplayName("Should continue filter chain if token is invalid")
-    void shouldContinueChainOnFailure() throws Exception {
-        request.addHeader("Authorization", "Bearer invalid");
-        when(jwtService.parseJwtToken(anyString())).thenThrow(new RuntimeException("Invalid"));
+    @DisplayName("Validation: Should ignore token if subject is missing")
+    void shouldIgnoreTokenMissingSubject() throws Exception {
+        // GIVEN
+        request.addHeader("Authorization", "Bearer token-missing-sub");
 
-        jwtWebFilter.doFilterInternal(request, response, filterChain);
-
-        assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    @DisplayName("Should skip authentication if Authorization header format is wrong")
-    void shouldIgnoreInvalidHeaderFormat() throws Exception {
-        // Header exists but doesn't start with "Bearer "
-        request.addHeader("Authorization", "Basic dXNlcjpwYXNz");
-
-        jwtWebFilter.doFilterInternal(request, response, filterChain);
-
-        assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(jwtService, never()).parseJwtToken(any());
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    @DisplayName("Should ignore cookies with different names")
-    void shouldIgnoreIrrelevantCookies() throws Exception {
-        Cookie otherCookie = new Cookie("sessionID", "12345");
-        request.setCookies(otherCookie);
-
-        jwtWebFilter.doFilterInternal(request, response, filterChain);
-
-        assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(jwtService, never()).parseJwtToken(any());
-    }
-
-    @Test
-    @DisplayName("Should discard token if mandatory claims (sub/role) are missing")
-    void shouldRejectTokenMissingClaims() throws Exception {
-        String token = "valid-sig-bad-data";
-        request.addHeader("Authorization", "Bearer " + token);
-
-        // Valid signature, but the payload is missing the ROLE
+        // Claims has Role but NO Subject (sub)
         Claims claims = Jwts.claims()
-                .subject("1")
-                // Missing JwtClaims.ROLE
+                .add(JwtClaims.ROLE, "ROLE_USER")
                 .build();
 
-        when(jwtService.parseJwtToken(token)).thenReturn(claims);
+        when(jwtService.parseJwtToken(anyString())).thenReturn(claims);
 
+        // WHEN
         jwtWebFilter.doFilterInternal(request, response, filterChain);
 
-        // Should NOT set authentication if claims are incomplete
+        // THEN: Auth should not be set
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    @DisplayName("Resilience: Should continue chain even if JWT service throws exception")
+    void shouldContinueChainOnServiceError() throws Exception {
+        // GIVEN
+        request.addHeader("Authorization", "Bearer expired-token");
+        when(jwtService.parseJwtToken(anyString())).thenThrow(new RuntimeException("Token Expired"));
+
+        // WHEN
+        jwtWebFilter.doFilterInternal(request, response, filterChain);
+
+        // THEN: Chain continues, but user is unauthenticated (anonymous)
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    @DisplayName("Cleanup: Should clear context for requests with no auth")
+    void shouldKeepEmptyContextForNoAuth() throws Exception {
+        // WHEN
+        jwtWebFilter.doFilterInternal(request, response, filterChain);
+
+        // THEN
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(jwtService, never()).parseJwtToken(any());
     }
 }

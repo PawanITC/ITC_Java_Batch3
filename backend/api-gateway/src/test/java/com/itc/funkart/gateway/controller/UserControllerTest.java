@@ -1,12 +1,13 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.dto.UserDto;
-import com.itc.funkart.gateway.dto.request.LoginRequest;
-import com.itc.funkart.gateway.dto.request.SignupRequest;
-import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
+import com.itc.funkart.common.dto.auth.request.login.LoginRequest;
+import com.itc.funkart.common.dto.auth.request.signup.SignupRequest;
+import com.itc.funkart.common.dto.auth.response.login.SuccessfulLoginResponse;
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.user.UserDto;
 import com.itc.funkart.gateway.exception.OAuthException;
-import com.itc.funkart.gateway.response.ApiResponse;
 import com.itc.funkart.gateway.security.JwtAuthWebFilter;
+import com.itc.funkart.gateway.service.JwtService;
 import com.itc.funkart.gateway.service.UserGatewayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -64,6 +65,9 @@ class UserControllerTest {
     @MockitoBean
     private JwtAuthWebFilter jwtAuthWebFilter;
 
+    @MockitoBean
+    private JwtService jwtService;
+
     @BeforeEach
     void setUp() {
         // Robust stubbing to prevent the NPE occuring
@@ -78,11 +82,12 @@ class UserControllerTest {
     // -------------------------------------------------------------------------
     // Shared helpers
     // -------------------------------------------------------------------------
-
     private ApiResponse<SuccessfulLoginResponse> successfulResponse(String name, String email, String token) {
         UserDto user = new UserDto(1L, name, email, "ROLE_USER");
         SuccessfulLoginResponse body = new SuccessfulLoginResponse(user, token);
-        return new ApiResponse<>(body, "Success");
+
+        // Use the static factory method 'success' instead of 'new'
+        return ApiResponse.success(body, "Success");
     }
 
     /**

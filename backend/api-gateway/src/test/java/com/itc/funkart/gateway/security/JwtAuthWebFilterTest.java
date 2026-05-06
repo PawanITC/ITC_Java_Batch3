@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.security.core.Authentication;
@@ -152,10 +151,14 @@ class JwtAuthWebFilterTest {
             when(cookieUtil.extractToken(exchange)).thenReturn(token);
             when(tokenBlacklistService.isBlacklisted(token)).thenReturn(Mono.just(true));
 
+            // SENIOR FIX: Stub the responseWriter to return an empty Mono
+            when(responseWriter.writeUnauthorized(exchange)).thenReturn(Mono.empty());
+
             StepVerifier.create(filter.filter(exchange, filterChain))
                     .verifyComplete();
 
-            assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+            // Verification
+            verify(responseWriter).writeUnauthorized(exchange);
         }
 
         @Test
@@ -164,11 +167,18 @@ class JwtAuthWebFilterTest {
             String token = "some.valid.looking.token";
             var exchange = exchangeWithToken(token);
 
+            // 1. Setup mocks
             when(cookieUtil.extractToken(exchange)).thenReturn(token);
             when(tokenBlacklistService.isBlacklisted(token)).thenReturn(Mono.just(true));
 
+            // 2. SENIOR FIX: Stub the response writer to return an empty Mono
+            // This allows the filter to "finish" its unauthorized logic without crashing.
+            when(responseWriter.writeUnauthorized(exchange)).thenReturn(Mono.empty());
+
+            // 3. Execute
             filter.filter(exchange, filterChain).block();
 
+            // 4. Verify the specific "Short Circuit" behavior
             verifyNoInteractions(jwtService);
         }
     }
@@ -191,7 +201,6 @@ class JwtAuthWebFilterTest {
             when(cookieUtil.extractToken(exchange)).thenReturn(token);
             when(tokenBlacklistService.isBlacklisted(token)).thenReturn(Mono.just(false));
             when(jwtService.parseClaims(token)).thenReturn(claims);
-            doNothing().when(jwtService).validateClaims(claims);
 
             AtomicReference<Authentication> captured = new AtomicReference<>();
 
@@ -218,7 +227,6 @@ class JwtAuthWebFilterTest {
             when(cookieUtil.extractToken(exchange)).thenReturn(token);
             when(tokenBlacklistService.isBlacklisted(token)).thenReturn(Mono.just(false));
             when(jwtService.parseClaims(token)).thenReturn(claims);
-            doNothing().when(jwtService).validateClaims(claims);
 
             // We capture what was passed to filterChain by inspecting the mutated exchange
             filter.filter(exchange, filterChain).block();
@@ -236,7 +244,6 @@ class JwtAuthWebFilterTest {
             when(cookieUtil.extractToken(exchange)).thenReturn(token);
             when(tokenBlacklistService.isBlacklisted(token)).thenReturn(Mono.just(false));
             when(jwtService.parseClaims(token)).thenReturn(claims);
-            doNothing().when(jwtService).validateClaims(claims);
 
             filter.filter(exchange, filterChain).block();
 
@@ -253,7 +260,6 @@ class JwtAuthWebFilterTest {
             when(cookieUtil.extractToken(exchange)).thenReturn(token);
             when(tokenBlacklistService.isBlacklisted(token)).thenReturn(Mono.just(false));
             when(jwtService.parseClaims(token)).thenReturn(claims);
-            doNothing().when(jwtService).validateClaims(claims);
 
             // Run through the filter and capture the SecurityContext
             final Authentication[] captured = new Authentication[1];

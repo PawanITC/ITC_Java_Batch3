@@ -46,9 +46,9 @@ app:
   oauth-success-path: /oauth-success
 
   services:
-    user-service:    http://localhost:9999
+    user-service: http://localhost:9999
     payment-service: http://localhost:9999
-    order-service:   http://localhost:9999
+    order-service: http://localhost:9999
 
   jwt:
     # A valid HS256 key — must be at least 32 characters before Base64 encoding
@@ -67,6 +67,7 @@ app:
 # Actuator — expose health so SecurityConfigTest can hit /actuator/health
 # ---------------------------------------------------------------------------
 management:
+  # 1. Satisfies SecurityConfigTest requirements
   endpoints:
     web:
       exposure:
@@ -74,3 +75,18 @@ management:
   endpoint:
     health:
       show-details: always
+
+  # 2. Senior Move: Neutralize Telemetry to prevent ConnectExceptions during tests
+  loki:
+    endpoint: http://localhost:9999/disabled # Redirects log appender to a black hole
+  otlp:
+    tracing:
+      endpoint: http://localhost:9999/disabled
+    metrics:
+      export:
+        enabled: false # Specifically stops the Micrometer OTLP registry
+
+  # 3. Disable Tracing sampling to save CPU cycles
+  tracing:
+    sampling:
+      probability: 0.0

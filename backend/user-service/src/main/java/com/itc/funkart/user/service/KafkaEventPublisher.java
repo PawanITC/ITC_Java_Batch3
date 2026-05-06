@@ -1,7 +1,8 @@
 package com.itc.funkart.user.service;
 
-import com.itc.funkart.user.dto.event.UserLoginEvent;
-import com.itc.funkart.user.dto.event.UserSignupEvent;
+import com.itc.funkart.common.constants.messaging.KafkaTopics;
+import com.itc.funkart.common.dto.event.login.UserLoginEvent;
+import com.itc.funkart.common.dto.event.signup.UserSignupEvent;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.InvalidEventException;
 import com.itc.funkart.user.exceptions.MessagingException;
@@ -13,12 +14,10 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Service responsible for broadcasting user-related domain events to Kafka topics.
- * <p>
- * This service acts as an abstraction layer between domain logic and messaging infrastructure,
- * converting {@link User} entities into specialized event DTOs and ensuring appropriate
- * delivery guarantees (Synchronous for Signups, Asynchronous for Logins).
- * </p>
+ * <h2>Kafka Event Publisher</h2>
+ *
+ * <p>Broadcasts user domain events using a "Reliability vs. Speed" strategy.
+ * This service leverages the shared contracts library for type safety across the microservices mesh.</p>
  */
 @Slf4j
 @Service
@@ -28,54 +27,41 @@ public class KafkaEventPublisher {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     /**
-     * Orchestrates the broadcasting of a User Signup.
-     * <p>
-     * Converts the domain entity to a {@link UserSignupEvent} and performs a
-     * synchronous send to ensure downstream consistency for new accounts.
-     * </p>
-     *
-     * @param user The newly created {@link User} entity.
-     * @throws MessagingException if the infrastructure fails to acknowledge the message.
+     * Publishes a User Signup event.
+     * <p><b>Strategy:</b> Synchronous. We block until Kafka acknowledges receipt to
+     * ensure downstream services (like Email) can reliably process the new user.</p>
      */
     public void publishSignup(User user) {
-        UserSignupEvent event = UserSignupEvent.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .name(user.getName())
-                .role(user.getRole().name())
-                .timestamp(System.currentTimeMillis())
-                .build();
+        // Using the static factory from common-contracts
+        UserSignupEvent event = UserSignupEvent.of(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getRole().name()
+        );
 
         sendSignupSync(event);
     }
 
     /**
-     * Orchestrates the broadcasting of a User Login.
-     * <p>
-     * Converts the domain entity to a {@link UserLoginEvent} and performs an
-     * asynchronous send to prioritize user response time over delivery confirmation.
-     * </p>
-     *
-     * @param user   The authenticated {@link User} entity.
-     * @param method The authentication method used (e.g., "email", "github").
+     * Publishes a User Login event.
+     * <p><b>Strategy:</b> Asynchronous. We don't block the auth flow for a login event;
+     * if the message fails, we log it for audit but prioritize user response time.</p>
      */
     public void publishLogin(User user, String method) {
-        UserLoginEvent event = UserLoginEvent.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .loginMethod(method)
-                .role(user.getRole().name())
-                .timestamp(System.currentTimeMillis())
-                .build();
+        // Using the static factory from common-contracts
+        UserLoginEvent event = UserLoginEvent.of(
+                user.getId(),
+                user.getEmail(),
+                method,
+                user.getRole().name()
+        );
 
         sendLoginAsync(event);
     }
 
     /**
-     * Internal helper to perform a synchronous Kafka send for Signups.
-     * Uses {@code .get()} to block until the broker acknowledges receipt.
-     *
-     * @param event The populated signup event DTO.
+     * Reliable delivery for critical signup events.
      */
     private void sendSignupSync(UserSignupEvent event) {
         if (event.userId() == null) {
@@ -83,34 +69,32 @@ public class KafkaEventPublisher {
         }
 
         try {
-            // Synchronous wait for confirmation from Kafka brokers
-            kafkaTemplate.send("user-signup", event.userId().toString(), event).get();
-            log.info("✓ Confirmed: user-signup event persisted for user: {}", event.userId());
+            // Uses KafkaMessaging.TOPIC_USER_SIGNUP constant from common-contracts
+            kafkaTemplate.send(KafkaTopics.USER_SIGNUP, event.userId().toString(), event).get();
+            log.info("✓ Sync success: Topic [{}] for user: {}", KafkaTopics.USER_SIGNUP, event.userId());
 
         } catch (InterruptedException | ExecutionException ex) {
-            log.error("✗ Reliable delivery failed for user {}: {}", event.userId(), ex.getMessage());
-            Thread.currentThread().interrupt(); // Preserve interrupt status
+            log.error("✗ Sync failure: User {}: {}", event.userId(), ex.getMessage());
+            Thread.currentThread().interrupt();
             throw new MessagingException("Critical failure broadcasting signup event.", ex);
         } catch (Exception ex) {
-            log.error("✗ Unexpected error during signup broadcast: {}", ex.getMessage());
+            log.error("✗ Unexpected messaging error: {}", ex.getMessage());
             throw new MessagingException("Internal error in messaging subsystem.", ex);
         }
     }
 
     /**
-     * Internal helper to perform an asynchronous Kafka send for Logins.
-     * Uses a callback mechanism to handle results without blocking the calling thread.
-     *
-     * @param event The populated login event DTO.
+     * Non-blocking delivery for login metrics/auditing.
      */
     private void sendLoginAsync(UserLoginEvent event) {
-        kafkaTemplate.send("user-login", event.userId().toString(), event)
+        // Uses KafkaMessaging.TOPIC_AUTH_LOGIN constant from common-contracts
+        kafkaTemplate.send(KafkaTopics.AUTH_LOGIN, event.userId().toString(), event)
                 .whenComplete((result, ex) -> {
                     if (ex == null) {
-                        log.info("✓ Login event confirmed at offset {}", result.getRecordMetadata().offset());
+                        log.info("✓ Async success: Topic [{}] offset {}",
+                                KafkaTopics.AUTH_LOGIN, result.getRecordMetadata().offset());
                     } else {
-                        // Background failure: Logged for ops but does not interrupt the user session
-                        log.error("✗ Background failure: Login event lost for user {}: {}",
+                        log.error("✗ Async failure: Login event lost for user {}: {}",
                                 event.userId(), ex.getMessage());
                     }
                 });

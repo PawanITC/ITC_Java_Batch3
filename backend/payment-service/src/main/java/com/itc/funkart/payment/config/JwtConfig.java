@@ -4,6 +4,8 @@ import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Duration;
+
 /**
  * <h2>JwtConfig</h2>
  * <p>
@@ -26,5 +28,5 @@ public class JwtConfig {
     private String secret;
 
     @Value("${jwt.expiration-ms}")
-    private Long expirationMs;
+    private Duration expirationMs;
 }

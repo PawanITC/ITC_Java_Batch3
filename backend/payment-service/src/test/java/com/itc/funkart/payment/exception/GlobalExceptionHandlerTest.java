@@ -2,6 +2,8 @@ package com.itc.funkart.payment.exception;
 
 import com.stripe.exception.CardException;
 import com.stripe.exception.StripeException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,34 +12,20 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * <h2>GlobalExceptionHandlerTest</h2>
- * <p>
- * This test suite validates the centralized exception handling logic of the Payment Service.
- * It ensures that various exceptions—ranging from domain-specific to generic system failures—
- * are correctly intercepted and transformed into a standardized {@code ApiResponse}.
- * </p>
- * * <h3>Testing Strategy:</h3>
- * <p>
- * Uses <b>Standalone MockMvc</b> setup. By manually registering the {@link GlobalExceptionHandler},
- * we isolate the advice logic from the full Spring Boot context, resulting in ultra-fast
- * unit tests that don't require external dependencies like Postgres or Kafka.
- * </p>
- *
- * @author Abbas
- * @version 2.1
+ * Validates that the "Exception Shield" correctly transforms JVM exceptions
+ * into the Unified ApiResponse format.
  */
 class GlobalExceptionHandlerTest {
 
     private MockMvc mockMvc;
 
-    /**
-     * Initializes the MockMvc environment with a mock controller and the Global Exception Advice.
-     */
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(new TestController())
@@ -45,12 +33,8 @@ class GlobalExceptionHandlerTest {
                 .build();
     }
 
-    /**
-     * Verifies that {@link PaymentException} results in a 400 Bad Request
-     * and preserves the domain-specific error code.
-     */
     @Test
-    @DisplayName("Should handle PaymentException with 400 and code")
+    @DisplayName("Should handle PaymentException - Domain Specific")
     void handlePaymentException() throws Exception {
         mockMvc.perform(get("/payment-ex"))
                 .andExpect(status().isBadRequest())
@@ -58,69 +42,50 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error.message").value("Limit reached"));
     }
 
-    /**
-     * Verifies that {@link WebhookException} is correctly categorized under WEBHOOK_ERROR.
-     */
     @Test
-    @DisplayName("Should handle WebhookException with 400")
+    @DisplayName("Should handle WebhookException - Verified Code Alignment")
     void handleWebhookException() throws Exception {
         mockMvc.perform(get("/webhook-ex"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.code").value("WEBHOOK_ERROR"));
+                // Aligned with handler: WEBHOOK_VERIFICATION_FAILED
+                .andExpect(jsonPath("$.error.code").value("WEBHOOK_VERIFICATION_FAILED"));
     }
 
-    /**
-     * Verifies that {@link StripeException} returns a 402 Payment Required status.
-     * This is critical for frontend logic to prompt for a new payment method.
-     */
     @Test
-    @DisplayName("Should handle StripeException with 402 (Payment Required)")
+    @DisplayName("Should handle StripeException - 402 Payment Required")
     void handleStripeException() throws Exception {
         mockMvc.perform(get("/stripe-ex"))
                 .andExpect(status().isPaymentRequired())
-                .andExpect(jsonPath("$.error.code").value("STRIPE_API_ERROR"));
+                // Aligned with handler: STRIPE_API_FAILURE
+                .andExpect(jsonPath("$.error.code").value("STRIPE_API_FAILURE"));
     }
 
-    /**
-     * Validates handling of metadata mapping failures.
-     */
     @Test
-    @DisplayName("Should handle IntentMappingException with 400")
-    void handleIntentMappingException() throws Exception {
-        mockMvc.perform(get("/mapping-ex"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.code").value("MAPPING_FAILED"));
+    @DisplayName("Resilience: Should handle Rate Limiting (429)")
+    void handleRateLimit() throws Exception {
+        mockMvc.perform(get("/rate-limit-ex"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.error.code").value("RATE_LIMIT_EXCEEDED"));
     }
 
-    /**
-     * Validates handling of standard Java validation exceptions.
-     */
     @Test
-    @DisplayName("Should handle IllegalArgumentException with 400")
-    void handleIllegalArgumentException() throws Exception {
-        mockMvc.perform(get("/illegal-ex"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.code").value("INVALID_ARGUMENT"));
+    @DisplayName("Resilience: Should handle Circuit Breaker (503)")
+    void handleCircuitBreaker() throws Exception {
+        mockMvc.perform(get("/circuit-breaker-ex"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.error.code").value("CIRCUIT_OPEN"));
     }
 
-    /**
-     * Critical Security Test: Ensures that raw system exceptions (like DB errors)
-     * are swallowed and replaced with a sanitized message for the client.
-     */
     @Test
-    @DisplayName("Should handle Generic Exception with 500 and sanitized message")
+    @DisplayName("Should handle Generic Exception - Sanitized Output")
     void handleGenericException() throws Exception {
         mockMvc.perform(get("/generic-ex"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.error.code").value("INTERNAL_SERVER_ERROR"))
-                // Message should be the sanitized version from the handler, not "Unexpected Database Failure"
-                .andExpect(jsonPath("$.error.message").value("An unexpected system error occurred. Our engineering team has been notified."));
+                // Aligned with exact handler string
+                .andExpect(jsonPath("$.error.message").value("An unexpected system failure occurred in Payment Service"));
     }
 
-    /**
-     * Internal mock controller designed to trigger various exception scenarios
-     * for verification by the Advice.
-     */
     @RestController
     static class TestController {
         @GetMapping("/payment-ex")
@@ -135,23 +100,22 @@ class GlobalExceptionHandlerTest {
 
         @GetMapping("/stripe-ex")
         public void throwStripeEx() throws StripeException {
-            // Simulates a card decline or API failure from the Stripe SDK
-            throw new CardException("Card Declined", "req_123", "declined", null, null, null, 402, null);
+            throw new CardException("Card Declined", "req_1", "declined", null, null, null, 402, null);
         }
 
-        @GetMapping("/mapping-ex")
-        public void throwMappingEx() {
-            throw new IntentMappingException("Bad JSON Mapping");
+        @GetMapping("/rate-limit-ex")
+        public void throwRateLimit() {
+            throw mock(RequestNotPermitted.class);
         }
 
-        @GetMapping("/illegal-ex")
-        public void throwIllegalEx() {
-            throw new IllegalArgumentException("Invalid Argument Provided");
+        @GetMapping("/circuit-breaker-ex")
+        public void throwCircuitBreaker() {
+            throw mock(CallNotPermittedException.class);
         }
 
         @GetMapping("/generic-ex")
         public void throwGenericEx() {
-            throw new RuntimeException("Unexpected Database Failure");
+            throw new RuntimeException("DB Connection Lost");
         }
     }
 }

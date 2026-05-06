@@ -1,7 +1,7 @@
 package com.itc.funkart.gateway.controller;
 
-import com.itc.funkart.gateway.dto.response.SuccessfulLoginResponse;
-import com.itc.funkart.gateway.response.ApiResponse;
+import com.itc.funkart.common.dto.auth.response.login.SuccessfulLoginResponse;
+import com.itc.funkart.common.dto.response.ApiResponse;
 import com.itc.funkart.gateway.service.OAuthGatewayService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

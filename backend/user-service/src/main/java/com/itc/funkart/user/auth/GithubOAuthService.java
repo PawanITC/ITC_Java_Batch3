@@ -11,12 +11,15 @@ import com.itc.funkart.user.service.KafkaEventPublisher;
 import com.itc.funkart.user.service.OAuthAccountService;
 import com.itc.funkart.user.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 /**
  * <h2>GitHub OAuth Orchestrator</h2>
@@ -33,6 +36,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * </p>
  */
 @Service
+@Slf4j
 @Transactional
 @RequiredArgsConstructor
 public class GithubOAuthService {
@@ -98,25 +102,31 @@ public class GithubOAuthService {
         body.add("code", code);
         body.add("redirect_uri", config.getRedirectUri());
 
-        try {
-            AccessTokenResponse response = webClient.post()
-                    .uri(config.getTokenUrl())
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(AccessTokenResponse.class)
-                    .block();
-
-            if (response == null || response.accessToken() == null) {
-                throw new OAuthException("Failed to retrieve GitHub access token");
-            }
-
-            return response.accessToken();
-
-        } catch (Exception ex) {
-            throw new OAuthException("Failed to retrieve GitHub access token: " + ex.getMessage());
-        }
+        return webClient.post()
+                .uri(config.getTokenUrl())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                // Intercept 4xx and 5xx errors to log the body
+                .onStatus(HttpStatusCode::isError, clientResponse ->
+                        clientResponse.bodyToMono(String.class)
+                                .flatMap(errorBody -> {
+                                    log.error("GitHub OAuth Token Error! Status: {}, Body: {}",
+                                            clientResponse.statusCode(), errorBody);
+                                    return Mono.error(new OAuthException("GitHub Token Exchange Failed: " + errorBody));
+                                })
+                )
+                .bodyToMono(AccessTokenResponse.class)
+                .map(response -> {
+                    if (response.accessToken() == null) {
+                        // Sometimes GitHub returns 200 OK but with an "error" field in the JSON
+                        log.warn("GitHub returned 200 but no access token. Response: {}", response);
+                        throw new OAuthException("GitHub response contained no token");
+                    }
+                    return response.accessToken();
+                })
+                .block(); // Blocking is fine in Servlet-based User Service
     }
 
     private GithubUser fetchGithubUser(String accessToken) {

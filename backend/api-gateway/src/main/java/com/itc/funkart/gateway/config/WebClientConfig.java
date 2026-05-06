@@ -39,7 +39,7 @@ public class WebClientConfig {
      * JSON payloads without {@code DataBufferLimitException}.</li>
      * </ul>
      *
-     * @param baseUrl The resolved base URL of the downstream microservice (e.g. http://user-service:8080).
+     * @param baseUrl The resolved base URL of the downstream microservice (e.g. user-service:8080).
      * @return A configured {@link WebClient} instance with Netty-level optimizations.
      * @see ConnectionProvider
      */
@@ -82,6 +82,14 @@ public class WebClientConfig {
     @Bean
     public WebClient paymentWebClient() {
         return createClient(serviceRegistry.paymentService());
+    }
+
+    /**
+     * WebClient for the Product Service.
+     */
+    @Bean
+    public WebClient productWebClient() {
+        return createClient(serviceRegistry.productService());
     }
 
     /**

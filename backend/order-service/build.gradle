@@ -1,59 +1,100 @@
-
 plugins {
-    id 'org.springframework.boot' version '3.2.0'
-    id 'io.spring.dependency-management' version '1.1.0'
     id 'java'
+    id 'org.springframework.boot' version '3.4.3' // Aligned with modern stable releases
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.itc.funkart'
-version = '1.0.0'
-sourceCompatibility = '17'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+}
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    // Spring Boot
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // =====================
+    // Shared Contracts
+    // =====================
+    // This connects the Service to your common library
+    implementation project(':common-contracts')
+
+    // === 1. BOILERPLATE & TOOLS ===
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
 
-    // PostgreSQL
+    // === 2. CORE WEB & VALIDATION ===
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // === 3. SECURITY & JWT (Aligned with Product Service 0.12.6) ===
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // === 4. DATABASE & PERSISTENCE ===
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     runtimeOnly 'org.postgresql:postgresql'
+    // For your application-test.yaml
+    testImplementation 'com.h2database:h2'
 
-    // Kafka
+    // === 5. MESSAGING & RESILIENCE ===
     implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
 
-    // Resilience4j
-    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.0.2'
-
-    // Lombok & MapStruct
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
-    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
-
-    // OpenTelemetry (compatible versions)
-    implementation platform('io.opentelemetry:opentelemetry-bom:1.30.0') // BOM for version alignment
-    implementation 'io.opentelemetry:opentelemetry-api'
-    implementation 'io.opentelemetry:opentelemetry-sdk'
-    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
-    implementation 'io.micrometer:micrometer-tracing-bridge-otel:1.3.2'
-
-//    Redis
+    // === 6. REDIS (Caching/Distributed Locks) ===
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    // === 7. OBSERVABILITY (OTLP/Tracing) ===
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
-    // Testing
+    // === 8. TESTING ===
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
 }
 
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
+// === CUSTOM TASKS ===
 
-test {
+tasks.named('test') {
     useJUnitPlatform()
+    // Suppresses modern Java agent warnings in tests
+    jvmArgs("-XX:+EnableDynamicAgentLoading")
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// Ensures we only get one fat JAR for deployment
+tasks.named('jar') {
+    enabled = false
+}
+
+tasks.withType(Test).configureEach {
+    jvmArgs("-javaagent:${configurations.testRuntimeClasspath.find { it.name.contains('mockito-core') }.absolutePath}")
+}
+
+tasks.named('bootJar') {
+    archiveFileName = "order-service.jar"
 }

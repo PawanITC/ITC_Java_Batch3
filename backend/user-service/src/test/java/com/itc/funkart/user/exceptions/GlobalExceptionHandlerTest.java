@@ -1,6 +1,6 @@
 package com.itc.funkart.user.exceptions;
 
-import com.itc.funkart.user.response.ApiResponse;
+import com.itc.funkart.common.dto.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -11,10 +11,12 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * <h2>GlobalExceptionHandler — Unit Tests</h2>
@@ -45,6 +47,22 @@ class GlobalExceptionHandlerTest {
     // Validation
     // -------------------------------------------------------------------------
 
+    @Test
+    @DisplayName("Generic Exception → 500 with generic user-safe message")
+    void handleGeneric_returns500() {
+        ResponseEntity<ApiResponse<Void>> response =
+                handler.handleGeneric(new RuntimeException("DB connection dropped"));
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Internal server error", response.getBody().getError().getMessage());
+        assertNull(response.getBody().getError().getField());
+    }
+
+    // -------------------------------------------------------------------------
+    // Business exceptions
+    // -------------------------------------------------------------------------
+
     @Nested
     @DisplayName("Validation handlers")
     class ValidationTests {
@@ -52,34 +70,45 @@ class GlobalExceptionHandlerTest {
         @Test
         @DisplayName("MethodArgumentNotValidException → 400 with field and message")
         void handleValidation_returns400() {
+            // Arrange
             MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
             BindingResult bindingResult = mock(BindingResult.class);
+            // You must use a List because your handler now streams getFieldErrors()
             FieldError fieldError = new FieldError("user", "email", "invalid format");
+
             when(ex.getBindingResult()).thenReturn(bindingResult);
+            when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
             when(bindingResult.getFieldError()).thenReturn(fieldError);
 
-            ResponseEntity<ApiResponse<Void>> response = handler.handleValidation(ex);
+            // Act
+            ResponseEntity<ApiResponse<Void>> response = handler.handleValidationExceptions(ex);
 
+            // Assert
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-            assertNotNull(response.getBody());
+            // Match the concatenated string logic: "Validation Failed: " + "email: invalid format"
+            assertEquals("Validation Failed: email: invalid format", response.getBody().getError().getMessage());
             assertEquals("email", response.getBody().getError().getField());
-            assertEquals("invalid format", response.getBody().getError().getMessage());
         }
 
         @Test
-        @DisplayName("MethodArgumentNotValidException → falls back to 'Validation failed' when no field error")
+        @DisplayName("MethodArgumentNotValidException → falls back to 'multiple_fields' when no field error")
         void handleValidation_fallsBackOnNoFieldError() {
+            // Arrange
             MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
             BindingResult bindingResult = mock(BindingResult.class);
+
             when(ex.getBindingResult()).thenReturn(bindingResult);
+            when(bindingResult.getFieldErrors()).thenReturn(List.of()); // Empty stream
             when(bindingResult.getFieldError()).thenReturn(null);
 
-            ResponseEntity<ApiResponse<Void>> response = handler.handleValidation(ex);
+            // Act
+            ResponseEntity<ApiResponse<Void>> response = handler.handleValidationExceptions(ex);
 
+            // Assert
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-            assertNotNull(response.getBody());
-            assertNull(response.getBody().getError().getField());
-            assertEquals("Validation failed", response.getBody().getError().getMessage());
+            // Matches your hardcoded fallback in the handler
+            assertEquals("multiple_fields", response.getBody().getError().getField());
+            assertEquals("Validation Failed: ", response.getBody().getError().getMessage());
         }
 
         @Test
@@ -98,7 +127,7 @@ class GlobalExceptionHandlerTest {
     }
 
     // -------------------------------------------------------------------------
-    // Business exceptions
+    // JWT / Security handlers
     // -------------------------------------------------------------------------
 
     @Nested
@@ -184,7 +213,7 @@ class GlobalExceptionHandlerTest {
     }
 
     // -------------------------------------------------------------------------
-    // JWT / Security handlers
+    // Infrastructure / messaging handlers
     // -------------------------------------------------------------------------
 
     @Nested
@@ -216,7 +245,7 @@ class GlobalExceptionHandlerTest {
     }
 
     // -------------------------------------------------------------------------
-    // Infrastructure / messaging handlers
+    // Fallback
     // -------------------------------------------------------------------------
 
     @Nested
@@ -250,21 +279,5 @@ class GlobalExceptionHandlerTest {
             assertEquals("UNPROCESSABLE_ENTITY", response.getBody().getError().getCode());
             assertEquals("User ID is required", response.getBody().getError().getMessage());
         }
-    }
-
-    // -------------------------------------------------------------------------
-    // Fallback
-    // -------------------------------------------------------------------------
-
-    @Test
-    @DisplayName("Generic Exception → 500 with generic user-safe message")
-    void handleGeneric_returns500() {
-        ResponseEntity<ApiResponse<Void>> response =
-                handler.handleGeneric(new RuntimeException("DB connection dropped"));
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("Internal server error", response.getBody().getError().getMessage());
-        assertNull(response.getBody().getError().getField());
     }
 }

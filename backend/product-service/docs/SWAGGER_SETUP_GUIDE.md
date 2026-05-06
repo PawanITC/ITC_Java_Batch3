@@ -5,13 +5,17 @@
 We've implemented the following fixes to resolve the Swagger UI 404 error:
 
 ### 1. **Global CORS Configuration** ✓
+
 Created `CorsConfig.java` to enable Cross-Origin Resource Sharing (CORS) for:
+
 - Swagger UI (http://localhost:9090)
 - Frontend applications (localhost:5173, localhost:3000)
 - All API endpoints
 
 ### 2. **Removed Conflicting @CrossOrigin Annotations** ✓
+
 Removed individual `@CrossOrigin` annotations from:
+
 - ProductController
 - CategoryController
 - CartController
@@ -19,7 +23,9 @@ Removed individual `@CrossOrigin` annotations from:
 This prevents annotation conflicts with the global CORS configuration.
 
 ### 3. **Added Comprehensive OpenAPI Annotations** ✓
+
 Documented all endpoints with:
+
 - Detailed descriptions
 - Parameter documentation
 - Response examples
@@ -31,6 +37,7 @@ Documented all endpoints with:
 ## 🚀 How to Use Swagger UI Now
 
 ### Step 1: Start the Application
+
 ```bash
 ./gradlew bootRun
 ```
@@ -38,9 +45,11 @@ Documented all endpoints with:
 Wait for the message: **"Application started in X seconds"**
 
 ### Step 2: Open Swagger UI
+
 Go to: **http://localhost:9090/swagger-ui.html**
 
 ### Step 3: Test an Endpoint
+
 1. Click on **"Get all products"** under **Products**
 2. Click **"Try it out"**
 3. Click **"Execute"**
@@ -51,6 +60,7 @@ Go to: **http://localhost:9090/swagger-ui.html**
 ## 🔧 Configuration Details
 
 ### CORS Settings (CorsConfig.java)
+
 ```java
 Allowed Origins:
 - http://localhost:5173      (Frontend dev)
@@ -75,6 +85,7 @@ Preflight Cache:
 ```
 
 ### OpenAPI Configuration (OpenAPIConfig.java)
+
 ```yaml
 API Docs Path:     /v3/api-docs
 Swagger UI Path:   /swagger-ui.html
@@ -92,6 +103,7 @@ Show Extensions:   Yes
 ### Issue 1: Still Getting 404 Error in Swagger UI
 
 **Solution:**
+
 1. **Stop the current application** (if running)
 2. **Clean rebuild:**
    ```bash
@@ -102,20 +114,22 @@ Show Extensions:   Yes
    ./gradlew bootRun
    ```
 4. **Clear browser cache:**
-   - Hard refresh: `Ctrl + Shift + R` (Windows) or `Cmd + Shift + R` (Mac)
-   - Or use incognito/private window
+    - Hard refresh: `Ctrl + Shift + R` (Windows) or `Cmd + Shift + R` (Mac)
+    - Or use incognito/private window
 5. **Access Swagger UI again:**
-   - Go to: http://localhost:9090/swagger-ui.html
+    - Go to: http://localhost:9090/swagger-ui.html
 
 ### Issue 2: "Cannot GET /api/products" or "404 Not Found"
 
 **Possible Causes:**
+
 - Application not running
 - Port 9090 not available
 - Endpoint path is incorrect
 - Controller not properly annotated
 
 **Solutions:**
+
 1. **Verify application is running:**
    ```bash
    # Look for console message: "Started ProductServiceApplication"
@@ -128,21 +142,23 @@ Show Extensions:   Yes
    ```
 
 3. **Verify endpoint exists:**
-   - Open http://localhost:9090/v3/api-docs
-   - Look for your endpoint in the JSON
+    - Open http://localhost:9090/v3/api-docs
+    - Look for your endpoint in the JSON
 
 4. **Check logs for errors:**
-   - Look for "ERROR" or "Exception" in application logs
+    - Look for "ERROR" or "Exception" in application logs
 
 ### Issue 3: CORS Errors in Browser Console
 
 **Error Message:**
+
 ```
 Access to XMLHttpRequest at 'http://localhost:9090/api/products' 
 from origin 'http://localhost:9090' has been blocked by CORS policy
 ```
 
 **Solution:**
+
 1. Verify `CorsConfig.java` exists in `src/main/java/com/itc/funkart/product_service/config/`
 2. Check that it has `@Configuration` annotation
 3. Ensure no conflicting `@CrossOrigin` annotations on controllers
@@ -151,6 +167,7 @@ from origin 'http://localhost:9090' has been blocked by CORS policy
 ### Issue 4: Swagger UI Not Loading
 
 **Solution:**
+
 1. Check if Springdoc dependency is in build.gradle:
    ```gradle
    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
@@ -167,14 +184,15 @@ from origin 'http://localhost:9090' has been blocked by CORS policy
    ```
 
 3. Try accessing raw OpenAPI doc:
-   - http://localhost:9090/v3/api-docs
-   - Should return JSON
+    - http://localhost:9090/v3/api-docs
+    - Should return JSON
 
 ### Issue 5: Endpoints Listed But No Data Shows
 
 **Most Common Cause:** Application or database not initialized
 
 **Solutions:**
+
 1. **Ensure Docker containers are running:**
    ```bash
    docker-compose up -d
@@ -186,7 +204,7 @@ from origin 'http://localhost:9090' has been blocked by CORS policy
    ```
 
 3. **Check application logs for database errors:**
-   - Look for "Connection refused" or "database connection failed"
+    - Look for "Connection refused" or "database connection failed"
 
 4. **Verify application.yml database configuration:**
    ```yaml
@@ -248,11 +266,13 @@ curl http://localhost:9090/v3/api-docs
 ## 📝 Files Modified/Created
 
 **New Files:**
+
 - `src/main/java/com/itc/funkart/product_service/config/CorsConfig.java` - Global CORS configuration
 - `src/main/java/com/itc/funkart/product_service/config/OpenAPIConfig.java` - OpenAPI configuration
 - `docs/API_DOCUMENTATION.md` - Comprehensive API guide
 
 **Modified Files:**
+
 - `build.gradle` - Added Springdoc dependency
 - `application.yml` - Added Springdoc configuration
 - `ProductController.java` - Added OpenAPI annotations, removed @CrossOrigin
@@ -269,13 +289,13 @@ curl http://localhost:9090/v3/api-docs
    ```
 
 2. **Access Swagger UI:**
-   - http://localhost:9090/swagger-ui.html
+    - http://localhost:9090/swagger-ui.html
 
 3. **Test endpoints:**
-   - Click endpoint → "Try it out" → "Execute"
+    - Click endpoint → "Try it out" → "Execute"
 
 4. **Check responses:**
-   - Should see 200 OK with data
+    - Should see 200 OK with data
 
 ---
 
@@ -292,6 +312,7 @@ curl http://localhost:9090/v3/api-docs
 ## ❓ Still Having Issues?
 
 **Restart Everything:**
+
 ```bash
 # 1. Stop application (Ctrl+C)
 # 2. Clean rebuild
@@ -304,11 +325,13 @@ curl http://localhost:9090/v3/api-docs
 ```
 
 **Check Logs for Errors:**
+
 - Look for "ERROR" or "Exception" in console output
 - Check database connection messages
 - Verify all dependencies loaded
 
 **Verify Configuration:**
+
 - CorsConfig.java has `@Configuration` annotation
 - OpenAPIConfig.java has `@Bean` method
 - application.yml has springdoc settings

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -57,11 +58,12 @@ public record AppConfig(
      */
     public record Jwt(
             @NotBlank String secret,
-            @NotNull Long expirationMs,
+            @NotNull Duration expirationMs,
             @NotNull Integer cookieMaxAgeSeconds,
             @NotBlank String cookieName,
             boolean secureCookie
-    ) {}
+    ) {
+    }
 
     /**
      * GitHub OAuth configuration.
@@ -70,5 +72,6 @@ public record AppConfig(
             @NotBlank String clientId,
             @NotBlank String clientSecret,
             @NotBlank String redirectUri
-    ) {}
+    ) {
+    }
 }

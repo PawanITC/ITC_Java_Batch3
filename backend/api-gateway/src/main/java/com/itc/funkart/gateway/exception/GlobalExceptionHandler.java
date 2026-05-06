@@ -1,7 +1,7 @@
 package com.itc.funkart.gateway.exception;
 
-import com.itc.funkart.gateway.response.ApiResponse;
-import com.itc.funkart.gateway.response.ErrorDetails;
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.response.ErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -48,7 +48,9 @@ public class GlobalExceptionHandler {
         }
 
         ErrorDetails error = new ErrorDetails(code, message, field);
-        return ResponseEntity.status(status).body(new ApiResponse<>(error));
+
+        // CHANGE THIS: Use the static factory method instead of the constructor
+        return ResponseEntity.status(status).body(ApiResponse.error(error));
     }
 
     /**

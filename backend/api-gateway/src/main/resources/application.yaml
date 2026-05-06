@@ -1,6 +1,20 @@
+# ==============================================================================
+# MASTER SERVICE REGISTRY (The "Master Key")
+# ==============================================================================
+internal:
+  service-urls:
+    user: ${USER_SERVICE_URL:http://user-service:8080}
+    payment: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+    product: ${PRODUCT_SERVICE_URL:http://product-service:8080}
+    order: ${ORDER_SERVICE_URL:http://order-service:8080}
+
 spring:
   application:
     name: api-gateway
+
+  main:
+    web-application-type: reactive
+    allow-bean-definition-overriding: true
 
   data:
     redis:
@@ -14,67 +28,115 @@ spring:
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 
+  webflux:
+    base-path: /
+
   cloud:
     gateway:
       server:
         webflux:
           routes:
             - id: user-service
-              uri: ${USER_SERVICE_URL:http://user-service:8080}
+              uri: ${internal.service-urls.user}
               predicates:
-                - Path=/api/v1/users/**, /api/v1/oauth/**
+                - Path=/api/v1/users/**
               filters:
                 - StripPrefix=2
 
-            - id: payment-webhook-route
-              uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+            - id: product-service
+              uri: ${internal.service-urls.product}
               predicates:
-                - Path=/api/v1/payments/webhook/**
+                - Path=/api/v1/products/**,/api/v1/admin/products/**,/api/v1/categories/**,/api/v1/admin/categories/**,/api/v1/cart/**
+              filters:
+                - StripPrefix=2
+
+            - id: order-service
+              uri: ${internal.service-urls.order}
+              predicates:
+                - Path=/api/v1/orders/**,/api/v1/admin/orders/**
               filters:
                 - StripPrefix=2
 
             - id: payment-service
-              uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+              uri: ${internal.service-urls.payment}
               predicates:
                 - Path=/api/v1/payments/**
               filters:
                 - StripPrefix=2
 
-            - id: product-service
-              uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
-              predicates:
-                - Path=/api/v1/products/**
-              filters:
-                - StripPrefix=2
-
-server:
-  port: ${PORT:8060}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus  # minimal for prod
-  endpoint:
-    health:
-      show-details: always
-
-# Custom Application Properties
+# ==============================================================================
+# APP CONFIG
+# ==============================================================================
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   oauth-success-path: ${OAUTH_SUCCESS_PATH:/oauth-success}
+
   services:
-    user-service: ${USER_SERVICE_URL:http://user-service:8080}
-    payment-service: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
-    product-service: ${PRODUCT_SERVICE_URL:http://product-service:8080}
-    order-service: ${ORDER_SERVICE_URL:http://order-service:8080}
+    user-service: ${internal.service-urls.user}
+    payment-service: ${internal.service-urls.payment}
+    product-service: ${internal.service-urls.product}
+    order-service: ${internal.service-urls.order}
+
   github:
     client-id: ${GITHUB_CLIENT_ID}
     client-secret: ${GITHUB_CLIENT_SECRET}
     redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8060/api/v1/oauth/github/callback}
+
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
-    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
     cookie-name: ${APP_COOKIE_NAME:token}
+    cookie-max-age-seconds: ${JWT_COOKIE_MAX_AGE_SECONDS:3600}
     secure-cookie: ${APP_SECURE_COOKIE:false}
+
+server:
+  port: ${PORT:8060}
+
+# ==============================================================================
+# OBSERVABILITY
+# ==============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  health:
+    show-details: always
+    redis:
+      enabled: true
+
+  observations:
+    key-values:
+      application: ${spring.application.name}
+
+  tracing:
+    sampling:
+      probability: 1.0
+
+  otlp:
+    tracing:
+      # gRPC — port 4317
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    metrics:
+      export:
+        # FIX: was also OTEL_EXPORTER_OTLP_ENDPOINT (gRPC/4317).
+        # Micrometer OTLP metrics exporter uses HTTP — must point to 4318.
+        url: ${OTEL_METRICS_ENDPOINT:http://otel-collector:4318}
+
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+  loki:
+    endpoint: ${LOKI_URL:http://loki:3100/loki/api/v1/push}
+
+# ==============================================================================
+# LOGGING
+# ==============================================================================
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %m%n"
+  level:
+    root: INFO
+    com.itc.funkart.gateway: DEBUG
+    io.micrometer.tracing: DEBUG

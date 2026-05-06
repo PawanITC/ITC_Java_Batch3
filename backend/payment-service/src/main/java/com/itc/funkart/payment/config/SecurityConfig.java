@@ -42,11 +42,13 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // ADD the /api/v1 prefixed path
                         .requestMatchers("/payments/webhook/**").permitAll()
+                        .requestMatchers("/api/v1/payments/webhook/**").permitAll()  // ADD THIS
                         .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Ensure this matches the incoming path exactly
                         .requestMatchers("/payments/**").hasAuthority("ROLE_USER")
+                        .requestMatchers("/api/v1/payments/**").hasAuthority("ROLE_USER")  // ADD THIS
                         .anyRequest().authenticated()
                 )
                 // Explicitly place JWT filter

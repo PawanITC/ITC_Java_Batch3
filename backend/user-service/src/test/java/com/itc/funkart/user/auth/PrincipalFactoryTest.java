@@ -1,6 +1,6 @@
 package com.itc.funkart.user.auth;
 
-import com.itc.funkart.user.dto.security.UserPrincipalDto;
+import com.itc.funkart.common.dto.security.UserPrincipalDto;
 import com.itc.funkart.user.entity.Role;
 import com.itc.funkart.user.entity.User;
 import com.itc.funkart.user.exceptions.JwtAuthenticationException;
@@ -119,7 +119,9 @@ class PrincipalFactoryTest {
     @DisplayName("fromClaims(Claims)")
     class FromClaimsTests {
 
-        /** Builds minimal in-memory Claims without signing. */
+        /**
+         * Builds minimal in-memory Claims without signing.
+         */
         private Claims claims(String subject, Map<String, Object> extra) {
             var builder = Jwts.claims().subject(subject);
             extra.forEach(builder::add);

@@ -1,8 +1,12 @@
 package com.itc.funkart.user.response;
 
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.response.ErrorDetails;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
 import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -12,15 +16,20 @@ import static org.junit.jupiter.api.Assertions.*;
 class ApiResponseTest {
 
     @Test
-    @DisplayName("ApiResponse: Test successful data constructor")
-    void testSuccessConstructor() {
-        String data = "Test Data";
-        ApiResponse<String> response = new ApiResponse<>(data, "Success Message");
+    @DisplayName("ApiResponse: Should initialize correctly using success factory")
+    void testSuccessFactory() {
+        // Arrange
+        String payload = "Test Data";
+        String message = "Success Message";
 
-        assertEquals(data, response.getData());
-        assertEquals("Success Message", response.getMessage());
-        assertNotNull(response.getTimestamp());
-        assertNull(response.getError());
+        // Act - Using the static factory instead of 'new'
+        ApiResponse<String> response = ApiResponse.success(payload, message);
+
+        // Assert
+        assertEquals(payload, response.getData(), "Data payload should match");
+        assertEquals(message, response.getMessage(), "Success message should match");
+        assertNotNull(response.getTimestamp(), "Timestamp should be auto-generated");
+        assertNull(response.getError(), "Error object should be null for success responses");
     }
 
     @Test

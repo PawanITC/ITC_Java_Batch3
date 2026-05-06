@@ -2,24 +2,28 @@
 
 ## Overview
 
-Your Funkart Product Service now has **professional API documentation** with an interactive Swagger UI interface. This guide explains everything you need to know.
+Your Funkart Product Service now has **professional API documentation** with an interactive Swagger UI interface. This
+guide explains everything you need to know.
 
 ---
 
 ## 📌 Quick Start (30 seconds)
 
 ### 1. Start Application
+
 ```bash
 cd "C:\ITC project\Funkart E-commerce-app\ITC_Java_Batch3\backend\product-service"
 ./gradlew bootRun
 ```
 
 ### 2. Open Swagger UI
+
 ```
 http://localhost:9090/swagger-ui.html
 ```
 
 ### 3. Test an Endpoint
+
 1. Click on any endpoint (e.g., "Get all products")
 2. Click **"Try it out"**
 3. Click **"Execute"**
@@ -30,9 +34,11 @@ http://localhost:9090/swagger-ui.html
 ## 🎯 What We Fixed
 
 ### Issue: 404 NOT_FOUND in Swagger UI
+
 **Cause:** CORS (Cross-Origin Resource Sharing) blocking requests
 
 **Solution Implemented:**
+
 1. ✅ Added global CORS configuration (CorsConfig.java)
 2. ✅ Removed conflicting @CrossOrigin annotations
 3. ✅ Added comprehensive OpenAPI annotations
@@ -45,6 +51,7 @@ http://localhost:9090/swagger-ui.html
 ### 1. New Configuration Classes
 
 #### CorsConfig.java
+
 ```java
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
@@ -61,6 +68,7 @@ public class CorsConfig implements WebMvcConfigurer {
 ```
 
 #### OpenAPIConfig.java
+
 ```java
 @Configuration
 public class OpenAPIConfig {
@@ -79,6 +87,7 @@ public class OpenAPIConfig {
 ### 2. Enhanced Controllers
 
 All controllers now have detailed annotations:
+
 ```java
 @RestController
 @RequestMapping("/api/products")
@@ -100,11 +109,13 @@ public class ProductController {
 ### 3. Updated Configuration
 
 #### build.gradle
+
 ```gradle
 implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 ```
 
 #### application.yml
+
 ```yaml
 springdoc:
   api-docs:
@@ -121,9 +132,11 @@ springdoc:
 ## 📚 Documentation Available
 
 ### In Browser (Interactive)
+
 ```
 http://localhost:9090/swagger-ui.html
 ```
+
 - Browse all endpoints
 - See detailed descriptions
 - View parameters and examples
@@ -131,15 +144,18 @@ http://localhost:9090/swagger-ui.html
 - View actual responses
 
 ### API Specifications
+
 ```
 JSON:  http://localhost:9090/v3/api-docs
 YAML:  http://localhost:9090/v3/api-docs.yaml
 ```
+
 - Use with Postman, ReDoc, or other tools
 - Generate client code
 - Use in CI/CD pipelines
 
 ### Markdown Documentation
+
 - **docs/API_DOCUMENTATION.md** - Full API guide
 - **docs/SWAGGER_SETUP_GUIDE.md** - Detailed setup
 - **docs/SWAGGER_QUICK_FIX.md** - Quick reference
@@ -152,11 +168,13 @@ YAML:  http://localhost:9090/v3/api-docs.yaml
 ## 🎨 Swagger UI Features
 
 ### Browse & Search
+
 - ✅ All endpoints organized by tags
 - ✅ Search functionality to find endpoints
 - ✅ Sort by operation type or alphabetically
 
 ### Documentation
+
 - ✅ Detailed descriptions for each endpoint
 - ✅ Parameter documentation with examples
 - ✅ Response code documentation
@@ -164,6 +182,7 @@ YAML:  http://localhost:9090/v3/api-docs.yaml
 - ✅ Data model schemas
 
 ### Interactive Testing
+
 - ✅ "Try It Out" button to test endpoints
 - ✅ Parameter input fields
 - ✅ Request body editor
@@ -172,6 +191,7 @@ YAML:  http://localhost:9090/v3/api-docs.yaml
 - ✅ See response headers
 
 ### Professional Display
+
 - ✅ Clean, modern UI
 - ✅ Color-coded HTTP methods
 - ✅ Expandable/collapsible sections
@@ -183,6 +203,7 @@ YAML:  http://localhost:9090/v3/api-docs.yaml
 ## 🔌 API Endpoints Documented
 
 ### Products API (5 endpoints)
+
 ```
 GET  /api/products             - List all products
 GET  /api/products/{id}        - Get specific product
@@ -190,12 +211,14 @@ POST /api/products/by-ids      - Get multiple products
 ```
 
 ### Categories API (2 endpoints)
+
 ```
 GET  /api/categories           - List all categories
 GET  /api/categories/{id}      - Get specific category
 ```
 
 ### Shopping Cart API (5 endpoints)
+
 ```
 GET    /api/cart/{userId}                    - Get user's cart
 POST   /api/cart/{userId}/items              - Add item to cart
@@ -222,7 +245,9 @@ POST   /api/cart/{userId}/checkout           - Process order
 8. **Example Values** - Realistic examples
 
 ### Data Models
+
 All request/response models are documented with:
+
 - Field names and types
 - Required vs optional fields
 - Field descriptions
@@ -234,24 +259,29 @@ All request/response models are documented with:
 ## 🚀 How to Use
 
 ### For Development
+
 1. Start app: `./gradlew bootRun`
 2. Open: `http://localhost:9090/swagger-ui.html`
 3. Browse endpoints and test them
 4. Use "Try It Out" for quick testing
 
 ### For Postman Integration
+
 1. Open Postman
 2. Click "Import"
 3. Enter URL: `http://localhost:9090/v3/api-docs`
 4. All endpoints auto-imported with documentation
 
 ### For ReDoc (Static Documentation)
+
 ```html
 <redoc spec-url='http://localhost:9090/v3/api-docs'></redoc>
 ```
 
 ### For External Teams
+
 Share the Swagger URL:
+
 ```
 http://[your-domain]:9090/swagger-ui.html
 ```
@@ -263,6 +293,7 @@ They can browse and understand your API instantly!
 ## 🔒 Security Configuration
 
 ### CORS Settings
+
 - ✅ Allows localhost:9090 (Swagger UI)
 - ✅ Allows localhost:5173 (Frontend dev)
 - ✅ Allows localhost:3000, 4200, 8080 (Alternative ports)
@@ -270,11 +301,13 @@ They can browse and understand your API instantly!
 - ✅ Allows https://funkart.com (Production - update with your domain)
 
 ### Methods Allowed
+
 ```
 GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD
 ```
 
 ### Headers
+
 ```
 All headers allowed (*)
 ```
@@ -284,6 +317,7 @@ All headers allowed (*)
 ## 📋 Files Structure
 
 ### Configuration Files
+
 ```
 src/main/java/.../config/
 ├── CorsConfig.java          # Global CORS setup
@@ -291,6 +325,7 @@ src/main/java/.../config/
 ```
 
 ### Controllers (Enhanced)
+
 ```
 src/main/java/.../controller/
 ├── ProductController.java   # With @Tag, @Operation
@@ -299,6 +334,7 @@ src/main/java/.../controller/
 ```
 
 ### Documentation
+
 ```
 docs/
 ├── API_DOCUMENTATION.md              # Full guide
@@ -310,6 +346,7 @@ docs/
 ```
 
 ### Configuration Files
+
 ```
 src/main/resources/
 └── application.yml                   # Springdoc settings
@@ -320,33 +357,42 @@ src/main/resources/
 ## ✅ Verification Steps
 
 ### Step 1: Build
+
 ```bash
 ./gradlew clean build -x test
 ```
+
 Expected: `BUILD SUCCESSFUL`
 
 ### Step 2: Start Application
+
 ```bash
 ./gradlew bootRun
 ```
+
 Expected: `Started ProductServiceApplication in X seconds`
 
 ### Step 3: Test Swagger UI
+
 ```
 http://localhost:9090/swagger-ui.html
 ```
+
 Expected: Modern Swagger UI interface loads
 
 ### Step 4: Test an Endpoint
+
 1. Click "Get all products"
 2. Click "Try it out"
 3. Click "Execute"
-Expected: 200 OK response with products
+   Expected: 200 OK response with products
 
 ### Step 5: Check OpenAPI Spec
+
 ```
 http://localhost:9090/v3/api-docs
 ```
+
 Expected: JSON with full API specification
 
 ---
@@ -354,28 +400,36 @@ Expected: JSON with full API specification
 ## 🐛 Troubleshooting
 
 ### Issue: Still Getting 404
+
 **Solution:**
+
 1. Make sure you did `./gradlew clean build -x test`
 2. Restart application: Stop (Ctrl+C) and run `./gradlew bootRun`
 3. Clear browser cache: Ctrl+Shift+R
 4. Try incognito window
 
 ### Issue: Endpoints Not Showing
+
 **Solution:**
+
 1. Verify controllers have `@RestController` annotation
 2. Verify controllers have `@RequestMapping`
 3. Restart application after changes
 4. Check application logs for errors
 
 ### Issue: CORS Errors in Console
+
 **Solution:**
+
 1. Verify `CorsConfig.java` exists
 2. Verify it has `@Configuration` annotation
 3. Verify no `@CrossOrigin` on controllers
 4. Restart application
 
 ### Issue: No Data in Response
+
 **Solution:**
+
 1. Verify databases are running: `docker-compose up -d`
 2. Check application logs for database errors
 3. Verify data exists in database
@@ -386,17 +440,20 @@ Expected: JSON with full API specification
 ## 📝 Next Steps
 
 ### For Your Team
+
 1. **Share Swagger URL:** `http://localhost:9090/swagger-ui.html`
 2. **Share API Docs:** `docs/API_DOCUMENTATION.md`
 3. **Provide Quick Reference:** `docs/SWAGGER_QUICK_FIX.md`
 
 ### For Production Deployment
+
 1. **Update domain** in `CorsConfig.java`
 2. **Update server URLs** in `OpenAPIConfig.java`
 3. **Review CORS settings** for your environment
 4. **Test in production-like setup**
 
 ### For Further Enhancement
+
 1. **Add security/authentication** documentation
 2. **Add rate limiting** documentation
 3. **Add webhook** documentation (if applicable)
@@ -408,6 +465,7 @@ Expected: JSON with full API specification
 ## 🎯 Summary
 
 You now have:
+
 - ✅ Interactive Swagger UI at `http://localhost:9090/swagger-ui.html`
 - ✅ All 12 endpoints documented in detail
 - ✅ "Try It Out" functionality for testing
@@ -423,6 +481,7 @@ You now have:
 ## 📞 Questions?
 
 Refer to:
+
 1. **SWAGGER_QUICK_FIX.md** - For common issues
 2. **SWAGGER_SETUP_GUIDE.md** - For detailed guidance
 3. **API_DOCUMENTATION.md** - For API details

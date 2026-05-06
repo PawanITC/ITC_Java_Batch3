@@ -1,140 +1,107 @@
 package com.itc.funkart.payment.exception;
 
-import com.itc.funkart.payment.response.ApiResponse;
-import com.itc.funkart.payment.response.ErrorDetails;
+import com.itc.funkart.common.dto.response.ApiResponse;
 import com.stripe.exception.StripeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * <h2>GlobalExceptionHandler</h2>
+ * <h2>Payment Service Exception Shield</h2>
  * <p>
- * The central "Safety Net" and response-transformer for the Payment Service.
+ * Standardizes all Payment-related failures into the global {@link ApiResponse} format.
+ * Inspired by the Order Service architecture for cross-domain consistency.
  * </p>
- * <p>
- * This class interceptor catches exceptions across all layers (Controller, Service, Repository)
- * and ensures that the client always receives a standardized {@link ApiResponse} instead of
- * leaking internal system details or raw stack traces.
- * </p>
- *
- * @author Abbas
- * @version 1.3
  */
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
     /**
-     * Handles business logic violations within the Payment domain.
-     * <p>
-     * Utilizes the custom {@code errorCode} defined within the {@link PaymentException}
-     * to provide the frontend with machine-readable error categories.
-     * </p>
-     *
-     * @param ex The caught PaymentException.
-     * @return 400 Bad Request with domain-specific error details.
+     * Standardized internal builder to map exceptions to the ApiResponse envelope.
      */
+    private ResponseEntity<ApiResponse<Void>> buildErrorResponse(
+            HttpStatus status,
+            String code,
+            String message,
+            String field,
+            boolean isCritical,
+            Exception ex) {
+
+        if (isCritical) {
+            log.error("✗ Payment Service Critical [{}]: {} | Code: {}", status.value(), message, code, ex);
+        } else {
+            log.warn("✗ Payment Service Warning [{}]: {} | Field: {}", status.value(), message, field);
+        }
+
+        return ResponseEntity.status(status)
+                .body(ApiResponse.error(code, message, field));
+    }
+
+    // --- Resilience4j (Stripe API Protection) ---
+
+    @ExceptionHandler(RequestNotPermitted.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimit(RequestNotPermitted ex) {
+        return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS, "RATE_LIMIT_EXCEEDED",
+                "Payment gateway rate limit reached", null, false, ex);
+    }
+
+    @ExceptionHandler(CallNotPermittedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleCircuitBreaker(CallNotPermittedException ex) {
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "CIRCUIT_OPEN",
+                "Stripe integration is temporarily unavailable", null, true, ex);
+    }
+
+    // --- Stripe & Payment Domain Handlers ---
+
     @ExceptionHandler(PaymentException.class)
-    public ResponseEntity<ApiResponse<?>> handlePaymentException(PaymentException ex) {
-        logger.error("✗ Payment Domain Error [{}]: {}", ex.getErrorCode(), ex.getMessage());
-        return buildErrorResponse(ex.getErrorCode(), ex.getMessage(), HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ApiResponse<Void>> handlePaymentException(PaymentException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getErrorCode(),
+                ex.getMessage(), null, false, ex);
     }
 
-    /**
-     * Handles failures related to external Stripe Webhook events.
-     * <p>
-     * Covers signature verification failures or processing errors for asynchronous notifications.
-     * </p>
-     *
-     * @param ex The caught WebhookException.
-     * @return 400 Bad Request with webhook error context.
-     */
-    @ExceptionHandler(WebhookException.class)
-    public ResponseEntity<ApiResponse<?>> handleWebhookException(WebhookException ex) {
-        logger.error("✗ Webhook Processing Failure: {}", ex.getMessage());
-        return buildErrorResponse("WEBHOOK_ERROR", ex.getMessage(), HttpStatus.BAD_REQUEST);
-    }
-
-    /**
-     * Handles exceptions originating directly from the Stripe Java SDK.
-     * <p>
-     * This typically includes card declines, expired tokens, or API connection issues.
-     * Mapped to 402 (Payment Required) to accurately reflect the HTTP status for transaction failures.
-     * </p>
-     *
-     * @param ex The raw StripeException from the SDK.
-     * @return 402 Payment Required with Stripe's descriptive message.
-     */
     @ExceptionHandler(StripeException.class)
-    public ResponseEntity<ApiResponse<?>> handleStripeException(StripeException ex) {
-        logger.error("✗ Stripe SDK Error: {} | Stripe-Code: {}", ex.getMessage(), ex.getCode());
-        return buildErrorResponse("STRIPE_API_ERROR", ex.getMessage(), HttpStatus.PAYMENT_REQUIRED);
+    public ResponseEntity<ApiResponse<Void>> handleStripeException(StripeException ex) {
+        // Stripe errors often involve card declines (402 Payment Required)
+        return buildErrorResponse(HttpStatus.PAYMENT_REQUIRED, "STRIPE_API_FAILURE",
+                ex.getMessage(), null, true, ex);
     }
 
-    /**
-     * Handles failures in mapping Stripe JSON payloads to internal DTOs.
-     * <p>
-     * Often occurs when Stripe introduces new API versions or when webhook data is malformed.
-     * </p>
-     *
-     * @param ex The caught IntentMappingException.
-     * @return 400 Bad Request.
-     */
-    @ExceptionHandler(IntentMappingException.class)
-    public ResponseEntity<ApiResponse<?>> handleIntentMappingException(IntentMappingException ex) {
-        logger.error("✗ Payload Mapping Failure: {}", ex.getMessage());
-        return buildErrorResponse("MAPPING_FAILED", "Failed to process transaction metadata", HttpStatus.BAD_REQUEST);
+    @ExceptionHandler(WebhookException.class)
+    public ResponseEntity<ApiResponse<Void>> handleWebhookException(WebhookException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "WEBHOOK_VERIFICATION_FAILED",
+                ex.getMessage(), null, true, ex);
     }
 
-    /**
-     * Handles invalid inputs, missing required fields, or failed business validations.
-     *
-     * @param ex The IllegalArgumentException.
-     * @return 400 Bad Request with the specific validation message.
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        logger.warn("✗ Validation Warning: {}", ex.getMessage());
-        return buildErrorResponse("INVALID_ARGUMENT", ex.getMessage(), HttpStatus.BAD_REQUEST);
+    // --- Validation & Security ---
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
+        var fieldError = ex.getBindingResult().getFieldError();
+        String field = fieldError != null ? fieldError.getField() : "request";
+        String message = fieldError != null ? fieldError.getDefaultMessage() : "Invalid payment input";
+
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR",
+                message, field, false, ex);
     }
 
-    /**
-     * Final catch-all for any unhandled or unexpected RuntimeExceptions.
-     * <p>
-     * <b>Security Note:</b> Unlike domain exceptions, we do NOT leak the specific exception
-     * message here to prevent exposing internal stack details to potential attackers.
-     * </p>
-     *
-     * @param ex The generic Exception.
-     * @return 500 Internal Server Error with a sanitized message.
-     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleForbidden(AccessDeniedException ex) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "INSUFFICIENT_PERMISSIONS",
+                "You are not authorized to perform this payment action", null, false, ex);
+    }
+
+    // --- Catch-All ---
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleGenericException(Exception ex) {
-        // Log the full stack trace for internal troubleshooting
-        logger.error("🚨 CRITICAL SYSTEM FAILURE: ", ex);
-
-        return buildErrorResponse(
-                "INTERNAL_SERVER_ERROR",
-                "An unexpected system error occurred. Our engineering team has been notified.",
-                HttpStatus.INTERNAL_SERVER_ERROR
-        );
-    }
-
-    /**
-     * Centralized utility to construct a standardized Error Response.
-     *
-     * @param code    Machine-readable error code (e.g., PAYMENT_ERROR).
-     * @param message Human-readable error description.
-     * @param status  The HTTP status code to return.
-     * @return A wrapped {@link ResponseEntity} containing the {@link ApiResponse}.
-     */
-    private ResponseEntity<ApiResponse<?>> buildErrorResponse(String code, String message, HttpStatus status) {
-        ErrorDetails error = new ErrorDetails(code, message);
-        return new ResponseEntity<>(new ApiResponse<>(error), status);
+    public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR",
+                "An unexpected system failure occurred in Payment Service", null, true, ex);
     }
 }

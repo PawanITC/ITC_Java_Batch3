@@ -1,50 +1,65 @@
-
 package com.itc.funkart.controller;
 
-import com.itc.funkart.constants.ApiConstants;
-import com.itc.funkart.dto.OrderRequest;
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import com.itc.funkart.dto.OrderResponse;
-import com.itc.funkart.exception.OrderNotFound;
 import com.itc.funkart.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
+/**
+ * <h2>Customer Order Controller</h2>
+ * <p>
+ * Provides authenticated users access to their specific order data.
+ * </p>
+ */
 @RestController
-@RequestMapping(ApiConstants.API_V1 + "/orders")
+@RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
+@Slf4j
 public class OrderController {
 
-    private final OrderService service;
+    private final OrderService orderService;
 
-    @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderRequest request) {
-        return ResponseEntity.ok(service.createOrder(request));
-    }
-
+    /**
+     * Retrieves specific order details, ensuring the requester is the owner.
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID id) {
-        return ResponseEntity.ok(service.getOrder(id));
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal JwtUserDto user) {
+
+        // Pass userId to ensure the user can only see THEIR order
+        OrderResponse response = orderService.getOrderByIdAndUserId(id, user.id());
+        return ResponseEntity.ok(ApiResponse.success(response, "Order retrieved successfully"));
     }
 
-    @GetMapping
-    public List<OrderResponse> getOrders() {
-        return service.getAllOrders();
+    /**
+     * Returns the full history for the current authenticated user.
+     */
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getOrdersHistory(
+            @AuthenticationPrincipal JwtUserDto user) {
+
+        log.debug("Fetching order history for userId: {}", user.id());
+        List<OrderResponse> history = orderService.getCustomerOrderHistory(user.id());
+        return ResponseEntity.ok(ApiResponse.success(history, "Order history fetched"));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<OrderResponse> updateOrder(@PathVariable UUID id,
-                                                     @RequestBody OrderRequest request) {
-        return ResponseEntity.ok(service.updateOrder(id, request));
-    }
+    /**
+     * Allows a customer to cancel their own order if it is in a cancellable state.
+     */
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<Void>> cancelOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal JwtUserDto user) {
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String>  deleteOrder(@PathVariable UUID id)
-    {
-        String response = service.deleteOrder(id);
-        return ResponseEntity.ok(response);
+        orderService.cancelOrder(id, user.id());
+        return ResponseEntity.ok(ApiResponse.success(null, "Order cancellation successful"));
     }
 }

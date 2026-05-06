@@ -16,17 +16,20 @@ import java.util.Map;
 /**
  * <h2>StripeService</h2>
  * <p>
- * Low-level interface for the Stripe Java SDK. This service handles all
- * network communication with Stripe's cloud API.
+ * Low-level interface for the Stripe Java SDK. This service encapsulates all
+ * network communication with Stripe's cloud infrastructure, acting as a stateless
+ * wrapper within the FunKart Payment Microservice.
  * </p>
- * <p>
- * <b>Key Features:</b>
+ *
+ * <p><b>Key Architectural Patterns:</b></p>
  * <ul>
- * <li><b>Idempotency:</b> Prevents duplicate charges during network retries.</li>
- * <li><b>Metadata:</b> Attaches internal IDs to Stripe objects for auditing.</li>
- * <li><b>Automatic Payment Methods:</b> Enabled by default for flexibility.</li>
+ *   <li><b>Idempotency:</b> Prevents duplicate charges by using unique keys tied to local database records.</li>
+ *   <li><b>Observability:</b> Implements SLF4J logging to track outgoing API requests and performance.</li>
+ *   <li><b>Security:</b> Attaches internal user and payment IDs via metadata for cloud-side auditing.</li>
  * </ul>
- * </p>
+ *
+ * <p><b>JVM Note:</b> This service is a Singleton. Its methods are thread-safe
+ * and rely on the stack for local variable storage to minimize heap pressure.</p>
  */
 @Service
 public class StripeService {
@@ -36,23 +39,33 @@ public class StripeService {
     /**
      * Creates a PaymentIntent in the Stripe system.
      * <p>
-     * Uses an Idempotency Key tied to the local {@code paymentId} to ensure
-     * that exactly one intent is created even if the request is retried.
+     * This is the first step in the payment lifecycle. It signals to Stripe that a user
+     * intends to pay a specific amount. An idempotency key is used to ensure that network
+     * retries do not result in multiple Intents for the same Order.
      * </p>
      *
-     * @param amount    The transaction amount in the smallest currency unit (cents).
-     * @param currency  3-character ISO currency code.
-     * @param userId    Internal user ID for metadata tagging.
-     * @param paymentId Local database ID for metadata and idempotency.
-     * @return The newly created {@link PaymentIntent}.
-     * @throws StripeException if communication with Stripe fails.
+     * @param amount    Transaction amount in the smallest currency unit (e.g., cents for USD).
+     * @param currency  3-character ISO currency code (e.g., "usd").
+     * @param userId    Internal ID of the user initiating the payment for metadata tagging.
+     * @param paymentId Local database ID used for metadata and the idempotency key.
+     * @return A {@link PaymentIntent} object containing the {@code client_secret} for the frontend.
+     * @throws StripeException If the request fails due to network issues, invalid parameters, or API limits.
      */
-    public PaymentIntent createPaymentIntent(Long amount, String currency, Long userId, Long paymentId) throws StripeException {
-        logger.debug("Preparing Stripe PaymentIntent | User: {} | Amount: {}", userId, amount);
+    public PaymentIntent createPaymentIntent(
+            Long amount,
+            String currency,
+            Long userId,
+            Long paymentId,
+            Long orderId
+    ) throws StripeException {
+
+        logger.debug("Requesting Stripe Intent | orderId={} paymentId={} amount={}",
+                orderId, paymentId, amount);
 
         Map<String, String> metadata = Map.of(
                 "userId", String.valueOf(userId),
-                "paymentId", String.valueOf(paymentId)
+                "paymentId", String.valueOf(paymentId),
+                "orderId", String.valueOf(orderId)
         );
 
         PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
@@ -67,7 +80,9 @@ public class StripeService {
                 .build();
 
         RequestOptions options = RequestOptions.builder()
-                .setIdempotencyKey("pi-idempotency-" + paymentId)
+                .setIdempotencyKey(
+                        StripeIdempotencyKeys.createPaymentIntent(orderId)
+                )
                 .build();
 
         return PaymentIntent.create(params, options);
@@ -75,44 +90,82 @@ public class StripeService {
 
     /**
      * Confirms and finalizes a PaymentIntent.
+     * <p>
+     * Used in flows requiring server-side confirmation, such as manual captures or
+     * secondary authentication (3D Secure).
+     * </p>
      *
-     * @param paymentIntentId The unique ID of the intent (pi_...).
-     * @param paymentMethodId The payment method to charge (pm_...).
-     * @param returnUrl       The URL Stripe redirects to after 3DS authentication.
-     * @return The updated {@link PaymentIntent}.
-     * @throws StripeException if the confirmation is rejected.
+     * @param piId      The Stripe PaymentIntent ID (pi_...).
+     * @param pmId      The Stripe PaymentMethod ID (pm_...) provided by the frontend.
+     * @param returnUrl The URL to redirect the user back to after 3DS verification.
+     * @throws StripeException If the payment is declined or the ID is invalid.
      */
-    public PaymentIntent confirmPaymentIntent(String paymentIntentId, String paymentMethodId, String returnUrl) throws StripeException {
-        return PaymentIntent.retrieve(paymentIntentId)
-                .confirm(PaymentIntentConfirmParams.builder()
-                        .setPaymentMethod(paymentMethodId)
-                        .setReturnUrl(returnUrl)
-                        .build()
-                );
+    public void confirmPaymentIntent(
+            String piId,
+            String pmId,
+            String returnUrl,
+            Long paymentId
+    ) throws StripeException {
+
+        logger.info("Confirming Stripe Intent | PI={} paymentId={}", piId, paymentId);
+
+        PaymentIntentConfirmParams params = PaymentIntentConfirmParams.builder()
+                .setPaymentMethod(pmId)
+                .setReturnUrl(returnUrl)
+                .build();
+
+        RequestOptions options = RequestOptions.builder()
+                .setIdempotencyKey(
+                        StripeIdempotencyKeys.confirmPaymentIntent(piId, paymentId)
+                )
+                .build();
+
+        PaymentIntent.retrieve(piId).confirm(params, options);
     }
 
     /**
      * Requests a full refund for a specific PaymentIntent.
+     * <p>
+     * This operation is idempotent. If a refund has already been requested for
+     * this Intent ID, Stripe will return the existing refund object rather than
+     * creating a new one.
+     * </p>
      *
-     * @param paymentIntentId The ID of the intent to refund.
-     * @return The resulting {@link Refund} object from Stripe.
-     * @throws StripeException if the refund is disallowed.
+     * @param piId The Stripe PaymentIntent ID (pi_...) associated with the successful charge.
+     * @return The {@link Refund} object detailing the reversal.
+     * @throws StripeException If the payment is not in a refundable state (e.g., already refunded).
      */
-    public Refund refundPayment(String paymentIntentId) throws StripeException {
+    public Refund refundPayment(String piId, Long paymentId) throws StripeException {
+
+        logger.warn("Processing Stripe Refund | paymentId={} piId={}", paymentId, piId);
+
         RefundCreateParams params = RefundCreateParams.builder()
-                .setPaymentIntent(paymentIntentId)
+                .setPaymentIntent(piId)
                 .build();
-        return Refund.create(params);
+
+        RequestOptions options = RequestOptions.builder()
+                .setIdempotencyKey(
+                        StripeIdempotencyKeys.refund(paymentId, piId)
+                )
+                .build();
+
+        return Refund.create(params, options);
     }
+
+
 
     /**
      * Voids an uncaptured PaymentIntent.
+     * <p>
+     * Used to cancel a transaction before funds are moved. Note that captured
+     * payments must use {@link #refundPayment(String, Long)}} instead.
+     * </p>
      *
-     * @param paymentIntentId The ID of the intent to cancel.
-     * @return The cancelled intent.
-     * @throws StripeException if the intent is in a terminal state.
+     * @param piId The ID of the intent to cancel.
+     * @throws StripeException If the intent is already in a terminal state (succeeded/cancelled).
      */
-    public PaymentIntent cancelPaymentIntent(String paymentIntentId) throws StripeException {
-        return PaymentIntent.retrieve(paymentIntentId).cancel();
+    public void cancelPaymentIntent(String piId) throws StripeException {
+        logger.info("Cancelling Stripe Intent | PI={}", piId);
+        PaymentIntent.retrieve(piId).cancel();
     }
 }

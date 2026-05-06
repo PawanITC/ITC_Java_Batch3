@@ -1,9 +1,11 @@
 # Load Testing with JMeter - Product Service
 
 ## Overview
+
 This guide provides complete load testing setup for the Product Service using Apache JMeter.
 
 ## Prerequisites
+
 1. JMeter installed (download from https://jmeter.apache.org/download_jmeter.cgi)
 2. Product Service running on localhost:8080
 3. Java 11+
@@ -11,10 +13,12 @@ This guide provides complete load testing setup for the Product Service using Ap
 ## Setup Instructions
 
 ### 1. Download JMeter
+
 - Extract JMeter zip file
 - Add JMeter bin directory to PATH
 
 ### 2. Verify Installation
+
 ```bash
 jmeter --version
 ```
@@ -22,39 +26,44 @@ jmeter --version
 ## Load Test Scenarios
 
 ### Scenario 1: Category Endpoints Load Test
+
 - **Thread Group:** 50 concurrent users
 - **Ramp-up:** 30 seconds
 - **Duration:** 5 minutes
 - **Endpoints:**
-  - GET /api/categories
-  - GET /api/categories/{id}
+    - GET /api/categories
+    - GET /api/categories/{id}
 
 ### Scenario 2: Product Endpoints Load Test
+
 - **Thread Group:** 100 concurrent users
 - **Ramp-up:** 60 seconds
 - **Duration:** 10 minutes
 - **Endpoints:**
-  - GET /api/products
-  - GET /api/products/{id}
-  - POST /api/products/by-ids
+    - GET /api/products
+    - GET /api/products/{id}
+    - POST /api/products/by-ids
 
 ### Scenario 3: Cart Operations Load Test
+
 - **Thread Group:** 200 concurrent users
 - **Ramp-up:** 120 seconds
 - **Duration:** 10 minutes
 - **Endpoints:**
-  - GET /api/cart/{userId}
-  - POST /api/cart/{userId}/items
-  - PATCH /api/cart/{userId}/items/{productId}
-  - POST /api/cart/{userId}/checkout
+    - GET /api/cart/{userId}
+    - POST /api/cart/{userId}/items
+    - PATCH /api/cart/{userId}/items/{productId}
+    - POST /api/cart/{userId}/checkout
 
 ### Scenario 4: Spike Test
+
 - **Thread Group:** 500 sudden users
 - **Instant ramp-up:** 0 seconds
 - **Duration:** 2 minutes
 - **Monitors system behavior under sudden load**
 
 ### Scenario 5: Stress Test
+
 - **Thread Group:** 1000 concurrent users
 - **Ramp-up:** 300 seconds
 - **Duration:** 5 minutes
@@ -62,57 +71,65 @@ jmeter --version
 
 ## Expected Performance Targets
 
-| Metric | Target | Acceptable |
-|--------|--------|-----------|
-| Average Response Time | < 200ms | < 500ms |
-| 95th Percentile | < 500ms | < 1000ms |
-| 99th Percentile | < 1000ms | < 2000ms |
-| Error Rate | < 1% | < 5% |
-| Throughput | > 100 req/sec | > 50 req/sec |
+| Metric                | Target        | Acceptable   |
+|-----------------------|---------------|--------------|
+| Average Response Time | < 200ms       | < 500ms      |
+| 95th Percentile       | < 500ms       | < 1000ms     |
+| 99th Percentile       | < 1000ms      | < 2000ms     |
+| Error Rate            | < 1%          | < 5%         |
+| Throughput            | > 100 req/sec | > 50 req/sec |
 
 ## Running Load Tests via GUI (Simple Method)
 
 ### Step 1: Start JMeter GUI
+
 ```bash
 jmeter
 ```
 
 ### Step 2: Create Test Plan
+
 1. Right-click on "Test Plan"
 2. Add → Thread Groups → Thread Group
 3. Set: Threads: 50, Ramp-up: 30, Duration: 300
 
 ### Step 3: Add HTTP Requests
+
 1. Right-click on Thread Group
 2. Add → Sampler → HTTP Request
 3. Configure:
-   - Server Name: localhost
-   - Port: 8080
-   - Path: /api/categories
+    - Server Name: localhost
+    - Port: 8080
+    - Path: /api/categories
 
 ### Step 4: Add Listeners
+
 1. Right-click on Test Plan
 2. Add → Listener → View Results Tree
 3. Add → Listener → Summary Report
 4. Add → Listener → Response Time Graph
 
 ### Step 5: Run Test
+
 1. Click Start (Green Play Button)
 2. Monitor results in real-time
 
 ## Running Load Tests via Command Line (Recommended for CI/CD)
 
 ### Basic Load Test
+
 ```bash
 jmeter -n -t CategoryLoadTest.jmx -l results.jtl -j jmeter.log
 ```
 
 ### With HTML Report Generation
+
 ```bash
 jmeter -n -t CategoryLoadTest.jmx -l results.jtl -j jmeter.log -e -o results_html
 ```
 
 ### With Custom Properties
+
 ```bash
 jmeter -n -t ProductLoadTest.jmx \
   -Jthreads=100 \
@@ -125,6 +142,7 @@ jmeter -n -t ProductLoadTest.jmx \
 ## Test Plan Components
 
 ### Thread Group Configuration
+
 ```
 Number of Threads (users): 50-1000 (depending on scenario)
 Ramp-up Time (seconds): 30-300 seconds
@@ -133,6 +151,7 @@ Duration (seconds): 300-600 seconds
 ```
 
 ### HTTP Request Defaults
+
 ```
 Protocol: HTTP
 Domain: localhost
@@ -142,6 +161,7 @@ Method: GET/POST/PATCH
 ```
 
 ### Response Assertions
+
 ```
 Assert that:
 - Response Code is 200 or 201
@@ -150,6 +170,7 @@ Assert that:
 ```
 
 ### CSV Data Set Config
+
 ```
 File: test_data.csv
 Delimiter: ,
@@ -159,28 +180,30 @@ Variable Names: userId, productId
 ## Performance Analysis
 
 ### Key Metrics to Monitor
+
 1. **Response Time**
-   - Average
-   - Percentiles (50th, 95th, 99th)
-   - Min/Max
+    - Average
+    - Percentiles (50th, 95th, 99th)
+    - Min/Max
 
 2. **Throughput**
-   - Requests per second
-   - Bytes per second
+    - Requests per second
+    - Bytes per second
 
 3. **Error Rate**
-   - Total errors
-   - Error percentage
-   - Error types
+    - Total errors
+    - Error percentage
+    - Error types
 
 4. **Resource Usage**
-   - Memory consumption
-   - CPU usage
-   - Database connections
+    - Memory consumption
+    - CPU usage
+    - Database connections
 
 ## Test Data Preparation
 
 ### Generate Test Data
+
 ```bash
 # Create test_data.csv with user IDs and product IDs
 cat > test_data.csv << EOF
@@ -196,6 +219,7 @@ EOF
 ## Interpreting Results
 
 ### Summary Report Fields
+
 - **Samples:** Number of requests sent
 - **Average:** Mean response time (ms)
 - **Median:** 50th percentile response time
@@ -208,12 +232,14 @@ EOF
 - **Throughput:** Requests per second
 
 ### Good Results Indicators
+
 ✅ Error rate < 1%
 ✅ Average response time < 200ms
 ✅ 95th percentile < 500ms
 ✅ Throughput > 100 req/sec
 
 ### Red Flags
+
 ❌ Error rate > 5%
 ❌ Response time increasing over time
 ❌ System timeout errors
@@ -224,29 +250,30 @@ EOF
 If tests reveal performance issues:
 
 1. **Check Database Indexes**
-   - Ensure all frequently queried fields are indexed
-   
+    - Ensure all frequently queried fields are indexed
+
 2. **Optimize Queries**
-   - Check for N+1 query problems
-   - Use JPA projections
-   
+    - Check for N+1 query problems
+    - Use JPA projections
+
 3. **Increase Resources**
-   - More memory for application
-   - More database connections
-   - Load balancing
+    - More memory for application
+    - More database connections
+    - Load balancing
 
 4. **Cache Implementation**
-   - Add Redis caching
-   - Implement HTTP caching headers
-   - Database query caching
+    - Add Redis caching
+    - Implement HTTP caching headers
+    - Database query caching
 
 5. **Connection Pooling**
-   - Increase connection pool size
-   - Monitor connection exhaustion
+    - Increase connection pool size
+    - Monitor connection exhaustion
 
 ## CI/CD Integration
 
 ### Jenkins Example
+
 ```groovy
 stage('Load Test') {
     steps {
@@ -261,6 +288,7 @@ stage('Load Test') {
 ```
 
 ### GitHub Actions Example
+
 ```yaml
 - name: Run Load Tests
   run: |
@@ -273,22 +301,23 @@ stage('Load Test') {
 ## Troubleshooting
 
 ### JMeter Issues
+
 1. **Out of Memory**
-   - Increase JVM heap: `jmeter -Xmx2g`
+    - Increase JVM heap: `jmeter -Xmx2g`
 
 2. **Connection Refused**
-   - Verify application is running on correct port
-   - Check firewall settings
+    - Verify application is running on correct port
+    - Check firewall settings
 
 3. **High Error Rate**
-   - Check application logs
-   - Verify test data is correct
-   - Check endpoint paths
+    - Check application logs
+    - Verify test data is correct
+    - Check endpoint paths
 
 4. **Inconsistent Results**
-   - Run multiple times
-   - Warm up the application first
-   - Check for external factors (network, CPU)
+    - Run multiple times
+    - Warm up the application first
+    - Check for external factors (network, CPU)
 
 ## Best Practices
 
@@ -332,11 +361,13 @@ jmeter -n -t SpikeTest.jmx -l spike_results.jtl -j jmeter.log -e -o spike_report
 ## Performance Baseline (Expected Results)
 
 Based on performance tests already run:
+
 - Single operation: < 500ms ✅
 - Throughput: > 5 ops/sec ✅
 - Memory: < 100MB for 50 operations ✅
 
 With proper load testing, we should see:
+
 - Throughput: > 50-100 req/sec
 - Average response: 100-200ms
 - Error rate: < 1%

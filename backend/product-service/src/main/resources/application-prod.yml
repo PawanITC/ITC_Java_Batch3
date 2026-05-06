@@ -1,30 +1,12 @@
+# ==============================================================
+# PRODUCTION PROFILE
+# ==============================================================
 spring:
-  config:
-    activate:
-      on-profile: prod
-
   datasource:
-    url: jdbc:postgresql://${PROD_DB_HOST:18.175.222.132}:32680/postgres
-    username: ${PROD_DB_USER:postgres}
-    password: ${PROD_DB_PASS:Ie422p9Cx8}
-    driver-class-name: org.postgresql.Driver
-
-
-  jwt:
-    secret: ${PROD_JWT_SECRET:${JWT_SECRET}}
-    expiration: ${PROD_JWT_EXPIRATION:3600000}
-
+    url: jdbc:postgresql://${PROD_DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${PROD_DB_USER}
+    password: ${PROD_DB_PASS}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: false
-
-  kafka:
-    bootstrap-servers: ${PROD_KAFKA_HOST:ae2c9c1e88ee}:9092
-    producer:
-      client-id: product-service-prod-producer
-
-  data:
-    redis:
-      host: ${PROD_REDIS_HOST:localhost}
-      port: 6379

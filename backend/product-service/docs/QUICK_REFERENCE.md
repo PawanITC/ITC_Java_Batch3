@@ -5,11 +5,13 @@ Quick lookup for common commands and solutions.
 ## 🚀 Test Execution
 
 ### Run All Tests
+
 ```bash
 ./gradlew.bat test
 ```
 
 ### Run by Layer
+
 ```bash
 # Repository tests only
 ./gradlew.bat test --tests "*.repository.*"
@@ -28,6 +30,7 @@ Quick lookup for common commands and solutions.
 ```
 
 ### Run by Feature
+
 ```bash
 # Category tests
 ./gradlew.bat test --tests "*Category*"
@@ -40,11 +43,13 @@ Quick lookup for common commands and solutions.
 ```
 
 ### Run Specific Class
+
 ```bash
 ./gradlew.bat test --tests "CategoryServiceIntegrationTest"
 ```
 
 ### Run Specific Method
+
 ```bash
 ./gradlew.bat test --tests "CartControllerTest.shouldAddItemToCartSuccessfully"
 ```
@@ -54,6 +59,7 @@ Quick lookup for common commands and solutions.
 ## 📊 Load Testing (JMeter)
 
 ### Run All Load Tests (Automated)
+
 ```bash
 # Windows
 cd jmeter_tests && run_load_tests.bat
@@ -63,6 +69,7 @@ cd jmeter_tests && ./run_load_tests.sh
 ```
 
 ### Run Single Load Test
+
 ```bash
 # Category test (50 users, 5 min)
 jmeter -n -t CategoryLoadTest.jmx -l results.jtl -e -o results_report
@@ -80,6 +87,7 @@ jmeter -n -t CartLoadTest.jmx -l results.jtl \
 ```
 
 ### Custom Parameters
+
 ```bash
 jmeter -n -t test.jmx -l results.jtl \
   -Jthreads=300 \        # Thread count
@@ -89,12 +97,14 @@ jmeter -n -t test.jmx -l results.jtl \
 ```
 
 ### Run JMeter GUI
+
 ```bash
 jmeter
 # File → Open → Select .jmx file → Click green Play button
 ```
 
 ### Increase JVM Memory
+
 ```bash
 jmeter -Xmx4g -n -t test.jmx -l results.jtl
 ```
@@ -104,11 +114,13 @@ jmeter -Xmx4g -n -t test.jmx -l results.jtl
 ## 📈 View Results
 
 ### Unit Test Report
+
 ```
 build/reports/tests/test/index.html
 ```
 
 ### Load Test Reports
+
 ```
 jmeter_tests/load_test_results/CategoryLoadTest_*/index.html
 jmeter_tests/load_test_results/ProductLoadTest_*/index.html
@@ -123,6 +135,7 @@ jmeter_tests/load_test_results/SpikeTest_*/index.html
 ### Test Compilation Issues
 
 **Issue: "cannot find symbol" error**
+
 ```
 Solution:
 ./gradlew.bat clean build
@@ -130,6 +143,7 @@ Solution:
 ```
 
 **Issue: "incompatible types" error**
+
 ```
 Solution:
 1. Check imports are correct
@@ -140,6 +154,7 @@ Solution:
 ### Test Execution Issues
 
 **Issue: "Connection refused" (JMeter)**
+
 ```
 Solution:
 1. Verify app running: curl http://localhost:8080/actuator/health
@@ -148,6 +163,7 @@ Solution:
 ```
 
 **Issue: "Out of Memory"**
+
 ```
 Solution:
 ./gradlew.bat test -Xmx2g
@@ -156,6 +172,7 @@ jmeter -Xmx4g -n -t test.jmx
 ```
 
 **Issue: "Address already in use"**
+
 ```
 Solution:
 # Find process on port 8080
@@ -170,6 +187,7 @@ taskkill /PID <PID> /F     # Windows
 ### JMeter Issues
 
 **Issue: "Connection timeout"**
+
 ```
 Solution:
 1. Increase timeout in test plan
@@ -178,6 +196,7 @@ Solution:
 ```
 
 **Issue: "High error rate"**
+
 ```
 Solution:
 1. Check application logs
@@ -187,6 +206,7 @@ Solution:
 ```
 
 **Issue: "Inconsistent results"**
+
 ```
 Solution:
 1. Run test multiple times
@@ -198,6 +218,7 @@ Solution:
 ### Database Issues
 
 **Issue: "Unique constraint violation" in tests**
+
 ```
 Solution:
 Add @Transactional to test class:
@@ -207,6 +228,7 @@ class MyIntegrationTest { }
 ```
 
 **Issue: "No qualifying bean found"**
+
 ```
 Solution:
 1. Verify @MockBean is used
@@ -219,6 +241,7 @@ Solution:
 ## ✅ Performance Targets
 
 ### Response Time
+
 ```
 Single Operation: < 500ms
 Average Response: < 200ms
@@ -227,6 +250,7 @@ Average Response: < 200ms
 ```
 
 ### Throughput & Errors
+
 ```
 Throughput: > 5 ops/sec (unit tests)
 Throughput: > 100 req/sec (load tests)
@@ -239,6 +263,7 @@ Memory: < 100MB for 50 operations
 ## 📋 Checklist Before Release
 
 ### Testing
+
 - [ ] All 155 tests passing
 - [ ] No flaky tests
 - [ ] Performance tests meet targets
@@ -246,12 +271,14 @@ Memory: < 100MB for 50 operations
 - [ ] Error rate < 1%
 
 ### Documentation
+
 - [ ] Tests documented
 - [ ] Commands verified
 - [ ] README updated
 - [ ] Setup guide current
 
 ### Deployment
+
 - [ ] Tests run in CI/CD
 - [ ] Results logged
 - [ ] Performance baseline established
@@ -262,6 +289,7 @@ Memory: < 100MB for 50 operations
 ## 🎯 Common Workflows
 
 ### Daily Development
+
 ```bash
 # Quick test run
 ./gradlew.bat test
@@ -274,6 +302,7 @@ build/reports/tests/test/index.html
 ```
 
 ### Before Commit
+
 ```bash
 # Full test suite
 ./gradlew.bat clean test
@@ -283,6 +312,7 @@ build/reports/tests/test/index.html
 ```
 
 ### Performance Validation
+
 ```bash
 # Run load tests
 cd jmeter_tests
@@ -293,6 +323,7 @@ load_test_results/*/index.html
 ```
 
 ### Troubleshooting
+
 ```bash
 # Verbose output
 ./gradlew.bat test --info
@@ -309,11 +340,13 @@ load_test_results/*/index.html
 ## 📚 Key Files
 
 ### Test Configuration
+
 ```
 src/main/resources/application-test.yml
 ```
 
 ### Test Files
+
 ```
 src/test/java/com/itc/funkart/product_service/
 ├── repository/
@@ -324,6 +357,7 @@ src/test/java/com/itc/funkart/product_service/
 ```
 
 ### Load Testing
+
 ```
 jmeter_tests/
 ├── *.jmx
@@ -344,15 +378,15 @@ jmeter_tests/
 
 ## ⏱️ Estimated Times
 
-| Task | Time |
-|------|------|
-| All unit tests | 1-2 min |
-| All integration tests | 1-2 min |
-| All performance tests | 1-2 min |
-| Category load test | 5 min |
-| Product load test | 10 min |
-| Cart load test | 10 min |
-| Spike test | 2 min |
+| Task                   | Time    |
+|------------------------|---------|
+| All unit tests         | 1-2 min |
+| All integration tests  | 1-2 min |
+| All performance tests  | 1-2 min |
+| Category load test     | 5 min   |
+| Product load test      | 10 min  |
+| Cart load test         | 10 min  |
+| Spike test             | 2 min   |
 | Full test suite + load | ~32 min |
 
 ---

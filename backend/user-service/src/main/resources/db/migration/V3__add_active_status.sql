@@ -1,0 +1,3 @@
+-- V3: Add is_active column safely
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;

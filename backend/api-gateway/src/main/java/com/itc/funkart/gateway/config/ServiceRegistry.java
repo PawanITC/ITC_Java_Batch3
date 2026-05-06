@@ -1,5 +1,6 @@
 package com.itc.funkart.gateway.config;
 
+import com.itc.funkart.common.constants.ServiceNames;
 import org.springframework.stereotype.Component;
 
 /**
@@ -28,6 +29,11 @@ public interface ServiceRegistry {
     String orderService();
 
     /**
+     * @return Base URL of the Order Service
+     */
+    String productService();
+
+    /**
      * <h2>Default AppConfig-backed implementation</h2>
      * <p>
      * Resolves service URLs from {@link AppConfig#services()} map.
@@ -42,19 +48,25 @@ public interface ServiceRegistry {
             this.config = config;
         }
 
+        // Using the common constant instead of a hardcoded string
         @Override
         public String userService() {
-            return config.getServiceUrl("user-service");
+            return config.getServiceUrl(ServiceNames.USER_SERVICE);
         }
 
         @Override
         public String paymentService() {
-            return config.getServiceUrl("payment-service");
+            return config.getServiceUrl(ServiceNames.PAYMENT_SERVICE);
+        }
+
+        @Override
+        public String productService() {
+            return config.getServiceUrl(ServiceNames.PRODUCT_SERVICE);
         }
 
         @Override
         public String orderService() {
-            return config.getServiceUrl("order-service");
+            return config.getServiceUrl(ServiceNames.ORDER_SERVICE);
         }
     }
 }
