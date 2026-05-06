@@ -7,7 +7,7 @@ import com.itc.funkart.product.dto.request.ProductCreateRequest;
 import com.itc.funkart.product.dto.request.ProductUpdateRequest;
 import com.itc.funkart.product.entity.Category;
 import com.itc.funkart.product.entity.Product;
-import com.itc.funkart.product.kafka.producer.OrderProducer;
+import com.itc.funkart.product.kafka.producer.CheckoutProducer;
 import com.itc.funkart.product.kafka.producer.ProductProducer;
 import com.itc.funkart.product.repository.CategoryRepository;
 import com.itc.funkart.product.repository.ProductRepository;
@@ -55,7 +55,7 @@ class ProductServiceIntegrationTest {
     @MockitoBean
     private JwtConfig jwtConfig;
     @MockitoBean
-    private OrderProducer orderProducer;
+    private CheckoutProducer checkoutProducer;
     @MockitoBean
     private ProductProducer productProducer;
 

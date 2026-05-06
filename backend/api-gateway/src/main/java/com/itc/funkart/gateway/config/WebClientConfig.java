@@ -85,6 +85,14 @@ public class WebClientConfig {
     }
 
     /**
+     * WebClient for the Product Service.
+     */
+    @Bean
+    public WebClient productWebClient() {
+        return createClient(serviceRegistry.productService());
+    }
+
+    /**
      * WebClient for the Order Service.
      */
     @Bean

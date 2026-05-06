@@ -1,9 +1,9 @@
 package com.itc.funkart.mapper;
 
+import com.itc.funkart.common.dto.event.checkout.CheckoutInitiatedEvent;
+import com.itc.funkart.common.dto.event.checkout.CheckoutItemPayload;
 import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
 import com.itc.funkart.common.dto.event.order.OrderEvent;
-import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
-import com.itc.funkart.common.dto.event.order.OrderItemEventPayload;
 import com.itc.funkart.common.enums.order.OrderEventType;
 import com.itc.funkart.common.enums.order.OrderStatus;
 import com.itc.funkart.dto.OrderItemRequest;
@@ -89,15 +89,18 @@ public class OrderMapper {
     /**
      * Maps the incoming Kafka "Initiated" event to a JPA Entity.
      */
-    public Order toEntity(OrderInitiatedEvent event) {
+    public Order toEntity(CheckoutInitiatedEvent event) {
         if (event == null) return null;
 
         Order order = new Order();
-        // Use the newly added orderId for traceability if your DB supports manual ID assignment,
-        // or keep it for logging/correlation context.
-        order.setCustomerId(event.userId());
+
+        // Critical: Mapping userId from the event to customerId in the Entity
+        order.setCustomerId(event.customerId());
         order.setTotalAmount(event.totalAmount());
         order.setStatus(OrderStatus.PENDING);
+
+        // If your Order entity uses a manual ID or tracking ID from Kafka:
+        // order.setId(event.orderId());
 
         return order;
     }
@@ -111,11 +114,11 @@ public class OrderMapper {
      * Calculates subtotals during mapping to minimize logic requirements for downstream consumers.
      * </p>
      */
-    private List<OrderItemEventPayload> mapItemEventPayloads(List<OrderItem> items) {
+    private List<CheckoutItemPayload> mapItemEventPayloads(List<OrderItem> items) {
         if (items == null) return List.of();
 
         return items.stream()
-                .map(item -> new OrderItemEventPayload(
+                .map(item -> new CheckoutItemPayload(
                         item.getProductId(),
                         item.getQuantity(),
                         item.getPriceAtPurchase(),
@@ -136,10 +139,23 @@ public class OrderMapper {
                 .collect(Collectors.toList());
     }
 
+
     private OrderItem toItemEntity(OrderItemRequest itemRequest) {
         return OrderItem.builder()
                 .productId(itemRequest.getProductId())
                 .quantity(itemRequest.getQuantity())
+                .build();
+    }
+
+    public CheckoutInitiatedEvent toInitiatedEvent(Order order) {
+        if (order == null) return null;
+
+        return CheckoutInitiatedEvent.builder()
+                .eventType(OrderEventType.ORDER_INITIATED)
+                .customerId(order.getCustomerId())
+                .totalAmount(order.getTotalAmount())
+                .items(mapItemEventPayloads(order.getItems()))
+                .currency("usd")
                 .build();
     }
 }

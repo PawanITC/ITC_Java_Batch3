@@ -1,14 +1,17 @@
 package com.itc.funkart.payment.service;
 
-import com.itc.funkart.payment.auth.claims.JwtClaims;
+import com.itc.funkart.common.constants.auth.JwtClaims;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import com.itc.funkart.payment.config.JwtConfig;
-import com.itc.funkart.payment.dto.jwt.JwtUserDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -24,18 +27,18 @@ import static org.mockito.Mockito.when;
 class JwtServiceTest {
 
     // A valid 256-bit secret for testing
-    private static final String TEST_SECRET = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
+    private static final String PLAIN_SECRET = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
+    private static final String BASE64_SECRET = Base64.getEncoder().encodeToString(PLAIN_SECRET.getBytes());
     private JwtService jwtService;
     private JwtUserDto testUser;
 
     @BeforeEach
     void setUp() {
-        // 1. Mock the config instead of instantiating it
         JwtConfig jwtConfig = mock(JwtConfig.class);
-        when(jwtConfig.getSecret()).thenReturn(TEST_SECRET);
-        when(jwtConfig.getExpirationMs()).thenReturn(3600000L);
+        when(jwtConfig.getSecret()).thenReturn(BASE64_SECRET);
+        // Matching your service logic: now.plus(jwtConfig.getExpirationMs())
+        when(jwtConfig.getExpirationMs()).thenReturn(Duration.ofHours(1));
 
-        // 2. Pass the mock into the service
         jwtService = new JwtService(jwtConfig);
 
         testUser = JwtUserDto.builder()
@@ -105,8 +108,8 @@ class JwtServiceTest {
         void rejectExpiredToken() {
             // 1. Create a "poisoned" mock config
             JwtConfig expiredConfig = mock(JwtConfig.class);
-            when(expiredConfig.getSecret()).thenReturn(TEST_SECRET);
-            when(expiredConfig.getExpirationMs()).thenReturn(-1000L); // Expired 1 second ago
+            when(expiredConfig.getSecret()).thenReturn(PLAIN_SECRET);
+            when(expiredConfig.getExpirationMs()).thenReturn(Duration.ofHours(-1)); // Expired 1 second ago
 
             // 2. Inject it into a new service instance
             JwtService expiredService = new JwtService(expiredConfig);
@@ -129,7 +132,7 @@ class JwtServiceTest {
             String validBase64Secret = "cm9ndWUtc2VjcmV0LWtleS0xMjM0NTY3ODkwLWFia2xkZg==";
 
             when(rogueConfig.getSecret()).thenReturn(validBase64Secret);
-            when(rogueConfig.getExpirationMs()).thenReturn(3600000L);
+            when(rogueConfig.getExpirationMs()).thenReturn(Duration.ofHours(1));
 
             // This constructor will now pass without throwing an IllegalArgumentException
             JwtService rogueService = new JwtService(rogueConfig);
@@ -151,7 +154,7 @@ class JwtServiceTest {
             String rogueToken = io.jsonwebtoken.Jwts.builder()
                     .subject("123")
                     .issuer("ROGUE_AUTHORITY")
-                    .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(TEST_SECRET.getBytes()))
+                    .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(PLAIN_SECRET.getBytes()))
                     .compact();
 
             assertFalse(jwtService.validateToken(rogueToken));

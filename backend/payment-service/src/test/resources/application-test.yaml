@@ -1,35 +1,46 @@
 spring:
   application:
-    name: payment-service
+    name: payment-service-test
+
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL # Added PostgreSQL mode for compatibility
+    # H2 in-memory leverages the JVM's Heap memory for high-speed test execution
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
+
   jpa:
-    # Let Hibernate 6 auto-detect the dialect (don't force PostgreSQLDialect here)
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
   kafka:
-    bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:9092}
+    # This placeholder is dynamically filled by the @EmbeddedKafka broker
+    bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
     consumer:
-      group-id: payment-test-group
+      # Random UUID prevents group ID clashes in the JVM's process memory
+      group-id: test-group-${random.uuid}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "com.itc.funkart.payment.dto.event"
-        # ADD THESE TO YOUR TEST YAML TOO:
-        spring.json.value.default.type: "com.itc.funkart.payment.dto.event.OrderCreatedEvent"
-        spring.json.use.type.headers: false
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: true
+        # maps the incoming Kafka event to your common library DTO
+        spring.json.type.mapping: "OrderCreatedEvent:com.itc.funkart.common.dto.event.order.OrderCreatedEvent"
 
 jwt:
+  # Dummy secret to satisfy JwtService bean initialization in the JVM
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-  expiration-ms: 3600000
+  expiration-ms: 1h
 
 stripe:
   api-key: sk_test_dummy

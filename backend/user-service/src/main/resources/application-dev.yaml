@@ -13,27 +13,22 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
-  # FLYWAY: Professional Database Migration Management
   flyway:
     enabled: true
-    # If the DB already has tables, start from 'baseline' version 0
     baseline-on-migrate: true
-    # Location of your V1__init_schema_and_admin.sql script
     locations: classpath:db/migration
 
   jpa:
     hibernate:
-      # 'validate' ensures Flyway-created tables match your Java @Entity classes.
-      # It prevents accidental schema drops or destructive updates.
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: ${SHOW_SQL:true}
     open-in-view: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true # Pretty-prints SQL in logs for easier debugging
+        format_sql: true
 
-  # --- INFRASTRUCTURE: REDIS (Caching & Session) ---
+  # --- INFRASTRUCTURE: REDIS ---
   data:
     redis:
       host: ${REDIS_HOST:redis}
@@ -41,30 +36,3 @@ spring:
       timeout: 2000ms
     cache:
       type: redis
-
-  # --- INFRASTRUCTURE: KAFKA (Event Messaging) ---
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
-      # Banker Logic: High Reliability Settings
-      acks: all
-      retries: 2147483647
-      properties:
-        enable.idempotence: true # Prevents duplicate events
-        linger.ms: 5
-        batch.size: 16384
-        reconnect.backoff.ms: 50
-        spring.json.trusted.packages: "com.itc.funkart.*"
-
-# --- OBSERVABILITY & MONITORING ---
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always

@@ -5,7 +5,7 @@ import com.itc.funkart.product.dto.request.CartItemUpdateDto;
 import com.itc.funkart.product.entity.Cart;
 import com.itc.funkart.product.entity.CartItem;
 import com.itc.funkart.product.entity.Product;
-import com.itc.funkart.product.kafka.producer.OrderProducer;
+import com.itc.funkart.product.kafka.producer.CheckoutProducer;
 import com.itc.funkart.product.repository.CartRepository;
 import com.itc.funkart.product.repository.ProductRepository;
 import com.itc.funkart.product.util.SecurityUtils;
@@ -41,7 +41,7 @@ class CartServiceImplTest {
     @Mock
     private ProductRepository productRepository;
     @Mock
-    private OrderProducer orderProducer;
+    private CheckoutProducer checkoutProducer;
     @InjectMocks
     private CartServiceImpl cartService;
     private MockedStatic<SecurityUtils> mockedSecurity;

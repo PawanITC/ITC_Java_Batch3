@@ -1,82 +1,113 @@
 package com.itc.funkart.kafka.consumer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itc.funkart.common.constants.messaging.KafkaGroups;
 import com.itc.funkart.common.constants.messaging.KafkaTopics;
-import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
-import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
+import com.itc.funkart.common.dto.event.checkout.CheckoutInitiatedEvent;
+import com.itc.funkart.common.dto.event.payment.PaymentCompletedEvent;
+import com.itc.funkart.common.dto.event.payment.PaymentFailedEvent;
+import com.itc.funkart.common.dto.event.payment.PaymentRefundedEvent;
 import com.itc.funkart.common.enums.order.OrderStatus;
 import com.itc.funkart.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
-/**
- * <h2>Order Event Consumer</h2>
- * <p>
- * This component is the "Listener" of the Order Service. It watches the Kafka
- * {@code orders} topic and reacts whenever an event is detected.
- * </p>
- *
- * <h3>How it works:</h3>
- * <ul>
- *   <li><b>Type-Safe Routing:</b> Using {@link KafkaHandler}, Spring automatically
- *   routes the message to the correct method based on its Java class type.</li>
- *   <li><b>Idempotency:</b> We use a {@code groupId} to ensure that if we scale
- *   this service, only one instance processes each specific event.</li>
- * </ul>
- */
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@KafkaListener(topics = KafkaTopics.ORDERS, groupId = "order-service-group")
 public class OrderEventConsumer {
 
     private final OrderService orderService;
+    private final ObjectMapper objectMapper;
 
-    /**
-     * <h3>Handle Order Initiation</h3>
-     * <p>Triggered when a user clicks 'Checkout' in the Cart service.
-     * This method starts the actual creation of the order record in our DB.</p>
-     */
-    @KafkaHandler
-    public void handleOrderInitiated(OrderInitiatedEvent event) {
-        log.info("📥 [OrderInitiatedEvent] Received for User: {} | Amount: {}",
-                event.userId(), event.totalAmount());
+    // -------------------------------------------------------------------------
+    // CHECKOUT_INITIATED
+    // -------------------------------------------------------------------------
 
+    @KafkaListener(
+            topics = KafkaTopics.CHECKOUT_INITIATED,
+            groupId = KafkaGroups.ORDER_SERVICE_GROUP
+    )
+    public void handleCheckoutInitiated(
+            @Payload Map<String, Object> payload,
+            Acknowledgment ack
+    ) {
         try {
+            CheckoutInitiatedEvent event =
+                    objectMapper.convertValue(payload, CheckoutInitiatedEvent.class);
+
+            log.info("📥 [CHECKOUT_INITIATED] customerId={} amount={} items={}",
+                    event.customerId(),
+                    event.totalAmount(),
+                    event.items() != null ? event.items().size() : 0);
+
             orderService.processOrderInitiation(event);
+
+            ack.acknowledge();
+
         } catch (Exception e) {
-            log.error("❌ Failed to process initiation for User {}: {}",
-                    event.userId(), e.getMessage());
+            log.error("❌ Failed CHECKOUT_INITIATED processing payload={}", payload, e);
+            // no ack → retry
         }
     }
 
-    /**
-     * <h3>Handle Order Cancellation</h3>
-     * <p>Triggered when an order is voided. This updates our local RDBMS
-     * status to ensure consistency across the system.</p>
-     */
-    @KafkaHandler
-    public void handleOrderCancelled(OrderCancelledEvent event) {
-        log.info("🚫 [OrderCancelledEvent] Received for Order ID: {}", event.orderId());
+    // -------------------------------------------------------------------------
+    // PAYMENTS_EVENTS (Payment lifecycle stream)
+    // -------------------------------------------------------------------------
+
+    @KafkaListener(
+            topics = KafkaTopics.PAYMENTS_EVENTS,
+            groupId = KafkaGroups.ORDER_SERVICE_GROUP
+    )
+    public void handlePaymentOutcome(
+            @Payload Map<String, Object> payload,
+            @Header("event_type") byte[] eventTypeBytes,
+            Acknowledgment ack
+    ) {
+        String eventType = new String(eventTypeBytes, java.nio.charset.StandardCharsets.UTF_8);
+
+        log.info("💳 [PAYMENTS_EVENTS] type={} payload={}", eventType, payload);
 
         try {
-            orderService.updateOrderStatus(event.orderId(), OrderStatus.CANCELLED);
-            log.info("✅ Order {} status updated to CANCELLED", event.orderId());
-        } catch (Exception e) {
-            log.error("❌ Failed to update cancellation for Order {}: {}",
-                    event.orderId(), e.getMessage());
-        }
-    }
+            switch (eventType) {
 
-    /**
-     * Catch-all for unknown message types to prevent the consumer from
-     * getting stuck in an infinite retry loop on unparseable data.
-     */
-    @KafkaHandler(isDefault = true)
-    public void handleUnknown(Object event) {
-        log.warn("⚠️ Received unknown event type in Order Topic: {}",
-                event.getClass().getSimpleName());
+                case "PAYMENT_SUCCESS" -> {
+                    PaymentCompletedEvent event =
+                            objectMapper.convertValue(payload, PaymentCompletedEvent.class);
+
+                    orderService.updateOrderStatus(event.orderId(), OrderStatus.PAID);
+                }
+
+                case "PAYMENT_FAILED" -> {
+                    PaymentFailedEvent event =
+                            objectMapper.convertValue(payload, PaymentFailedEvent.class);
+
+                    orderService.updateOrderStatus(event.orderId(), OrderStatus.FAILED);
+                }
+
+                case "ORDER_REFUNDED" -> {
+                    PaymentRefundedEvent event =
+                            objectMapper.convertValue(payload, PaymentRefundedEvent.class);
+
+                    orderService.updateOrderStatus(event.orderId(), OrderStatus.REFUNDED);
+                }
+
+                default -> log.warn("⚠️ Unknown event type: {}", eventType);
+            }
+
+            ack.acknowledge();
+
+        } catch (Exception e) {
+            log.error("❌ PAYMENT_PROCESS failed type={} payload={}",
+                    eventType, payload, e);
+            // retry
+        }
     }
 }

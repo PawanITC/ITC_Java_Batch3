@@ -2,37 +2,60 @@ spring:
   application:
     name: order-service
 
-  # --- WEB & PAGINATION ---
-  data:
-    web:
-      pageable:
-        default-page-size: 10
-        max-page-size: 100
-        one-indexed-parameters: false # Keeps the JVM stack aligned with 0-based arrays
-
-  # --- KAFKA CORE ---
   kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.add.type.headers: true # Enabled to support polymorphic Record types
+        spring.json.add.type.headers: false
 
     consumer:
       group-id: order-service-group-v1
-      auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+
       properties:
-        # Trust the common DTO package where our Records live
-        spring.json.trusted.packages: "com.itc.funkart.common.dto.event.order"
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: java.util.Map
+        spring.json.trusted.packages: "com.itc.funkart.*"
 
-# --- SECURITY & IDENTITY ---
-jwt:
-  secret: ${JWT_SECRET}
-  expiration-ms: ${JWT_EXPIRATION:3600000}
-
-# --- SERVER RUNTIME ---
 server:
   port: 8080
-  shutdown: graceful # Allows the JVM to finish processing events before exiting
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
+    metrics:
+      export:
+        url: ${OTEL_METRICS_ENDPOINT:http://otel-collector:4318}
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  observations:
+    key-values:
+      application: ${spring.application.name}
+  loki:
+    endpoint: ${LOKI_URL:http://loki:3100/loki/api/v1/push}
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %m%n"
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600s}

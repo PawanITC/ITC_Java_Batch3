@@ -1,6 +1,7 @@
 package com.itc.funkart.product.serviceImpl;
 
-import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
+import com.itc.funkart.common.dto.event.checkout.CheckoutInitiatedEvent;
+import com.itc.funkart.common.dto.event.checkout.CheckoutItemPayload;
 import com.itc.funkart.common.enums.order.OrderEventType;
 import com.itc.funkart.product.dto.request.AddToCartRequest;
 import com.itc.funkart.product.dto.request.CartItemUpdateDto;
@@ -9,7 +10,7 @@ import com.itc.funkart.product.entity.Cart;
 import com.itc.funkart.product.entity.CartItem;
 import com.itc.funkart.product.entity.Product;
 import com.itc.funkart.product.exceptions.ResourceNotFoundException;
-import com.itc.funkart.product.kafka.producer.OrderProducer;
+import com.itc.funkart.product.kafka.producer.CheckoutProducer;
 import com.itc.funkart.product.mapper.CartMapper;
 import com.itc.funkart.product.repository.CartRepository;
 import com.itc.funkart.product.repository.ProductRepository;
@@ -19,8 +20,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,7 +37,7 @@ public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
-    private final OrderProducer orderProducer;
+    private final CheckoutProducer checkoutProducer;
 
     /**
      * Private Gatekeeper: DRYs up the identity and retrieval logic.
@@ -129,45 +128,49 @@ public class CartServiceImpl implements CartService {
             throw new IllegalStateException("Cannot checkout an empty cart");
         }
 
-        // 1. Prepare Product List & Total
-        List<Long> productIds = cart.getItems().stream()
-                .map(item -> item.getProduct().getId())
+        List<CheckoutItemPayload> items = cart.getItems().stream()
+                .map(ci -> {
+                    BigDecimal price = ci.getProduct().getPrice();
+                    int qty = ci.getQuantity();
+
+                    return new CheckoutItemPayload(
+                            ci.getProduct().getId(),
+                            qty,
+                            price,
+                            price.multiply(BigDecimal.valueOf(qty))
+                    );
+                })
                 .toList();
 
-        BigDecimal total = cart.getItems().stream()
-                .map(item -> item.getProduct().getPrice()
-                        .multiply(BigDecimal.valueOf(item.getQuantity())))
+        BigDecimal total = items.stream()
+                .map(CheckoutItemPayload::subtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 2. Build the split Event DTO
-        // Note: For 'Initiated' events, orderId might be null or a temporary tracking ID
-        OrderInitiatedEvent event = OrderInitiatedEvent.builder()
+        CheckoutInitiatedEvent event = CheckoutInitiatedEvent.builder()
                 .eventType(OrderEventType.ORDER_INITIATED)
-                .orderId(null) // OrderService will assign the primary key upon receipt
-                .userId(cart.getUserId())
+                .customerId(cart.getUserId())
                 .totalAmount(total)
-                .productIds(productIds)
+                .items(items)
+                .currency("USD")
                 .build();
 
-        log.debug("🛒 Checkout initiated. Encapsulating {} items for User: {}",
-                productIds.size(), cart.getUserId());
+        log.debug("🛒 Checkout initiated | user={} | total={}", cart.getUserId(), total);
 
-        // 3. Clear the Cart (Database Update)
-        cart.getItems().clear();
-        cartRepository.save(cart);
-
-        // 4. Synchronize with Kafka
-        registerOrderEvent(event);
+        registerCheckoutEvent(event, () -> {
+            cart.getItems().clear();
+            cartRepository.save(cart);
+        });
     }
 
-    private void registerOrderEvent(OrderInitiatedEvent event) {
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    orderProducer.sendOrderEvent(event);
-                }
-            });
-        }
+    private void registerCheckoutEvent(CheckoutInitiatedEvent event, Runnable onSuccess) {
+        checkoutProducer.sendCheckoutEvent(event)
+                .whenComplete((result, ex) -> {
+                    if (ex == null) {
+                        log.info("✅ Kafka ACK received for checkout event");
+                        onSuccess.run();
+                    } else {
+                        log.error("❌ Kafka send failed — cart NOT cleared", ex);
+                    }
+                });
     }
 }

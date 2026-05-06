@@ -9,6 +9,7 @@ import ProductManagement from "./pages/product/ProductManagement";
 
 import UserProductStore from "./pages/product/UserProductStore";
 import AdminProductManagement from "./pages/product/AdminProductManagement";
+import OAuthSuccess from "./pages/OAuthSuccess.tsx";
 // import ProductManagement from "./pages/product/ProductManagement";
 
 // import UserProductStore from "./pages/product/UserProductStore";

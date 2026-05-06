@@ -1,9 +1,10 @@
 package com.itc.funkart.payment.security;
 
-import com.itc.funkart.payment.auth.claims.JwtClaims;
-import com.itc.funkart.payment.dto.jwt.JwtUserDto;
+import com.itc.funkart.common.constants.auth.JwtClaims;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import com.itc.funkart.payment.service.JwtService;
 import io.jsonwebtoken.Claims;
+import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -51,8 +52,8 @@ public class JwtWebFilter extends OncePerRequestFilter {
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    @Nonnull HttpServletResponse response,
+                                    @Nonnull FilterChain filterChain) throws ServletException, IOException {
 
         // 1. FAST PASS: Bypass security logic for Stripe webhooks
         if (request.getServletPath().contains("/payments/webhook")) {

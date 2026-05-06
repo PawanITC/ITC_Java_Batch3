@@ -1,21 +1,22 @@
 package com.itc.funkart.payment.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.itc.funkart.payment.entity.Payment;
 
 import java.time.LocalDateTime;
 
 /**
- * Data Transfer Object (DTO) for public-facing Payment details.
+ * <h2>PaymentResponse</h2>
  * <p>
- * DESIGN NOTES:
- * 1. <b>Isolation:</b> This record separates our internal JPA Entity (Payment) from
- * the JSON response sent to the Frontend, preventing internal database
- * schema changes from breaking the API contract.
- * 2. <b>Factory Pattern:</b> Uses the static {@link #from(Payment)} method to
- * centralize mapping logic, ensuring consistency across all Controller endpoints.
- * 3. <b>Cents-Standard:</b> The 'amount' field represents the value in the
- * smallest currency unit (e.g., cents), matching Stripe's internal logic.
+ * Data Transfer Object (DTO) for public-facing Payment details.
+ * This record provides a sanitized view of the {@link Payment} entity for client consumption.
  * </p>
+ * <p><b>Design Principles:</b></p>
+ * <ul>
+ *   <li><b>Immutability:</b> Leverages Java Records for thread-safe, stack-efficient data handling.</li>
+ *   <li><b>Precision:</b> Amounts are kept in cents (Long) to avoid floating-point errors in the JVM.</li>
+ *   <li><b>Isolation:</b> Prevents internal JPA schema leaks to the Frontend.</li>
+ * </ul>
  */
 public record PaymentResponse(
         Long id,
@@ -23,16 +24,21 @@ public record PaymentResponse(
         Long orderId,
         Long amount,      // Value in cents (e.g., 1999 for $19.99)
         String currency,  // ISO currency code (e.g., "usd")
-        String status,    // Enum-like string: "pending", "succeeded", etc.
+        String status,    // "PENDING", "SUCCEEDED", "FAILED", "REFUNDED"
+
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
         LocalDateTime createdAt
 ) {
     /**
-     * Maps a persistent Payment entity to a read-only Response record.
-     * * @param payment The JPA Entity retrieved from the database.
+     * Static factory to map the internal JPA Entity to a safe Response DTO.
      *
-     * @return A sanitized, immutable version of the payment data for the client.
+     * @param payment The persistent Entity retrieved from the database.
+     * @return A read-only representation of the payment status.
      */
     public static PaymentResponse from(Payment payment) {
+        if (payment == null) {
+            return null;
+        }
         return new PaymentResponse(
                 payment.getId(),
                 payment.getUserId(),

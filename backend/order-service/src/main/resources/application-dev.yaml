@@ -1,37 +1,20 @@
 spring:
-  config:
-    activate:
-      on-profile: dev
-
-  # --- DATABASE (LOCAL/DOCKER) ---
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
     username: ${DB_USER}
     password: ${DB_PASS}
+    driver-class-name: org.postgresql.Driver
 
-  # --- KAFKA (LOCAL/DOCKER) ---
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
-
-  # --- JPA / HIBERNATE (VELOCITY) ---
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update # Automatically syncs DB schema with Java @Entity changes
-    show-sql: true     # Prints SQL to console for debugging the Execution Engine
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
-        use_sql_comments: true
 
-  # --- CACHE (LOCAL/DOCKER) ---
   data:
     redis:
       host: ${REDIS_HOST}
       port: 6379
-
-# --- DEBUG LOGGING ---
-logging:
-  level:
-    root: INFO
-    com.itc.funkart: DEBUG # Deep visibility into business logic transitions
-    org.springframework.transaction: DEBUG # Track the TransactionSync hooks

@@ -1,56 +1,55 @@
 package com.itc.funkart.product.kafka;
 
 import com.itc.funkart.common.constants.messaging.KafkaTopics;
-import lombok.RequiredArgsConstructor;
-import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JsonSerializer;
-
-import java.util.Map;
+import org.apache.kafka.clients.admin.NewTopic;
 
 /**
- * Infrastructure configuration for Kafka Messaging.
- * Defines the initial topics and partition counts required for the service.
+ * <h2>Product Service Kafka Infrastructure</h2>
+ *
+ * <h3>Topic ownership principle:</h3>
+ * <p>Each service provisions only the topics it <em>produces to</em>.
+ * Consumers never provision producer topics — that avoids partition count conflicts
+ * when both sides try to auto-create with different settings.</p>
+ *
+ * <p>Product Service produces to:</p>
+ * <ul>
+ *   <li>{@code PRODUCTS} — product catalog events (create, delete)</li>
+ *   <li>{@code PRODUCT_INVENTORY} — stock level changes</li>
+ *   <li>{@code ORDER_INITIATED} — checkout events sent downstream</li>
+ * </ul>
+ *
+ * <h3>Fix:</h3>
+ * <p>Was provisioning {@code ORDERS} ("orders.events.v1") — that topic belongs to
+ * the Order Service. Removed it here. Added {@code ORDER_INITIATED} which is what
+ * this service actually produces to.</p>
  */
 @Configuration
-@RequiredArgsConstructor
 public class KafkaConfig {
-
-    private final KafkaProperties kafkaProperties;
-
-    @Bean
-    public ProducerFactory<String, Object> producerFactory() {
-        Map<String, Object> props = kafkaProperties.buildProducerProperties(null);
-
-        // Senior Level: Dynamic Client ID for JMX monitoring
-        String podName = System.getenv().getOrDefault("HOSTNAME", "local-dev");
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, "product-service-" + podName);
-
-        // Best Practice: Disable type headers for cross-service compatibility
-        props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
-
-        return new DefaultKafkaProducerFactory<>(props);
-    }
-
-    @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate(ProducerFactory<String, Object> producerFactory) {
-        return new KafkaTemplate<>(producerFactory);
-    }
 
     @Bean
     public NewTopic productTopic() {
-        return TopicBuilder.name(KafkaTopics.PRODUCTS).partitions(3).build();
+        return TopicBuilder.name(KafkaTopics.PRODUCTS)
+                .partitions(3)
+                .replicas(1)
+                .build();
     }
 
     @Bean
-    public NewTopic orderTopic() {
-        return TopicBuilder.name(KafkaTopics.ORDERS).partitions(3).build();
+    public NewTopic productInventoryTopic() {
+        return TopicBuilder.name(KafkaTopics.PRODUCT_INVENTORY)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic orderInitiatedTopic() {
+        return TopicBuilder.name(KafkaTopics.CHECKOUT_INITIATED)
+                .partitions(3)
+                .replicas(1)
+                .build();
     }
 }

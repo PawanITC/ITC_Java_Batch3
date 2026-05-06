@@ -118,6 +118,8 @@ public class JwtAuthWebFilter implements WebFilter {
         return path.startsWith("/actuator") ||
                 path.contains("/api/v1/users/login") ||
                 path.contains("/api/v1/users/signup") ||
-                path.contains("/api/v1/oauth");
+                path.contains("/api/v1/oauth") ||
+                path.contains("/payments/webhook") ||
+                path.contains("/api/v1/payments/webhook");
     }
 }

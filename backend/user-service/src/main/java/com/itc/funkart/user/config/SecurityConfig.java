@@ -40,6 +40,7 @@ public class SecurityConfig {
     private final JwtService jwtService;
     private final PrincipalFactory principalFactory;
 
+
     /**
      * Initializes the JWT Filter.
      * <p>Note: Ensure this filter contains logic to call {@code chain.doFilter}

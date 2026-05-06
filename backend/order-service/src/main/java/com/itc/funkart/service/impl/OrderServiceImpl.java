@@ -1,6 +1,6 @@
 package com.itc.funkart.service.impl;
 
-import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
+import com.itc.funkart.common.dto.event.checkout.CheckoutInitiatedEvent;
 import com.itc.funkart.common.enums.order.OrderEventType;
 import com.itc.funkart.common.enums.order.OrderStatus;
 import com.itc.funkart.dto.OrderResponse;
@@ -20,17 +20,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * <h2>OrderServiceImpl</h2>
- * <p>
- * Implementation of {@link OrderService} focused on high-throughput event processing.
- * Maps JPA entities to specialized Records to ensure <b>Method Area</b> efficiency.
- * </p>
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -43,20 +35,22 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     @CircuitBreaker(name = "orderService")
-    public OrderResponse processOrderInitiation(OrderInitiatedEvent event) {
-        log.info("📥 Processing Initiation for User: {} | Amount: {}", event.userId(), event.totalAmount());
+    public OrderResponse processOrderInitiation(CheckoutInitiatedEvent event) {
+        log.info("📥 Processing Initiation for User: {} | Amount: {}", event.customerId(), event.totalAmount());
 
         Order order = mapper.toEntity(event);
 
-        event.productIds().forEach(pid -> order.addOrderItem(OrderItem.builder()
-                .productId(pid)
-                .quantity(1)
-                .priceAtPurchase(BigDecimal.valueOf(100.00))
-                .build()));
+        event.items().forEach(
+                itemPayload -> order.addOrderItem(OrderItem.builder()
+                        .productId(itemPayload.productId())
+                        .quantity(itemPayload.quantity())
+                        .priceAtPurchase(itemPayload.price())
+                        .build()));
 
-        Order saved = repository.save(order);
+        Order saved = repository.saveAndFlush(order);
+        log.info("✅ Order {} persisted for Customer {}", saved.getId(), saved.getCustomerId());
 
-        eventService.sendOrderEvent(saved, OrderEventType.ORDER_INITIATED);
+        eventService.sendOrderCreated(saved);
 
         return mapper.toResponse(saved);
     }
@@ -72,7 +66,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setStatus(OrderStatus.CANCELLED);
-        repository.save(order);
+        repository.saveAndFlush(order);
 
         eventService.sendOrderEvent(order, OrderEventType.ORDER_CANCELLED);
     }
@@ -88,15 +82,19 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setStatus(newStatus);
-        Order updated = repository.save(order);
+        Order updated = repository.saveAndFlush(order);
 
-        // 5. Routing Logic: Map Business Status to Kafka Event Type
-        OrderEventType eventType = switch (newStatus) {
+        // FIX: removed case CONFIRMED -> ORDER_CONFIRMED — neither exists in your enums.
+        // If you later add CONFIRMED to OrderStatus and ORDER_CONFIRMED to OrderEventType,
+        // add the case back at that point.
+        OrderEventType eventType = switch (updated.getStatus()) {
             case PENDING -> OrderEventType.ORDER_INITIATED;
             case PAID -> OrderEventType.PAYMENT_SUCCESS;
             case SHIPPED -> OrderEventType.ORDER_SHIPPED;
             case DELIVERED -> OrderEventType.ORDER_DELIVERED;
+            case CONFIRMED -> OrderEventType.ORDER_CONFIRMED;
             case CANCELLED -> OrderEventType.ORDER_CANCELLED;
+            case FAILED -> OrderEventType.PAYMENT_FAILED;
             case REFUNDED -> OrderEventType.ORDER_REFUNDED;
         };
 
@@ -104,8 +102,6 @@ public class OrderServiceImpl implements OrderService {
 
         return mapper.toResponse(updated);
     }
-
-    // --- Standard Retrieval Methods ---
 
     @Override
     @Transactional(readOnly = true)

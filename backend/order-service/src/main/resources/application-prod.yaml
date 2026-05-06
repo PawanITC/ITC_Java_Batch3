@@ -1,80 +1,29 @@
 spring:
-  config:
-    activate:
-      on-profile: prod
-
-  # --- DATABASE ---
   datasource:
     url: jdbc:postgresql://${PROD_DB_HOST}:5432/order_prod
     username: ${PROD_DB_USER}
     password: ${PROD_DB_PASS}
     hikari:
-      # Optimizing the Connection Pool for JVM efficiency
       maximum-pool-size: 20
-      minimum-idle: 5
-      idle-timeout: 300000
-      connection-timeout: 20000
 
-  # --- JPA / HIBERNATE ---
-  jpa:
-    hibernate:
-      ddl-auto: validate # Critical: Never use 'update' or 'create' in Prod
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: false
-        jdbc.batch_size: 25 # Improves throughput for bulk order items
-        order_inserts: true
-
-  # --- KAFKA ---
   kafka:
     bootstrap-servers: ${PROD_KAFKA_SERVER}
     producer:
-      acks: all # Guarantees no data loss (persists to all replicas)
+      acks: all
       retries: 5
       properties:
-        enable.idempotence: true # Prevents duplicate events during network retries
-        max.in.flight.requests.per.connection: 5
-        compression.type: snappy # Reduces I/O load on the JVM
-    consumer:
-      group-id: order-service-group-v1
-      auto-offset-reset: earliest
-      properties:
-        spring.json.trusted.packages: "com.itc.funkart.common.dto.event.order"
-        # Handles the split-event Record types automatically
-        spring.json.type.mapping: order_initiated:com.itc.funkart.common.dto.event.order.OrderInitiatedEvent,order_cancelled:com.itc.funkart.common.dto.event.order.OrderCancelledEvent
+        enable.idempotence: true
+        compression.type: snappy
 
-  # --- REDIS ---
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.batch_size: 25
+
   data:
     redis:
       host: ${PROD_REDIS_HOST}
-      port: 6379
       ssl:
-        enabled: true # Standard for managed Redis (AWS ElastiCache/Azure)
-      lettuce:
-        pool:
-          max-active: 10
-          max-idle: 5
-
-  # --- MONITORING & OBSERVABILITY ---
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: health,info,metrics,prometheus # Only expose safe endpoints
-    endpoint:
-      health:
-        show-details: when_authorized
-    tracing:
-      sampling:
-        probability: 0.1 # Traces 10% of requests to save CPU cycles
-    metrics:
-      tags:
-        application: ${spring.application.name}
-
-# --- CUSTOM LOGGING ---
-logging:
-  level:
-    root: INFO
-    com.itc.funkart: INFO
-    org.hibernate.SQL: ERROR # Keep the Method Area clean from log noise
+        enabled: true

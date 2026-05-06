@@ -38,9 +38,21 @@ public enum OrderStatus {
     DELIVERED(true),
 
     /**
+     * Order has been confirmed.
+     */
+    CONFIRMED(true),
+
+    /**
      * Order voided before fulfillment.
      */
     CANCELLED(true),
+
+    /**
+     * Payment attempt was declined or errored.
+     * Terminal — the user must start a new order.
+     * Triggers inventory restock and failure notification.
+     */
+    FAILED(true),
 
     /**
      * Transaction reversed and funds returned.

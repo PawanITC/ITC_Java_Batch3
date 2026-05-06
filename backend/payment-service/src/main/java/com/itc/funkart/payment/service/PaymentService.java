@@ -1,9 +1,9 @@
 package com.itc.funkart.payment.service;
 
-import com.itc.funkart.payment.dto.event.PaymentCompletedEvent;
-import com.itc.funkart.payment.dto.event.PaymentFailedEvent;
-import com.itc.funkart.payment.dto.event.PaymentRefundedEvent;
-import com.itc.funkart.payment.dto.jwt.JwtUserDto;
+import com.itc.funkart.common.dto.event.payment.PaymentCompletedEvent;
+import com.itc.funkart.common.dto.event.payment.PaymentFailedEvent;
+import com.itc.funkart.common.dto.event.payment.PaymentRefundedEvent;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import com.itc.funkart.payment.dto.request.ConfirmPaymentRequest;
 import com.itc.funkart.payment.dto.request.CreatePaymentIntentRequest;
 import com.itc.funkart.payment.dto.response.PaymentIntentResponse;
@@ -11,29 +11,19 @@ import com.itc.funkart.payment.dto.response.PaymentResponse;
 import com.itc.funkart.payment.entity.Payment;
 import com.itc.funkart.payment.exception.PaymentException;
 import com.itc.funkart.payment.repository.PaymentRepository;
-import com.itc.funkart.payment.response.ApiResponse;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
-import jakarta.annotation.Nonnull;
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.time.Instant;
 
-/**
- * <h2>PaymentService</h2>
- * <p>
- * The central business logic orchestrator for the Payment domain.
- * It manages the transition of payment states, ensures data ownership via JWT claims,
- * and synchronizes internal state with external Stripe events.
- * </p>
- */
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class PaymentService {
-
-    private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
 
     private static final String STATUS_SUCCEEDED = "succeeded";
     private static final String STATUS_FAILED = "failed";
@@ -41,193 +31,274 @@ public class PaymentService {
     private static final String STATUS_PROCESSING = "PROCESSING";
 
     private final PaymentRepository paymentRepository;
-    private final KafkaEventPublisher kafkaEventPublisher;
     private final StripeService stripeService;
+    private final KafkaEventPublisher kafkaEventPublisher;
 
-    public PaymentService(PaymentRepository paymentRepository,
-                          StripeService stripeService,
-                          KafkaEventPublisher kafkaEventPublisher) {
-        this.paymentRepository = paymentRepository;
-        this.kafkaEventPublisher = kafkaEventPublisher;
-        this.stripeService = stripeService;
-    }
-
-    /**
-     * Initializes a transaction by creating a local record and a Stripe intent.
-     *
-     * @param user    The authenticated user principal.
-     * @param request Contains amount, currency, and order identification.
-     * @return The Stripe client secret and intent metadata.
-     */
+    // -----------------------------
+    // CREATE PAYMENT INTENT (IDEMPOTENT)
+    // -----------------------------
     @Transactional
-    public ApiResponse<PaymentIntentResponse> createPaymentIntent(JwtUserDto user, CreatePaymentIntentRequest request) {
+    public PaymentIntentResponse createPaymentIntent(JwtUserDto user, CreatePaymentIntentRequest request) {
         try {
-            // 1. Create local 'pending' record
-            Payment payment = paymentRepository.save(
-                    new Payment(user.id(), request.orderId(), request.amount(), request.currency()));
+            Payment payment = paymentRepository.findByOrderId(request.orderId())
+                    .orElseGet(() -> paymentRepository.save(
+                            new Payment(user.id(), request.orderId(), request.amount(), request.currency())
+                    ));
 
-            // 2. Create Stripe Intent with local payment ID as metadata
+            if (payment.getStripePaymentIntentId() != null) {
+                log.info("♻️ Reusing existing PaymentIntent for orderId={}", request.orderId());
+                PaymentIntent existing = PaymentIntent.retrieve(payment.getStripePaymentIntentId());
+                return PaymentIntentResponse.from(existing);
+            }
+
             PaymentIntent stripeIntent = stripeService.createPaymentIntent(
-                    request.amount(), request.currency(), user.id(), payment.getId());
+                    request.amount(),
+                    request.currency(),
+                    user.id(),
+                    payment.getId(),
+                    payment.getOrderId()
+            );
 
-            // 3. Link Stripe ID and persist
             payment.setStripePaymentIntentId(stripeIntent.getId());
             paymentRepository.save(payment);
 
-            return new ApiResponse<>(PaymentIntentResponse.from(stripeIntent), "Payment intent created successfully");
+            return PaymentIntentResponse.from(stripeIntent);
+
         } catch (Exception ex) {
-            throw new PaymentException("Failed to create payment intent: " + ex.getMessage());
+            log.error("Failed to create intent for Order: {}", request.orderId(), ex);
+            throw new PaymentException("Intent creation failed: " + ex.getMessage());
         }
     }
 
-    /**
-     * Confirms the intent status after client-side payment method collection.
-     *
-     * @param user    The authenticated user principal.
-     * @param request Contains the Stripe PaymentIntent and PaymentMethod ID.
-     * @return The current state of the payment.
-     */
+    // -----------------------------
+    // CONFIRM PAYMENT (TRIGGER ONLY - NOT SOURCE OF TRUTH)
+    // -----------------------------
     @Transactional
-    public ApiResponse<PaymentResponse> confirmPayment(JwtUserDto user, ConfirmPaymentRequest request) {
+    public PaymentResponse confirmPayment(JwtUserDto user, ConfirmPaymentRequest request) {
         try {
             Payment payment = findPaymentForUser(request.paymentIntentId(), user);
 
+            // 🔐 STRICT GUARD: NEVER override final states
+            if (isFinalState(payment.getStatus())) {
+                log.info("♻️ Payment already finalized: {}", payment.getId());
+                return PaymentResponse.from(payment);
+            }
+
+            if (STATUS_PROCESSING.equals(payment.getStatus())) {
+                log.info("♻️ Payment already processing: {}", payment.getId());
+                return PaymentResponse.from(payment);
+            }
+
             stripeService.confirmPaymentIntent(
-                    request.paymentIntentId(), request.paymentMethodId(), request.returnUrl()
+                    request.paymentIntentId(),
+                    request.paymentMethodId(),
+                    request.returnUrl(),
+                    payment.getId()
             );
 
+            // ONLY provisional state
             payment.setStatus(STATUS_PROCESSING);
             paymentRepository.save(payment);
 
-            return new ApiResponse<>(PaymentResponse.from(payment), "Payment confirmation initiated");
+            return PaymentResponse.from(payment);
+
         } catch (StripeException ex) {
-            throw new PaymentException("Payment confirmation failed: " + ex.getMessage());
+            log.error("Stripe confirmation failed for Intent: {}", request.paymentIntentId(), ex);
+            throw new PaymentException("Confirmation failed: " + ex.getMessage());
         }
     }
 
-    /**
-     * Securely retrieves a payment record for the logged-in user.
-     *
-     * @param user      The authenticated user principal.
-     * @param paymentId The internal database ID.
-     * @return The requested payment details.
-     */
-    public ApiResponse<PaymentResponse> getPayment(JwtUserDto user, Long paymentId) {
-        Payment payment = findPaymentByIdAndUser(paymentId, user);
-        return new ApiResponse<>(PaymentResponse.from(payment), "Payment retrieved successfully");
-    }
-
-    /**
-     * Initiates a refund via Stripe and updates local records.
-     *
-     * @param user      The authenticated user principal.
-     * @param paymentId Internal database ID of the transaction to refund.
-     * @return The updated payment response.
-     */
+    // -----------------------------
+    // REFUND (IDEMPOTENT)
+    // -----------------------------
     @Transactional
-    public ApiResponse<PaymentResponse> refundPayment(JwtUserDto user, Long paymentId) {
+    public PaymentResponse refundPayment(JwtUserDto user, Long paymentId) {
         try {
-            Payment payment = findPaymentByIdAndUser(paymentId, user);
+            Payment payment = paymentRepository.findById(paymentId)
+                    .orElseThrow(() -> new PaymentException("Payment not found"));
 
-            if (!STATUS_SUCCEEDED.equalsIgnoreCase(payment.getStatus())) {
-                throw new PaymentException("Can only refund payments that have succeeded.");
+            if (!user.id().equals(payment.getUserId()))
+                throw new PaymentException("Unauthorized");
+
+            if (STATUS_REFUNDED.equals(payment.getStatus())) {
+                log.info("♻️ Already refunded paymentId={}", paymentId);
+                return PaymentResponse.from(payment);
             }
 
-            // Manual Refund (Admin/User Action)
-            Refund stripeRefund = stripeService.refundPayment(payment.getStripePaymentIntentId());
+            if (!STATUS_SUCCEEDED.equalsIgnoreCase(payment.getStatus())) {
+                throw new PaymentException("Only succeeded payments can be refunded.");
+            }
+
+            Refund stripeRefund = stripeService.refundPayment(
+                    payment.getStripePaymentIntentId(),
+                    paymentId
+            );
 
             payment.setStatus(STATUS_REFUNDED);
             paymentRepository.save(payment);
 
-            // Trigger Kafka event using the MANUAL factory (Refund object)
-            kafkaEventPublisher.publishPaymentRefundedEvent(PaymentRefundedEvent.from(payment, stripeRefund));
+            kafkaEventPublisher.publishPaymentRefundedEvent(PaymentRefundedEvent.builder()
+                    .paymentId(payment.getId())
+                    .orderId(payment.getOrderId())
+                    .stripeRefundId(stripeRefund.getId())
+                    .amountRefunded(stripeRefund.getAmount())
+                    .currency(payment.getCurrency())
+                    .timestamp(Instant.now().toEpochMilli())
+                    .build());
 
-            return new ApiResponse<>(PaymentResponse.from(payment), "Payment refund processed successfully");
-        } catch (Exception e) {
-            throw new PaymentException("Refund failed: " + e.getMessage());
+            return PaymentResponse.from(payment);
+
+        } catch (StripeException ex) {
+            throw new PaymentException("Stripe refund failed: " + ex.getMessage());
         }
     }
 
-    /**
-     * Webhook Entry Point.
-     * Transactional to ensure that DB updates and Kafka publishing happen atomically.
-     */
-    @Transactional
-    public void processWebhookEvent(Event event) {
-        logger.debug("Processing Stripe Event: {} | ID: {}", event.getType(), event.getId());
 
-        // Use the RawJsonObject if the standard object deserializer fails
-        // This is much more resilient for mixed API versions
-        StripeObject stripeObject = getStripeObject(event);
+    public PaymentResponse getPayment(JwtUserDto user, Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentException("Payment not found"));
 
-        switch (event.getType()) {
-            case "payment_intent.succeeded" -> handlePaymentSuccess((PaymentIntent) stripeObject);
-            case "payment_intent.payment_failed" -> handlePaymentFailure((PaymentIntent) stripeObject);
-            case "charge.refunded" -> handlePaymentRefunded((Charge) stripeObject);
-            default -> logger.info("ℹ️ Received unhandled event type: {}", event.getType());
+        if (!user.id().equals(payment.getUserId())) {
+            throw new PaymentException("Unauthorized access to payment");
         }
+
+        return PaymentResponse.from(payment);
     }
 
-    @Nonnull
-    private static StripeObject getStripeObject(Event event) {
-        return event.getDataObjectDeserializer().getObject()
-                .or(() -> Optional.ofNullable(event.getData().getObject())) // Try the deprecated fallback
-                .orElseThrow(() -> new PaymentException("Could not deserialize Stripe event: " + event.getId()));
-    }
-
-
+    // -----------------------------
+    // WEBHOOK (SOURCE OF TRUTH)
+    // -----------------------------
     public void handlePaymentSuccess(PaymentIntent intent) {
-        Payment payment = paymentRepository.findByStripePaymentIntentId(intent.getId())
-                .orElseThrow(() -> new PaymentException("Payment not found: " + intent.getId()));
+        Payment payment = getInternalPayment(intent.getId());
 
-        if (STATUS_SUCCEEDED.equals(payment.getStatus())) return; // Idempotency check
+        if (payment.getStatus() != null && payment.getStatus().equals(STATUS_SUCCEEDED)) {
+            log.info("♻️ Already succeeded payment={}", payment.getId());
+            return;
+        }
 
+        // ONLY upgrade allowed
         payment.setStatus(STATUS_SUCCEEDED);
         paymentRepository.save(payment);
 
-        kafkaEventPublisher.publishPaymentCompletedEvent(PaymentCompletedEvent.from(payment, intent));
-        logger.info("✓ Payment SUCCESS | Order: {}", payment.getOrderId());
+        kafkaEventPublisher.publishPaymentCompletedEvent(PaymentCompletedEvent.builder()
+                .paymentId(payment.getId())
+                .orderId(payment.getOrderId())
+                .stripeId(intent.getId())
+                .amount(intent.getAmountReceived())
+                .timestamp(Instant.now().toEpochMilli())
+                .build());
     }
 
     public void handlePaymentFailure(PaymentIntent intent) {
-        Payment payment = paymentRepository.findByStripePaymentIntentId(intent.getId())
-                .orElseThrow(() -> new PaymentException("Payment not found"));
+        Payment payment = getInternalPayment(intent.getId());
+
+        if (STATUS_SUCCEEDED.equals(payment.getStatus())) {
+            log.warn("⚠️ Ignoring failure after success (race condition)");
+            return;
+        }
+
+        if (STATUS_FAILED.equals(payment.getStatus())) return;
 
         payment.setStatus(STATUS_FAILED);
         paymentRepository.save(payment);
 
-        kafkaEventPublisher.publishPaymentFailedEvent(PaymentFailedEvent.from(payment, intent));
-        logger.warn("✗ Payment FAILED | Intent: {}", intent.getId());
+        var error = intent.getLastPaymentError();
+
+        kafkaEventPublisher.publishPaymentFailedEvent(PaymentFailedEvent.builder()
+                .paymentId(payment.getId())
+                .orderId(payment.getOrderId())
+                .stripeId(intent.getId())
+                .errorMessage(error != null ? error.getMessage() : "Payment declined")
+                .stripeErrorCode(error != null ? error.getCode() : "unknown")
+                .timestamp(Instant.now().toEpochMilli())
+                .build());
     }
 
-    private void handlePaymentRefunded(Charge charge) {
-        Payment payment = paymentRepository.findByStripePaymentIntentId(charge.getPaymentIntent())
-                .orElseThrow(() -> new PaymentException("Payment not found"));
+    public void handlePaymentRefunded(Charge charge) {
+        Payment payment = getInternalPayment(charge.getPaymentIntent());
+
+        if (STATUS_REFUNDED.equals(payment.getStatus())) return;
 
         payment.setStatus(STATUS_REFUNDED);
         paymentRepository.save(payment);
 
-        // WEBHOOK Factory: Uses our charge.getRefunds() logic to get specific amount
-        kafkaEventPublisher.publishPaymentRefundedEvent(PaymentRefundedEvent.from(payment, charge));
-        logger.info("↺ Payment REFUNDED via Webhook | Intent: {}", charge.getPaymentIntent());
+        String refundId = (charge.getRefunds() != null && !charge.getRefunds().getData().isEmpty())
+                ? charge.getRefunds().getData().get(0).getId()
+                : "re_webhook";
+
+        kafkaEventPublisher.publishPaymentRefundedEvent(PaymentRefundedEvent.builder()
+                .paymentId(payment.getId())
+                .orderId(payment.getOrderId())
+                .stripeRefundId(refundId)
+                .amountRefunded(charge.getAmountRefunded())
+                .currency(payment.getCurrency())
+                .timestamp(Instant.now().toEpochMilli())
+                .build());
+    }
+
+
+    @Transactional
+    public void processWebhookEvent(Event event) {
+
+        log.debug("Processing Webhook Event | ID: {} | Type: {}", event.getId(), event.getType());
+
+        StripeObject stripeObject;
+        try {
+            stripeObject = event.getDataObjectDeserializer()
+                    .getObject()
+                    .orElseGet(() -> {
+                        try {
+                            return event.getDataObjectDeserializer().deserializeUnsafe();
+                        } catch (StripeException e) {
+                            throw new PaymentException("Failed to deserialize Stripe event: " + event.getId());
+                        }
+                    });
+        } catch (Exception ex) {
+            throw new PaymentException("Webhook deserialization failure: " + event.getId());
+        }
+
+        switch (event.getType()) {
+
+            case "payment_intent.succeeded" -> {
+                if (stripeObject instanceof PaymentIntent intent) {
+                    handlePaymentSuccess(intent);
+                }
+            }
+
+            case "payment_intent.payment_failed" -> {
+                if (stripeObject instanceof PaymentIntent intent) {
+                    handlePaymentFailure(intent);
+                }
+            }
+
+            case "charge.refunded" -> {
+                if (stripeObject instanceof Charge charge) {
+                    handlePaymentRefunded(charge);
+                }
+            }
+
+            default -> log.info("ℹ️ Unhandled event type: {}", event.getType());
+        }
+    }
+
+    // -----------------------------
+    // HELPERS
+    // -----------------------------
+    private boolean isFinalState(String status) {
+        return STATUS_SUCCEEDED.equals(status)
+                || STATUS_FAILED.equals(status)
+                || STATUS_REFUNDED.equals(status);
+    }
+
+    private Payment getInternalPayment(String stripeId) {
+        return paymentRepository.findByStripePaymentIntentId(stripeId)
+                .orElseThrow(() -> new PaymentException("Local payment record not found for: " + stripeId));
     }
 
     private Payment findPaymentForUser(String stripeId, JwtUserDto user) {
-        Payment payment = paymentRepository.findByStripePaymentIntentId(stripeId)
-                .orElseThrow(() -> new PaymentException("Payment not found for Stripe ID: " + stripeId));
-
-        if (!user.matches(payment.getUserId())) {
-            throw new PaymentException("Unauthorized access to payment");
-        }
-        return payment;
-    }
-
-    private Payment findPaymentByIdAndUser(Long paymentId, JwtUserDto user) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new PaymentException("Payment not found for ID: " + paymentId));
-
-        if (!user.matches(payment.getUserId())) {
-            throw new PaymentException("Unauthorized access to payment");
+        Payment payment = getInternalPayment(stripeId);
+        if (!user.id().equals(payment.getUserId())) {
+            throw new PaymentException("Unauthorized access to payment intent");
         }
         return payment;
     }

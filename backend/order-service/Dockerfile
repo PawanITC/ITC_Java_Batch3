@@ -1,44 +1,21 @@
 # ==================================================
-# Order Service Microservice
+# Order Service - Order Lifecycle
 # ==================================================
-# Author: Abbas
-# Description: Handles order creation, lifecycle management,
-#              and Kafka-based event publishing for Funkart.
-# ==================================================
-
-# ---------------------------
-# Build Stage (Gradle)
-# ---------------------------
-FROM eclipse-temurin:17-jdk-jammy AS build
+FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
-# Copy full project
-COPY . .
+# Security: Run as non-root user
+RUN addgroup --system spring && adduser --system spring --ingroup spring
+RUN chown -R spring:spring /app
+USER spring:spring
 
-# Make wrapper executable
-RUN chmod +x gradlew
-
-# Build JAR (skip tests for Docker build speed)
-RUN ./gradlew clean build -x test
-
-# ---------------------------
-# Runtime Stage (Lean & Fast)
-# ---------------------------
-FROM eclipse-temurin:17-jdk-jammy
-
-WORKDIR /app
-
-# Metadata Labels
 LABEL maintainer="Abbas"
 LABEL service.name="order-service"
-LABEL service.description="Order Service - Core order processing and Kafka event publishing"
 
-# Copy built artifact from build stage
-COPY --from=build /app/build/libs/*.jar app.jar
+COPY --chown=spring:spring order-service/build/libs/order-service.jar app.jar
 
-# Service port
 EXPOSE 8080
 
-# JVM container-friendly settings
+# Condensed to one line
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

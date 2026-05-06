@@ -1,6 +1,6 @@
 package com.itc.funkart.service;
 
-import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
+import com.itc.funkart.common.dto.event.checkout.CheckoutInitiatedEvent;
 import com.itc.funkart.common.enums.order.OrderStatus;
 import com.itc.funkart.dto.OrderResponse;
 import com.itc.funkart.entity.Order;
@@ -30,14 +30,14 @@ public interface OrderService {
     /**
      * Processes an incoming order initiation from the checkout flow.
      * <p>
-     * Converts a transient {@link OrderInitiatedEvent} into a persistent {@link Order} entity,
+     * Converts a transient {@link CheckoutInitiatedEvent} into a persistent {@link Order} entity,
      * calculates totals, and triggers the full order broadcast.
      * </p>
      *
      * @param event The immutable record received from the message broker.
      * @return A mapped {@link OrderResponse} for immediate confirmation.
      */
-    OrderResponse processOrderInitiation(OrderInitiatedEvent event);
+    OrderResponse processOrderInitiation(CheckoutInitiatedEvent event);
 
     /**
      * Retrieves an order strictly associated with a specific user.

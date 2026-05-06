@@ -1,43 +1,16 @@
+# ==============================================================
+# DEVELOPMENT PROFILE
+# ==============================================================
 spring:
-  config:
-    activate:
-      on-profile: dev
-
   datasource:
-    url: jdbc:postgresql://${DB_HOST:postgres-db}:5432/${DB_NAME:mydb}
-    username: ${DB_USER}
-    password: ${DB_PASS}
-    driver-class-name: org.postgresql.Driver
-
-
+    url: ${DB_URL:jdbc:postgresql://postgres-db:5432/mydb}
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:secret}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
-  kafka:
-    bootstrap-servers: ${KAFKA_HOST:localhost}:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-    consumer:
-      group-id: products-group
-      auto-offset-reset: earliest
-
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: 6379
-
-# Correct this in application.yml
-jwt:
-  secret: ${JWT_SECRET:mXxbssTvw7Am8gAlzYhTCP4IyxMeOK2tDqSDPQAv6Qk0}
-  expiration-ms: ${JWT_EXPIRATION:3600000} # Note: changed to expiration-ms to match your config class
-
-management:
-  otlp:
-    tracing:
-      endpoint: http://${OTLP_HOST:localhost}:4317
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}

@@ -15,7 +15,7 @@ import java.time.temporal.ChronoUnit;
  * the JSON structure remains consistent for the frontend.
  * </p>
  *
- * @param <T> The type of the data payload contained in the response.
+ * {@param T} The type of the data payload contained in the response.
  */
 @Getter
 @Setter

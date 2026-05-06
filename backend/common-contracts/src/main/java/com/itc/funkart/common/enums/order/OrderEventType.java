@@ -9,6 +9,13 @@ public enum OrderEventType {
     /** Emitted when a new order is placed but not yet paid. */
     ORDER_INITIATED,
 
+    /**
+     * ✅ CRITICAL EVENT
+     * Emitted ONLY after the order is successfully persisted in the database.
+     * This guarantees orderId is NOT NULL.
+     */
+    CREATED,
+
     /** Emitted when payment is successfully captured (PAID). */
     PAYMENT_SUCCESS,
 
@@ -25,5 +32,8 @@ public enum OrderEventType {
     ORDER_CANCELLED,
 
     /** NEW: Emitted when funds are returned (REFUNDED). */
-    ORDER_REFUNDED
+    ORDER_REFUNDED,
+
+    /** NEW: Emitted when funds are confirmed (CONFIRMED). */
+    ORDER_CONFIRMED
 }

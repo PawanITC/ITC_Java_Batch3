@@ -1,5 +1,6 @@
 package com.itc.funkart.common.dto.event.order;
 
+import com.itc.funkart.common.dto.event.checkout.CheckoutItemPayload;
 import com.itc.funkart.common.enums.order.OrderEventType;
 
 import java.math.BigDecimal;
@@ -22,7 +23,7 @@ import java.util.List;
  *
  * @param eventType   The current state (e.g., CREATED, CANCELLED, PAID).
  * @param orderId     The "Source of Truth" identifier from the Order DB.
- * @param customerId      The customer associated with the transaction.
+ * @param customerId  The customer associated with the transaction.
  * @param totalAmount The final calculated price at the time of order creation.
  * @param timestamp   The moment the event was finalized.
  * @param items       The collection of line items, including quantity and snapshot prices.
@@ -35,6 +36,6 @@ public record OrderEvent(
         Long customerId,
         BigDecimal totalAmount,
         LocalDateTime timestamp,
-        List<OrderItemEventPayload> items
+        List<CheckoutItemPayload> items
 ) {
 }

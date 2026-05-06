@@ -1,8 +1,6 @@
 package com.itc.funkart.service.impl;
 
 import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
-import com.itc.funkart.common.dto.event.order.OrderEvent;
-import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
 import com.itc.funkart.common.enums.order.OrderEventType;
 import com.itc.funkart.entity.Order;
 import com.itc.funkart.kafka.producer.OrderEventProducer;
@@ -16,10 +14,17 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 /**
  * <h2>KafkaEventServiceImpl</h2>
- * <p>
- * Implementation of the event dispatcher. It leverages the <b>JVM Heap</b> to
- * snapshot entity state into immutable Records before the database session closes.
- * </p>
+ *
+ * <h3>Fix applied:</h3>
+ * <p>{@code mapper.toInitiatedEvent(order)} does not exist on {@link com.itc.funkart.mapper.OrderMapper}.
+ * The mapper only exposes {@code toEvent(Order, OrderEventType)} which returns an {@link com.itc.funkart.common.dto.event.order.OrderEvent}.
+ * Changed {@code sendOrderCreated} to call {@code mapper.toEvent(order, ORDER_INITIATED)}
+ * and dispatch via {@code producer.publishOrderEvent(event)}.</p>
+ *
+ * <p>{@code publishOrderInitiated(OrderInitiatedEvent)} was also removed from the producer
+ * because publishing an {@code OrderInitiatedEvent} to the {@code ORDERS} topic is semantically
+ * wrong — that topic carries {@code OrderEvent} records. Notification Service consumers
+ * would receive an unexpected type.</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -31,15 +36,35 @@ public class KafkaEventServiceImpl implements KafkaEventService {
 
     @Override
     public void sendOrderEvent(Order order, OrderEventType eventType) {
-        // We map to a Record immediately to capture a "Point-in-Time" snapshot
-        OrderEvent event = mapper.toEvent(order, eventType);
-        syncAndSend(() -> producer.publishOrderEvent(event), event.orderId().toString());
+        var event = mapper.toEvent(order, eventType);
+        String key = order.getId() != null
+                ? order.getId().toString()
+                : order.getCustomerId().toString();
+
+        syncAndSend(() -> producer.publishOrderEvent(event), key);
     }
 
+    /**
+     * Maps the persisted {@link Order} entity → {@code OrderEvent} and publishes
+     * to the {@code ORDERS} topic post-commit.
+     *
+     * <h3>Fix:</h3>
+     * <p>Was calling {@code mapper.toInitiatedEvent(order)} which doesn't exist.
+     * Corrected to {@code mapper.toEvent(order, ORDER_INITIATED)} which is the
+     * existing mapper method that returns an {@code OrderEvent}.</p>
+     */
     @Override
-    public void sendOrderInitiated(OrderInitiatedEvent event) {
-        // Keying by User ID for initiation phase if Order ID is not yet generated
-        syncAndSend(() -> producer.publishOrderCreated(event), event.userId().toString());
+    public void sendOrderCreated(Order order) {
+        if (order.getId() == null) {
+            log.error("❌ Cannot send event: Order ID is null for customer {}", order.getCustomerId());
+            return;
+        }
+
+        // FIX: was mapper.toInitiatedEvent(order) — that method doesn't exist.
+        // OrderMapper.toEvent() returns OrderEvent, which is what ORDERS topic consumers expect.
+        var event = mapper.toEvent(order, OrderEventType.ORDER_INITIATED);
+
+        syncAndSend(() -> producer.publishOrderEvent(event), order.getId().toString());
     }
 
     @Override
@@ -48,52 +73,40 @@ public class KafkaEventServiceImpl implements KafkaEventService {
     }
 
     /**
-     * <h3>Transaction Guard</h3>
-     * <p>
-     * Wraps the Kafka dispatch logic in a Spring Transaction Sync.
-     * The {@code publishTask} will execute only after the current database
-     * transaction has entered the {@code afterCommit} phase.
-     * </p>
-     *
-     * @param publishTask The lambda containing the specific producer call.
-     * @param identifier  A correlation ID (Order or User ID) for logging.
+     * Transaction guard — Kafka fires only after DB commit.
+     * Falls back to immediate dispatch outside a transaction (e.g. in unit tests).
      */
     private void syncAndSend(Runnable publishTask, String identifier) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            log.debug("🔗 Registering post-commit hook for ID: {}", identifier);
-
+            log.debug("🔗 Registering post-commit Kafka hook for ID: {}", identifier);
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
                     try {
                         publishTask.run();
                     } catch (Exception e) {
-                        // Crucial: The DB is committed, so we log as ERROR for manual review
-                        log.error("❌ Kafka dispatch failed for [ID: {}] after DB commit: {}",
+                        log.error("❌ Kafka dispatch failed after DB commit [ID: {}]: {}",
                                 identifier, e.getMessage());
                     }
                 }
             });
         } else {
-            // Safe fallback if called outside of a @Transactional block
-            log.warn("⚠️ No active transaction found. Dispatching event for [{}] immediately.", identifier);
+            log.warn("⚠️ No active transaction. Dispatching Kafka event for [{}] immediately.", identifier);
             publishTask.run();
         }
     }
 
     public void syncEvent(Order order) {
-        // Determine the event type based on the Business Status
-        OrderEventType type = switch(order.getStatus()) {
+        OrderEventType type = switch (order.getStatus()) {
             case PENDING   -> OrderEventType.ORDER_INITIATED;
             case PAID      -> OrderEventType.PAYMENT_SUCCESS;
             case SHIPPED   -> OrderEventType.ORDER_SHIPPED;
             case DELIVERED -> OrderEventType.ORDER_DELIVERED;
+            case CONFIRMED -> OrderEventType.ORDER_CONFIRMED;
             case CANCELLED -> OrderEventType.ORDER_CANCELLED;
+            case FAILED    -> OrderEventType.PAYMENT_FAILED;
             case REFUNDED  -> OrderEventType.ORDER_REFUNDED;
-            // No 'default' needed if all enum members are covered
         };
-
-        // Dispatch via your transaction-aware logic
         sendOrderEvent(order, type);
     }
 }

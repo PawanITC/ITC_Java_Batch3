@@ -6,7 +6,7 @@ import com.itc.funkart.product.config.JwtConfig;
 import com.itc.funkart.product.dto.request.AddToCartRequest;
 import com.itc.funkart.product.dto.request.CategoryRequest;
 import com.itc.funkart.product.dto.request.ProductCreateRequest;
-import com.itc.funkart.product.kafka.producer.OrderProducer;
+import com.itc.funkart.product.kafka.producer.CheckoutProducer;
 import com.itc.funkart.product.kafka.producer.ProductProducer;
 import com.itc.funkart.product.repository.CartRepository;
 import com.itc.funkart.product.service.CartService;
@@ -54,7 +54,7 @@ class CrossFeatureIntegrationTest {
     private EntityManager entityManager;
 
     @MockitoBean
-    private OrderProducer orderProducer;
+    private CheckoutProducer checkoutProducer;
     @MockitoBean
     private JwtService jwtService;
     @MockitoBean

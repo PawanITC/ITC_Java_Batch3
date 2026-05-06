@@ -12,41 +12,29 @@ spring:
   application:
     name: api-gateway
 
-  # FORCING REACTIVE MODE: This prevents the JVM from loading Servlet beans
   main:
     web-application-type: reactive
     allow-bean-definition-overriding: true
 
-  # ----------------------------------------------------------------------------
-  # REDIS (Reactive Configuration)
-  # ----------------------------------------------------------------------------
   data:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
       connect-timeout: 2000ms
 
-  # ----------------------------------------------------------------------------
-  # EXCLUSIONS
-  # ----------------------------------------------------------------------------
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 
-  # ----------------------------------------------------------------------------
-  # WEBFLUX & GATEWAY (The Reactive Heart)
-  # ----------------------------------------------------------------------------
   webflux:
-    # Keeps WebFlux explicitly defined for global handling
     base-path: /
 
   cloud:
     gateway:
       server:
         webflux:
-          # This is the NEW standard location for routes
           routes:
             - id: user-service
               uri: ${internal.service-urls.user}
@@ -77,7 +65,7 @@ spring:
                 - StripPrefix=2
 
 # ==============================================================================
-# APP CONFIG (Binds to AppConfig.java record)
+# APP CONFIG
 # ==============================================================================
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
@@ -127,12 +115,13 @@ management:
 
   otlp:
     tracing:
-      # Spring will append /v1/traces automatically if using the OTLP exporter
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}/v1/traces
+      # gRPC — port 4317
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     metrics:
       export:
-        # Metrics use a different sub-path
-        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}/v1/metrics
+        # FIX: was also OTEL_EXPORTER_OTLP_ENDPOINT (gRPC/4317).
+        # Micrometer OTLP metrics exporter uses HTTP — must point to 4318.
+        url: ${OTEL_METRICS_ENDPOINT:http://otel-collector:4318}
 
   metrics:
     tags:

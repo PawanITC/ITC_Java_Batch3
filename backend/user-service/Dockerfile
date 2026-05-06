@@ -1,28 +1,21 @@
 # ==================================================
-# User Service Microservice - Runtime Image
+# User Service - Identity & Auth
 # ==================================================
-FROM eclipse-temurin:17-jdk-jammy
-
-# Security: Run as non-root user
-RUN addgroup --system spring && adduser --system spring --ingroup spring
-USER spring:spring
+FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
+# Security: Run as non-root user
+RUN addgroup --system spring && adduser --system spring --ingroup spring
+RUN chown -R spring:spring /app
+USER spring:spring
+
 LABEL maintainer="Abbas"
 LABEL service.name="user-service"
-LABEL service.description="Core Identity Service - Auth & Profile Management"
 
-# Jenkins builds from root, so we copy from the specific module path
-# Ensure build.gradle has 'archiveFileName = "user-service.jar"'
-COPY --chown=spring:spring backend/user-service/build/libs/user-service.jar app.jar
+COPY --chown=spring:spring user-service/build/libs/*.jar app.jar
 
-# Standard Spring Boot port
 EXPOSE 8080
 
-# JVM container-friendly settings
-ENTRYPOINT ["java", \
-            "-XX:+UseContainerSupport", \
-            "-XX:MaxRAMPercentage=75.0", \
-            "-XX:+UseG1GC", \
-            "-jar", "app.jar"]
+# Condensed to one line for readability while maintaining JVM flags
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-XX:+UseG1GC", "-jar", "app.jar"]

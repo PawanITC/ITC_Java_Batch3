@@ -4,6 +4,8 @@ import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Duration;
+
 /**
  * Secure configuration for JWT processing within the Product Service.
  * <p>
@@ -29,5 +31,5 @@ public class JwtConfig {
      * The duration (in milliseconds) for which a token is considered valid.
      */
     @Value("${jwt.expiration-ms}")
-    private Long expirationMs;
+    private Duration expirationMs;
 }

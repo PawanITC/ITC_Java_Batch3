@@ -1,15 +1,16 @@
 package com.itc.funkart.payment.controller;
 
-import com.itc.funkart.payment.dto.jwt.JwtUserDto;
+import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import com.itc.funkart.payment.dto.request.ConfirmPaymentRequest;
 import com.itc.funkart.payment.dto.request.CreatePaymentIntentRequest;
 import com.itc.funkart.payment.dto.response.PaymentIntentResponse;
 import com.itc.funkart.payment.dto.response.PaymentResponse;
-import com.itc.funkart.payment.response.ApiResponse;
+import com.itc.funkart.payment.exception.PaymentException;
 import com.itc.funkart.payment.service.PaymentService;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -17,91 +18,91 @@ import org.springframework.web.bind.annotation.*;
 /**
  * <h2>PaymentController</h2>
  * <p>
- * Orchestrates user-initiated payment actions. This controller is the primary
- * interface for the frontend application to interact with the payment lifecycle.
+ * REST entry point for the Payment Microservice. This controller handles the
+ * handoff between the Security Context (JWT) and the Payment Business Logic.
  * </p>
  * <p>
- * All endpoints are secured and require a valid {@link JwtUserDto} resolved via
- * {@code @AuthenticationPrincipal} to ensure data isolation and security.
+ * <b>Architectural Note:</b> The Service layer already returns the
+ * {@link ApiResponse} envelope. The Controller's job is simply to
+ * wrap that envelope in a {@link ResponseEntity} to set the HTTP status codes.
  * </p>
  */
 @RestController
 @RequestMapping("/payments")
+@Slf4j
+@RequiredArgsConstructor
 public class PaymentController {
 
-    private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
     private final PaymentService paymentService;
 
-    public PaymentController(PaymentService paymentService) {
-        this.paymentService = paymentService;
-    }
-
     /**
-     * Initializes a new payment lifecycle by creating a Stripe PaymentIntent.
+     * Creates a Stripe PaymentIntent and persists the local Payment record.
      *
-     * @param user    The authenticated user principal.
-     * @param request The amount, currency, and order metadata.
-     * @return The Stripe client secret required for frontend card collection.
+     * @param user    The authenticated user from the Security Context.
+     * @param request Contains the Order ID and Amount.
+     * @return 200 OK with the client secret for the Stripe Elements frontend.
      */
     @PostMapping("/create-intent")
     public ResponseEntity<ApiResponse<PaymentIntentResponse>> createPaymentIntent(
             @AuthenticationPrincipal JwtUserDto user,
             @Valid @RequestBody CreatePaymentIntentRequest request) {
 
-        logger.info("Payment Intent Creation started | User: {} | Order: {}", user.id(), request.orderId());
-        ApiResponse<PaymentIntentResponse> response = paymentService.createPaymentIntent(user, request);
-        return ResponseEntity.ok(response);
+        log.info("→ Creating Intent | User: {} | Order: {}", user.id(), request.orderId());
+        PaymentIntentResponse data = paymentService.createPaymentIntent(user, request);
+
+        if (user.id() == null) {
+            throw new PaymentException("Unauthorized: Missing user security context");
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(data, "Payment intent created successfully"));
     }
 
     /**
-     * Triggers server-side confirmation for payments requiring manual finalization.
-     *
-     * @param user    The authenticated user principal.
-     * @param request The specific PaymentIntent and PaymentMethod IDs.
-     * @return The updated status of the payment.
+     * Confirms a payment on the server-side if manual confirmation is required.
      */
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponse<PaymentResponse>> confirmPayment(
             @AuthenticationPrincipal JwtUserDto user,
             @Valid @RequestBody ConfirmPaymentRequest request) {
 
-        logger.info("Payment Confirmation initiated | User: {} | PI: {}", user.id(), request.paymentIntentId());
-        ApiResponse<PaymentResponse> response = paymentService.confirmPayment(user, request);
-        return ResponseEntity.ok(response);
+        log.info("→ Confirming Payment | User: {} | Intent: {}", user.id(), request.paymentIntentId());
+        PaymentResponse data = paymentService.confirmPayment(user, request);
+
+        return ResponseEntity.ok(ApiResponse.success(data, "Payment confirmed and processed"));
     }
 
     /**
-     * Fetches the current status and metadata of a payment from the local repository.
-     *
-     * @param user      The authenticated user principal.
-     * @param paymentId The internal database ID for the payment record.
-     * @return Detailed payment metadata including transaction status.
+     * Retrieves specific payment details.
      */
     @GetMapping("/{paymentId}")
     public ResponseEntity<ApiResponse<PaymentResponse>> getPayment(
             @AuthenticationPrincipal JwtUserDto user,
             @PathVariable Long paymentId) {
 
-        ApiResponse<PaymentResponse> response = paymentService.getPayment(user, paymentId);
-        return ResponseEntity.ok(response);
+        log.debug("→ Fetching Payment | ID: {}", paymentId);
+        PaymentResponse data = paymentService.getPayment(user, paymentId);
+
+        return ResponseEntity.ok(ApiResponse.success(data, "Payment details retrieved"));
     }
 
     /**
-     * Requests a fund reversal for a previously successful transaction.
+     * Initiates a refund workflow for a successful payment.
      *
-     * @param user      The authenticated user principal.
-     * @param paymentId The internal database ID of the payment to refund.
-     * @return The updated payment record reflecting the 'REFUNDED' status.
+     * @param user      The authenticated principal from the Security Context.
+     * @param paymentId The internal ID of the payment to be reversed.
+     * @return 200 OK with the updated Payment details (status: REFUNDED).
      */
     @PostMapping("/{paymentId}/refund")
     public ResponseEntity<ApiResponse<PaymentResponse>> refundPayment(
             @AuthenticationPrincipal JwtUserDto user,
             @PathVariable Long paymentId) {
 
-        logger.info("Refund requested | User: {} | PaymentID: {}", user.id(), paymentId);
-        ApiResponse<PaymentResponse> response = paymentService.refundPayment(user, paymentId);
-        return ResponseEntity.ok(response);
+        log.warn("→ Refund Request | User: {} | Payment: {}", user.id(), paymentId);
+
+        // Call service to get raw DTO
+        PaymentResponse data = paymentService.refundPayment(user, paymentId);
+
+        // Wrap in the Unified Response Envelope
+        return ResponseEntity.ok(ApiResponse.success(data, "Refund successfully initiated"));
     }
-
-
 }

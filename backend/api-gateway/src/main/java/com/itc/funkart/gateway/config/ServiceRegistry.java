@@ -29,6 +29,11 @@ public interface ServiceRegistry {
     String orderService();
 
     /**
+     * @return Base URL of the Order Service
+     */
+    String productService();
+
+    /**
      * <h2>Default AppConfig-backed implementation</h2>
      * <p>
      * Resolves service URLs from {@link AppConfig#services()} map.
@@ -43,15 +48,20 @@ public interface ServiceRegistry {
             this.config = config;
         }
 
+        // Using the common constant instead of a hardcoded string
         @Override
         public String userService() {
-            // Using the common constant instead of a hardcoded string
             return config.getServiceUrl(ServiceNames.USER_SERVICE);
         }
 
         @Override
         public String paymentService() {
             return config.getServiceUrl(ServiceNames.PAYMENT_SERVICE);
+        }
+
+        @Override
+        public String productService() {
+            return config.getServiceUrl(ServiceNames.PRODUCT_SERVICE);
         }
 
         @Override

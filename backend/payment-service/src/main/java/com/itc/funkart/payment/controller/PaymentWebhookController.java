@@ -4,8 +4,13 @@ import com.itc.funkart.payment.dto.webhook.StripeWebhookResponse;
 import com.itc.funkart.payment.exception.PaymentException;
 import com.itc.funkart.payment.service.PaymentService;
 import com.stripe.exception.SignatureVerificationException;
+import com.stripe.exception.StripeException;
+import com.stripe.model.Charge;
 import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.StripeObject;
 import com.stripe.net.Webhook;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,7 +58,7 @@ public class PaymentWebhookController {
      * @param sigHeader The {@code Stripe-Signature} header provided by Stripe.
      * @return A {@link ResponseEntity} containing a success or failure status for Stripe to log.
      */
-    @PostMapping("/webhook")
+    @PostMapping(value = "/webhook", consumes = "application/json")
     public ResponseEntity<StripeWebhookResponse> handleWebhook(
             @RequestBody String payload,
             @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) {
@@ -90,4 +95,5 @@ public class PaymentWebhookController {
                     .body(new StripeWebhookResponse("Error", "Internal system error occurred"));
         }
     }
+
 }

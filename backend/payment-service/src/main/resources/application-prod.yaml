@@ -1,0 +1,6 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+# Production Stripe keys would be injected via environment variables here

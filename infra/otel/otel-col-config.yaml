@@ -1,3 +1,7 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
 receivers:
   otlp:
     protocols:
@@ -12,35 +16,35 @@ processors:
     timeout: 10s
 
 exporters:
-  # Metrics: Pulled by Prometheus on port 8889
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-    resource_to_telemetry_conversion:
-      enabled: true
-  
-  # Traces: Pushed to Jaeger
   otlp/jaeger:
     endpoint: "jaeger:4317"
     tls:
       insecure: true
 
-  # Logs: Pushed to Loki
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+
   loki:
     endpoint: "http://loki:3100/loki/api/v1/push"
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+
+  logging:
+    verbosity: basic
 
 service:
+  extensions: [health_check]
   pipelines:
-    metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [prometheus]
-    
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/jaeger]
-
+      exporters: [otlp/jaeger, logging] # Match the renamed exporter
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus, logging] # Added logging to debug metrics
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [loki]
+      exporters: [loki, logging]

@@ -6,7 +6,7 @@ import com.itc.funkart.product.config.JwtConfig;
 import com.itc.funkart.product.dto.request.AddToCartRequest;
 import com.itc.funkart.product.dto.request.ProductCreateRequest;
 import com.itc.funkart.product.entity.Category;
-import com.itc.funkart.product.kafka.producer.OrderProducer;
+import com.itc.funkart.product.kafka.producer.CheckoutProducer;
 import com.itc.funkart.product.kafka.producer.ProductProducer;
 import com.itc.funkart.product.repository.CategoryRepository;
 import com.itc.funkart.product.service.CartService;
@@ -65,7 +65,7 @@ class CartServicePerformanceTest {
     @MockitoBean
     private JwtConfig jwtConfig;
     @MockitoBean
-    private OrderProducer orderProducer;
+    private CheckoutProducer checkoutProducer;
     @MockitoBean
     private ProductProducer productProducer;
 

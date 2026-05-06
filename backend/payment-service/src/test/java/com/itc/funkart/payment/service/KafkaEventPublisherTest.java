@@ -1,187 +1,140 @@
 package com.itc.funkart.payment.service;
 
-import com.itc.funkart.payment.dto.event.PaymentCompletedEvent;
-import com.itc.funkart.payment.dto.event.PaymentFailedEvent;
-import com.itc.funkart.payment.dto.event.PaymentRefundedEvent;
+import com.itc.funkart.common.constants.messaging.KafkaTopics;
+import com.itc.funkart.common.dto.event.payment.PaymentCompletedEvent;
+import com.itc.funkart.common.dto.event.payment.PaymentFailedEvent;
+import com.itc.funkart.common.enums.order.OrderEventType;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.*;
+import java.util.concurrent.CompletableFuture;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Test suite for {@link KafkaEventPublisher}.
- * <p>
- * Ensures the Payment Service acts as a reliable "Voice" for the ecosystem,
- * verifying that events are routed to correct topics with stringified keys
- * to maintain message ordering in Kafka partitions.
- * </p>
+ * <h2>KafkaEventPublisherTest</h2>
+ * Validates the dispatching of payment lifecycle events using Record Builders
+ * and Enum-based header classification.
  */
 @ExtendWith(MockitoExtension.class)
-public class KafkaEventPublisherTest {
+class KafkaEventPublisherTest {
 
-    // Constants mirrored from Service for verification
-    private static final String TOPIC_COMPLETED = "payment_completed";
-    private static final String TOPIC_FAILED = "payment_failed";
-    private static final String TOPIC_REFUNDED = "payment_refunded";
     @Mock
     private KafkaTemplate<String, Object> kafkaTemplate;
+
     @InjectMocks
     private KafkaEventPublisher kafkaEventPublisher;
 
-    /**
-     * Grouping for successful event dispatch scenarios.
-     * <p>
-     * Verifies that the mapping between DTOs and Kafka topics is accurate
-     * and that all metadata fields are preserved during the transmission.
-     * </p>
-     */
     @Nested
-    @DisplayName("Happy Path: Event Dispatching")
+    @DisplayName("Topic Routing & Header Validation")
     class SuccessTests {
 
-        /**
-         * Validates the Success broadcast.
-         * <p>
-         * <b>Significance:</b> Essential for the Order Service to finalize
-         * the checkout process and trigger shipping/inventory logic.
-         * </p>
-         */
         @Test
-        @DisplayName("Publish Success: Payment Completed")
+        @DisplayName("Publish Completed: Verify Builder usage and PAYMENT_SUCCESS header")
         void publishCompleted_Success() {
-            PaymentCompletedEvent event = new PaymentCompletedEvent(
-                    101L, 1L, 500L, 2000L, "USD", System.currentTimeMillis());
+            // GIVEN: Using the new @Builder pattern
+            PaymentCompletedEvent event = PaymentCompletedEvent.builder()
+                    .paymentId(101L)
+                    .orderId(1L)
+                    .stripeId("pi_success_123")
+                    .amount(2000L)
+                    .build(); // Timestamp handled by canonical constructor
 
+            when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(new CompletableFuture<>());
+
+            // WHEN
             kafkaEventPublisher.publishPaymentCompletedEvent(event);
 
-            verify(kafkaTemplate).send(eq(TOPIC_COMPLETED), eq("101"), eq(event));
+            // THEN
+            ArgumentCaptor<ProducerRecord<String, Object>> captor = ArgumentCaptor.forClass(ProducerRecord.class);
+            verify(kafkaTemplate).send(captor.capture());
+
+            ProducerRecord<String, Object> record = captor.getValue();
+            assertEquals(KafkaTopics.PAYMENTS_EVENTS, record.topic());
+            assertEquals("101", record.key());
+
+            // Verify Header
+            var header = record.headers().lastHeader("event_type");
+            assertNotNull(header);
+            assertEquals(OrderEventType.PAYMENT_SUCCESS.name(), new String(header.value()));
+
+            // Verify Timestamp was generated if null in builder
+            assertNotNull(((PaymentCompletedEvent) record.value()).timestamp());
         }
 
-        /**
-         * Validates the Failure broadcast with Stripe error details.
-         * <p>
-         * <b>Significance:</b> Provides the Notification Service with the specific
-         * error codes needed to alert the user about card declines.
-         * </p>
-         */
         @Test
-        @DisplayName("Publish Success: Payment Failed")
+        @DisplayName("Publish Failed: Verify PAYMENT_FAILED header")
         void publishFailed_Success() {
-            PaymentFailedEvent event = new PaymentFailedEvent(
-                    202L, 1L, 500L, 2000L, "USD",
-                    "Insufficient Funds", "card_declined", System.currentTimeMillis()
-            );
+            // GIVEN
+            PaymentFailedEvent event = PaymentFailedEvent.builder()
+                    .paymentId(202L)
+                    .orderId(1L)
+                    .stripeId("pi_failed_456")
+                    .errorMessage("Insufficient Funds")
+                    .stripeErrorCode("card_declined")
+                    .build();
 
+            when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(new CompletableFuture<>());
+
+            // WHEN
             kafkaEventPublisher.publishPaymentFailedEvent(event);
 
-            verify(kafkaTemplate).send(eq(TOPIC_FAILED), eq("202"), eq(event));
-        }
+            // THEN
+            ArgumentCaptor<ProducerRecord<String, Object>> captor = ArgumentCaptor.forClass(ProducerRecord.class);
+            verify(kafkaTemplate).send(captor.capture());
 
-        /**
-         * Validates the Refund broadcast.
-         * <p>
-         * <b>Significance:</b> Triggers Order Service to mark items as
-         * 'Returned' and notifies the user of the reversal.
-         * </p>
-         */
-        @Test
-        @DisplayName("Publish Success: Payment Refunded")
-        void publishPaymentRefunded_Success() {
-            // Arrange: Using your full constructor signature
-            PaymentRefundedEvent event = new PaymentRefundedEvent(
-                    303L,           // paymentId
-                    500L,           // orderId
-                    "re_mock_123",  // stripeRefundId
-                    2000L,          // amountRefunded
-                    "USD",          // currency
-                    System.currentTimeMillis() // timestamp
-            );
-
-            kafkaEventPublisher.publishPaymentRefundedEvent(event);
-
-            // Verify topic 'payment_refunded' and key "303"
-            verify(kafkaTemplate).send(eq(TOPIC_REFUNDED), eq("303"), eq(event));
-        }
-    }
-
-    /**
-     * Grouping for error handling logic and infrastructure resilience.
-     * <p>
-     * Verifies that the service degrades gracefully and does not throw
-     * exceptions back to the caller if the Kafka broker is down.
-     * </p>
-     */
-    @Nested
-    @DisplayName("Broker Resilience: Error Handling")
-    class FailureTests {
-
-        /**
-         * Tests that infrastructure errors are caught internally.
-         * <p>
-         * <b>Logic:</b> If Kafka fails, we log it but allow the main
-         * execution to continue so the database transaction isn't rolled back
-         * due to a non-critical messaging failure.
-         * </p>
-         */
-        @Test
-        @DisplayName("Publish Failure: Graceful degradation on Kafka Error")
-        void publish_KafkaTimeout_SwallowsException() {
-            PaymentCompletedEvent event = new PaymentCompletedEvent(1L, 1L, 1L, 1L, "USD", 0L);
-
-            when(kafkaTemplate.send(anyString(), anyString(), any()))
-                    .thenThrow(new RuntimeException("Kafka Broker Unavailable"));
-
-            // Verification of the 'try-catch' logic in KafkaEventPublisher
-            assertDoesNotThrow(() -> kafkaEventPublisher.publishPaymentCompletedEvent(event));
-
-            verify(kafkaTemplate).send(anyString(), anyString(), any());
+            assertEquals("202", captor.getValue().key());
+            assertEquals(OrderEventType.PAYMENT_FAILED.name(),
+                    new String(captor.getValue().headers().lastHeader("event_type").value()));
         }
     }
 
     @Nested
-    @DisplayName("Edge Cases: Data Integrity")
+    @DisplayName("Edge Case Validation")
     class EdgeCaseTests {
 
-        /**
-         * Verifies the guard clause for null keys.
-         * If the paymentId is null, the message should never even try to send.
-         */
         @Test
-        @DisplayName("Guard Clause: Abort dispatch if key is null")
+        @DisplayName("Guard Clause: Should abort if paymentId is null in Builder")
         void sendEvent_NullKey_Aborts() {
-            // Using a DTO where paymentId() returns null (requires a mock or custom DTO)
-            PaymentCompletedEvent event = mock(PaymentCompletedEvent.class);
-            when(event.paymentId()).thenReturn(null);
+            // GIVEN: Builder without paymentId
+            PaymentCompletedEvent event = PaymentCompletedEvent.builder()
+                    .orderId(1L)
+                    .build();
 
+            // WHEN
             kafkaEventPublisher.publishPaymentCompletedEvent(event);
 
-            // Verify that kafkaTemplate was NEVER called
-            verify(kafkaTemplate, never()).send(anyString(), anyString(), any());
+            // THEN
+            verify(kafkaTemplate, never()).send((ProducerRecord<String, Object>) any());
         }
 
-        /**
-         * Verifies that the key is stringified correctly.
-         * Kafka keys must be strings to ensure the hashing algorithm works consistently.
-         */
         @Test
-        @DisplayName("Data Mapping: Ensure key is converted to String")
+        @DisplayName("Partitioning: Verify Stringified key conversion for long IDs")
         void sendEvent_VerifiesStringKey() {
-            Long paymentId = 99999L;
-            PaymentCompletedEvent event = new PaymentCompletedEvent(
-                    paymentId, 1L, 500L, 2000L, "USD", 12345L);
+            PaymentCompletedEvent event = PaymentCompletedEvent.builder()
+                    .paymentId(99999L)
+                    .build();
 
+            when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(new CompletableFuture<>());
+
+            // WHEN
             kafkaEventPublisher.publishPaymentCompletedEvent(event);
 
-            // Verify the specific conversion from Long 99999 to String "99999"
-            verify(kafkaTemplate).send(anyString(), eq("99999"), eq(event));
+            // THEN
+            ArgumentCaptor<ProducerRecord<String, Object>> captor = ArgumentCaptor.forClass(ProducerRecord.class);
+            verify(kafkaTemplate).send(captor.capture());
+            assertEquals("99999", captor.getValue().key());
         }
     }
 }

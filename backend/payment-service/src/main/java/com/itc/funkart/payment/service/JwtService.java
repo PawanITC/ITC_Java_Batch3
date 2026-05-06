@@ -1,14 +1,15 @@
 package com.itc.funkart.payment.service;
 
-import com.itc.funkart.payment.auth.claims.JwtClaims;
+import com.itc.funkart.common.constants.auth.JwtClaims;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import com.itc.funkart.payment.config.JwtConfig;
-import com.itc.funkart.payment.dto.jwt.JwtUserDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.util.Date;
 
 /**
@@ -54,8 +55,9 @@ public class JwtService {
      * @return A compact, signed JWT string.
      */
     public String generateJwtToken(JwtUserDto user) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtConfig.getExpirationMs());
+        Instant now = Instant.now();
+        // Use the Duration object to add time directly to the Instant
+        Instant expiryInstant = now.plus(jwtConfig.getExpirationMs());
 
         return Jwts.builder()
                 .subject(user.id().toString())
@@ -63,8 +65,8 @@ public class JwtService {
                 .claim(JwtClaims.NAME, user.name())
                 .claim(JwtClaims.EMAIL, user.email())
                 .claim(JwtClaims.ROLE, user.role())
-                .issuedAt(now)
-                .expiration(expiryDate)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiryInstant))
                 .signWith(key)
                 .compact();
     }
