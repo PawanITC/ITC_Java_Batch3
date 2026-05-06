@@ -13,13 +13,13 @@ import com.stripe.model.PaymentIntent;
  */
 public record PaymentCompletedEvent(
         @JsonProperty("payment_id") Long paymentId,
-        @JsonProperty("user_id")Long userId,
-        @JsonProperty("order_id")Long orderId,
+        @JsonProperty("user_id") Long userId,
+        @JsonProperty("order_id") Long orderId,
         Long amount,
         String currency,
         Long timestamp
 ) {
-    public static PaymentCompletedEvent from(Payment payment, PaymentIntent intent){
+    public static PaymentCompletedEvent from(Payment payment, PaymentIntent intent) {
         return new PaymentCompletedEvent(
                 payment.getId(),
                 payment.getUserId(),

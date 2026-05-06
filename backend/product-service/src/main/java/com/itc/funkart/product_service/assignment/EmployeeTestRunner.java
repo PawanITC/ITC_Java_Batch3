@@ -18,8 +18,8 @@ public class EmployeeTestRunner {
                 new Employee(10, "Ava", 7500, "Marketing")
         );
 
-        EmployeeService employeeService=new EmployeeService();
-        Map<String, Employee> highestSalaryByDept=employeeService.getHighestSalary(employees);
+        EmployeeService employeeService = new EmployeeService();
+        Map<String, Employee> highestSalaryByDept = employeeService.getHighestSalary(employees);
 
         highestSalaryByDept.forEach((dept, emp) ->
                 System.out.println(dept + " -> " + emp.getName() + " : " + emp.getSalary()));

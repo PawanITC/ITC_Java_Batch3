@@ -6,76 +6,85 @@ import com.itc.funkart.product_service.dto.response.ProductResponse;
 import com.itc.funkart.product_service.dto.response.ProductsResponse;
 import com.itc.funkart.product_service.entity.Category;
 import com.itc.funkart.product_service.entity.Product;
+import com.itc.funkart.product_service.enums.ProductEventType;
 import com.itc.funkart.product_service.exceptions.BadRequestException;
-import com.itc.funkart.product_service.entity.Category;
-import com.itc.funkart.product_service.entity.Product;
 import com.itc.funkart.product_service.exceptions.ResourceNotFoundException;
 import com.itc.funkart.product_service.mapper.ProductMapper;
+import com.itc.funkart.product_service.producer.ProductProducer;
 import com.itc.funkart.product_service.repository.CategoryRepository;
 import com.itc.funkart.product_service.repository.ProductRepository;
 import com.itc.funkart.product_service.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheEvict;
 
+/**
+ * Implementation of {@link ProductService}.
+ * Handles business logic for product management, caching with Redis,
+ * and event publishing via Kafka.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
+    private static final int MAX_IDS = 2000;
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private static final int MAX_IDS = 2000;
+    private final ProductProducer productProducer;
 
     @Override
     @Transactional
     @CacheEvict(value = "product-service:products", allEntries = true)
     public ProductResponse createProduct(ProductCreateRequest request) {
-        log.info("Creating product with name: {}", request.getName());
+        log.info("Creating product with name: {}", request.name()); // Fixed: record syntax
 
         Product product = ProductMapper.toEntity(request);
 
-        // Fetch and set Category
-        if (request.getCategoryId() != null) {
-            Category category = (Category) categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
+        if (request.categoryId() != null) { // Fixed: record syntax
+            Category category = categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.categoryId()));
             product.setCategory(category);
         }
 
         Product savedProduct = productRepository.save(product);
 
+        productProducer.sendMessage(ProductMapper.toEvent(savedProduct, ProductEventType.CREATE, savedProduct.getId()));
         return ProductMapper.toResponse(savedProduct);
     }
 
-    @Override
     @Transactional
     @CacheEvict(value = "product-service:products", allEntries = true)
+    @Override
     public ProductResponse updateProduct(Long id, ProductUpdateRequest request) {
         log.info("Updating product id: {}", id);
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
-        if (request.getName() != null) {
-            product.setName(request.getName());
-            product.setSlug(request.getName().toLowerCase().replace(" ", "-"));
+        // Partial update logic using Record accessors
+        if (request.name() != null) {
+            product.setName(request.name());
+            product.setSlug(request.name().toLowerCase().replace(" ", "-"));
         }
-        if (request.getDescription() != null) product.setDescription(request.getDescription());
-        if (request.getPrice() != null) product.setPrice(request.getPrice());
-        if (request.getStockQuantity() != null) product.setStockQuantity(request.getStockQuantity());
-        if (request.getActive() != null) product.setActive(request.getActive());
-        if (request.getBrand() != null) product.setBrand(request.getBrand());
+        if (request.description() != null) product.setDescription(request.description());
+        if (request.price() != null) product.setPrice(request.price());
+        if (request.stockQuantity() != null) product.setStockQuantity(request.stockQuantity());
+        if (request.active() != null) product.setActive(request.active());
+        if (request.brand() != null) product.setBrand(request.brand());
 
-        productRepository.save(product);
-        return ProductMapper.toResponse(product);
+        Product updatedProduct = productRepository.save(product);
+        productProducer.sendMessage(ProductMapper.toEvent(updatedProduct, ProductEventType.UPDATE, updatedProduct.getId()));
+        return ProductMapper.toResponse(updatedProduct);
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -104,6 +113,8 @@ public class ProductServiceImpl implements ProductService {
             throw new ResourceNotFoundException("Product not found with id: " + id);
         }
         productRepository.deleteById(id);
+        // Sending null for the product object on DELETE is standard
+        productProducer.sendMessage(ProductMapper.toEvent(null, ProductEventType.DELETE, id));
     }
 
     @Override
@@ -115,20 +126,22 @@ public class ProductServiceImpl implements ProductService {
         if (ids.size() > MAX_IDS) {
             throw new BadRequestException("Too many IDs requested. Max allowed: " + MAX_IDS);
         }
-        ids = ids.stream().distinct().toList();
-        List<Product> products = productRepository.findAllById(ids);
+
+        List<Long> uniqueIds = ids.stream().distinct().toList();
+        List<Product> products = productRepository.findAllById(uniqueIds);
 
         Set<Long> foundIds = products.stream()
                 .map(Product::getId)
                 .collect(Collectors.toSet());
 
-        List<Long> missingIds = ids.stream()
+        List<Long> missingIds = uniqueIds.stream()
                 .filter(id -> !foundIds.contains(id))
                 .toList();
-        ProductsResponse response = new ProductsResponse();
-        response.setFound(products);
-        response.setMissing(missingIds);
 
-        return response;
+        // Fixed: Records must use the constructor, they don't have setters
+        return ProductsResponse.builder()
+                .found(products)
+                .missing(missingIds)
+                .build();
     }
 }

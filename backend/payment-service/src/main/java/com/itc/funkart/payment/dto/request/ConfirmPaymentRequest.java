@@ -18,5 +18,6 @@ public record ConfirmPaymentRequest(
         String paymentMethodId,  // The 'pm_xxx' identifier from the frontend
 
         @NotBlank(message = "Return URL is required")
-                String returnUrl
-) {}
+        String returnUrl
+) {
+}

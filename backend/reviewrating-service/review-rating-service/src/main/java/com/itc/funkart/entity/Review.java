@@ -1,44 +1,24 @@
+// com/itc/funkart/entity/ProductRatingSummary.java
 package com.itc.funkart.entity;
 
-import jakarta.persistence.*;
-import java.time.Instant;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(name = "reviews",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"product_id", "user_id"}))
-public class Review {
+@Table(name = "product_rating_summary")
+@Getter
+@Setter
+@NoArgsConstructor
+public class ProductRatingSummary {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "product_id", nullable = false)
     private Long productId;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
-    @Column(nullable = false)
-    private int rating; // 1–5
-
-    @Column(length = 2000)
-    private String comment;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @Column(name = "updated_at")
-    private Instant updatedAt;
-
-    // getters and setters
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
+    private Double averageRating = 0.0;
 
     public Long getProductId() {
         return productId;
@@ -48,43 +28,25 @@ public class Review {
         this.productId = productId;
     }
 
-    public Long getUserId() {
-        return userId;
+    public Double getAverageRating() {
+        return averageRating;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
     }
 
-    public int getRating() {
-        return rating;
+    public Long getRatingCount() {
+        return ratingCount;
     }
 
-    public void setRating(int rating) {
-        this.rating = rating;
+    public void setRatingCount(Long ratingCount) {
+        this.ratingCount = ratingCount;
     }
 
-    public String getComment() {
-        return comment;
-    }
+    private Long ratingCount = 0L;
 
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
+    public ProductRatingSummary(Long productId) {
+        this.productId = productId;
     }
 }

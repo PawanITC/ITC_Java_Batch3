@@ -10,6 +10,7 @@ version = '0.0.1-SNAPSHOT'
 
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -25,6 +26,8 @@ dependencies {
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation "org.apache.avro:avro:1.11.3"
+    implementation("com.itc.funkart:review-events-schema:1.0.0")
 
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
