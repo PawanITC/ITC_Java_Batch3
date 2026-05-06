@@ -1,65 +1,62 @@
 package com.itc.funkart.controller;
 
+import com.itc.funkart.dto.ProductRatingSummaryResponse;
 import com.itc.funkart.model.ProductRatingSummary;
-import com.itc.funkart.service.RatingAggregationService;
+import com.itc.funkart.repository.ProductRatingSummaryRepository;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Optional;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@WebMvcTest(RatingSummaryController.class)
 class RatingSummaryControllerTest {
 
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private ProductRatingSummaryRepository summaryRepository;
+
     @Test
-    void testGetRatingSummary_cacheHit() throws Exception {
-        RatingAggregationService service = mock(RatingAggregationService.class);
-        ProductRatingSummary summary = new ProductRatingSummary(1L);
+    void testGetSummary_WhenSummaryExists() throws Exception {
+        Long productId = 10L;
+
+        ProductRatingSummary summary = new ProductRatingSummary(productId);
         summary.setAverageRating(4.5);
-        summary.setRatingCount(Long.valueOf(10));
+        summary.setRatingCount(20L);
 
-        when(service.getFromCache(1L)).thenReturn(Optional.of(summary));
+        when(summaryRepository.findById(productId))
+                .thenReturn(Optional.of(summary));
 
-        MockMvc mvc = MockMvcBuilders
-                .standaloneSetup(new RatingSummaryController(service))
-                .build();
-
-        mvc.perform(get("/aggregator/products/1/rating-summary")
+        mockMvc.perform(get("/api/v1/rating-summary/{productId}", productId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.productId").value(10))
                 .andExpect(jsonPath("$.averageRating").value(4.5))
-                .andExpect(jsonPath("$.ratingCount").value(10));
-
-        verify(service, times(1)).getFromCache(1L);
-        verify(service, never()).recomputeAndCache(anyLong());
+                .andExpect(jsonPath("$.ratingCount").value(20));
     }
 
     @Test
-    void testGetRatingSummary_cacheMiss_recompute() throws Exception {
-        RatingAggregationService service = mock(RatingAggregationService.class);
+    void testGetSummary_WhenSummaryDoesNotExist() throws Exception {
+        Long productId = 99L;
 
-        ProductRatingSummary summary = new ProductRatingSummary(1L);
-        summary.setAverageRating(3.0);
-        summary.setRatingCount(Long.valueOf(5));
+        when(summaryRepository.findById(productId))
+                .thenReturn(Optional.empty());
 
-        when(service.getFromCache(1L)).thenReturn(Optional.empty());
-        when(service.recomputeAndCache(1L)).thenReturn(summary);
-
-        MockMvc mvc = MockMvcBuilders
-                .standaloneSetup(new RatingSummaryController(service))
-                .build();
-
-        mvc.perform(get("/aggregator/products/1/rating-summary"))
+        mockMvc.perform(get("/api/v1/rating-summary/{productId}", productId)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.averageRating").value(3.0))
-                .andExpect(jsonPath("$.ratingCount").value(5));
-
-        verify(service).getFromCache(1L);
-        verify(service).recomputeAndCache(1L);
+                .andExpect(jsonPath("$.productId").value(99))
+                .andExpect(jsonPath("$.averageRating").doesNotExist())
+                .andExpect(jsonPath("$.ratingCount").doesNotExist());
     }
 }

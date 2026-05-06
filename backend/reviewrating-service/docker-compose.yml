@@ -3,17 +3,19 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
     command: [ "--config=/etc/otel-config.yaml" ]
     volumes:
       - ./otel-config.yaml:/etc/otel-config.yaml
     ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-      - "8889:8889"   # Prometheus metrics
+      - "14317:4317"
+      - "14318:4318"
     depends_on:
       - jaeger
     networks:
-      - observability
+      observability:
+        aliases:
+          - otel-collector
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -31,22 +33,29 @@ services:
     hostname: kafka
     ports:
       - "9092:9092"
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "echo > /dev/tcp/kafka/9092" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     environment:
       CLUSTER_ID: "3ftMfRiOSXaHaMkr7U4d6A"
       KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:29093"
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+      # ⭐ Two listeners required for KRaft
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     networks:
       - observability
+
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -59,7 +68,8 @@ services:
     depends_on:
       - kafka
     networks:
-        - observability
+      - observability
+
 
   kafka-connect:
     image: confluentinc/cp-kafka-connect:7.6.0
@@ -96,15 +106,13 @@ services:
     depends_on:
       - kafka
       - otel-collector
-    env_file:
-      - docker.env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://18.175.222.132:32680/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Ie422p9Cx8
       SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SPRING_REDIS_HOST: ${REDIS_HOST}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP}
+      SPRING_PROFILES_ACTIVE: docker
 
 
     volumes:
@@ -122,17 +130,17 @@ services:
       context: ./rating-aggregator-service
       dockerfile: Dockerfile
     depends_on:
-      - kafka
-      - otel-collector
-    env_file:
-      - docker.env
+      kafka:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://18.175.222.132:32680/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Ie422p9Cx8
       SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SPRING_REDIS_HOST: ${REDIS_HOST}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP}
+      SPRING_PROFILES_ACTIVE: docker
 
     volumes:
       - C:/otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar
@@ -169,7 +177,9 @@ services:
 
 networks:
   observability:
+    name: observability
     driver: bridge
+
 
 volumes:
   pgdata:

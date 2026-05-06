@@ -19,4 +19,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     Optional<Review> findByProductIdAndUserId(Long productId, Long userId);
     Page<Review> findByProductId(Long productId, Pageable pageable);
 
+    @Query("select new com.itc.funkart.dto.RatingStatsDto(avg(r.rating), count(r))" +
+            "from Review r " +
+            "where r.productId = :productId ")
+    RatingStatsDto getRatingStatsByProductId(@Param("productId") Long productId);
+
 }

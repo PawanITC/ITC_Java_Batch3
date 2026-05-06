@@ -2,11 +2,11 @@ server:
   port: 9096
 
 spring:
+  config:
+    activate:
+      on-profile: docker
   application:
     name: rating-aggregator-service
-
-
-
   kafka:
     bootstrap-servers: kafka:9092
     consumer:

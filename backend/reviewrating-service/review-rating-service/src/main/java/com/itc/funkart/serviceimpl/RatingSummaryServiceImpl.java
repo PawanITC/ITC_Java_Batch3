@@ -1,7 +1,5 @@
 package com.itc.funkart.serviceimpl;
 
-import com.itc.funkart.dto.RatingStatsDto;
-import com.itc.funkart.entity.ProductRatingSummary;
 import com.itc.funkart.repository.ProductRatingSummaryRepository;
 import com.itc.funkart.repository.ReviewRepository;
 import com.itc.funkart.service.RatingSummaryService;
