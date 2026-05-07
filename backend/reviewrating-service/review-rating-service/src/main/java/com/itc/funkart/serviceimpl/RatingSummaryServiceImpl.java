@@ -1,15 +1,13 @@
 package com.itc.funkart.serviceimpl;
 
-
-
-import com.itc.funkart.entity.ProductRatingSummary;
-import com.itc.funkart.projection.RatingStats;
 import com.itc.funkart.repository.ProductRatingSummaryRepository;
 import com.itc.funkart.repository.ReviewRepository;
 import com.itc.funkart.service.RatingSummaryService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RatingSummaryServiceImpl implements RatingSummaryService {
@@ -20,9 +18,10 @@ public class RatingSummaryServiceImpl implements RatingSummaryService {
     @Override
     public void recalculateSummary(Long productId) {
 
-        RatingStats stats = reviewRepository.getRatingStatsByProductId(productId);
+        /*RatingStatsDto stats = reviewRepository.getRatingStatsByProductId(productId);
 
-        if (stats == null || stats.getAvg() == null) {
+        if (stats == null || stats.avg() == null) {
+            log.info("No reviews found for product {}. Deleting summary.", productId);
             summaryRepository.deleteById(productId);
             return;
         }
@@ -30,10 +29,12 @@ public class RatingSummaryServiceImpl implements RatingSummaryService {
         ProductRatingSummary summary = summaryRepository.findById(productId)
                 .orElseGet(() -> new ProductRatingSummary(productId));
 
-        summary.setAverageRating(stats.getAvg());
-        summary.setRatingCount(stats.getCount());
+        summary.setAverageRating(stats.avg());
+        summary.setRatingCount(stats.count());
 
         summaryRepository.save(summary);
+
+        log.info("Updated summary for product {} -> avg={}, count={}",
+                productId, stats.avg(), stats.count());*/
     }
 }
-

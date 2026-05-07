@@ -1,52 +1,77 @@
 package com.itc.funkart.consumer;
 
-
+import com.example.events.common.ReviewPayload;
 import com.itc.funkart.avro.ReviewCreatedEvent;
 import com.itc.funkart.avro.ReviewDeletedEvent;
+
+import com.itc.funkart.event.ReviewEventEnvelope;
 import com.itc.funkart.event.ReviewUpdatedEvent;
-import com.itc.funkart.service.RatingAggregationService;
+import com.itc.funkart.kafka.AvroDeserializer;
+import com.itc.funkart.service.RatingSummaryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.avro.specific.SpecificRecordBase;
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.specific.SpecificDatumReader;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import java.nio.ByteBuffer;
 
 @Slf4j
-@Component
+@Service
 @RequiredArgsConstructor
 public class ReviewEventConsumer {
 
-    private final RatingAggregationService ratingAggregationService;
+    private final AvroDeserializer avroDeserializer;
+    private final RatingSummaryService ratingSummaryService;
 
-    @KafkaListener(
-            topics = "review.events.v1",
-            groupId = "rating-aggregator-service"
-    )
-    public void handle(SpecificRecordBase event) {
+    @KafkaListener(topics = "review.events.v1", groupId = "rating-aggregator")
+    public void consume(byte[] message) {
 
-        log.info("Received event: {}", event.getClass().getSimpleName());
+        ReviewEventEnvelope envelope = avroDeserializer.deserializeEnvelope(message);
 
-        if (event instanceof ReviewCreatedEvent created) {
-            ratingAggregationService.handleCreated(
-                    created.getPayload().getProductId(),
-                    created.getPayload().getRating()
-            );
-        }
+        String type = envelope.getEventType();
+        ByteBuffer data = envelope.getEventData();
+        byte[] payloadBytes = new byte[data.remaining()];
+        data.get(payloadBytes);
 
-        else if (event instanceof ReviewUpdatedEvent updated) {
-            ratingAggregationService.handleUpdated(
-                    updated.getPayload().getProductId()
-            );
-        }
+        Long productId = null;
 
-        else if (event instanceof ReviewDeletedEvent deleted) {
-            ratingAggregationService.handleDeleted(
-                    deleted.getPayload().getProductId()
-            );
-        }
+        try {
+            switch (type) {
+                case "ReviewCreatedEvent" -> {
+                    SpecificDatumReader<ReviewCreatedEvent> reader =
+                            new SpecificDatumReader<>(ReviewCreatedEvent.class);
+                    BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(payloadBytes, null);
+                    ReviewCreatedEvent event = reader.read(null, decoder);
+                    ReviewPayload p = event.getPayload();
+                    productId = p.getProductId();
+                }
+                case "ReviewUpdatedEvent" -> {
+                    SpecificDatumReader<com.itc.funkart.event.ReviewUpdatedEvent> reader =
+                            new SpecificDatumReader<>(com.itc.funkart.event.ReviewUpdatedEvent.class);
+                    BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(payloadBytes, null);
+                    com.itc.funkart.event.ReviewUpdatedEvent event = reader.read(null, decoder);
+                    ReviewPayload p = event.getPayload();
+                    productId = p.getProductId();
+                }
+                case "ReviewDeletedEvent" -> {
+                    SpecificDatumReader<ReviewDeletedEvent> reader =
+                            new SpecificDatumReader<>(ReviewDeletedEvent.class);
+                    BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(payloadBytes, null);
+                    ReviewDeletedEvent event = reader.read(null, decoder);
+                    ReviewPayload p = event.getPayload();
+                    productId = p.getProductId();
+                }
+                default -> log.warn("Unknown event type: {}", type);
+            }
 
-        else {
-            log.warn("Unknown event type: {}", event.getClass().getName());
+            if (productId != null) {
+                ratingSummaryService.recalculateSummary(productId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to process event type {}", type, e);
         }
     }
 }

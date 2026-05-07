@@ -1,21 +1,17 @@
 package com.itc.funkart.outbox;
 
-
-
-import com.itc.funkart.event.ReviewEvent;
 import lombok.RequiredArgsConstructor;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumWriter;
+import org.apache.avro.specific.SpecificRecordBase;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.apache.avro.specific.SpecificRecordBase;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Instant;
 import java.util.UUID;
-
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +28,7 @@ public class OutboxService {
         outbox.setEventType(avroEvent.getSchema().getName());
         outbox.setOccurredAt(Instant.now());
         outbox.setPayload(payload);
+        outbox.setProcessed(false);
 
         outboxRepository.save(outbox);
     }
@@ -49,6 +46,4 @@ public class OutboxService {
             throw new RuntimeException("Failed to serialize Avro event", e);
         }
     }
-
 }
-

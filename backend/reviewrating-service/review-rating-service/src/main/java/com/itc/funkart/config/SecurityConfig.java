@@ -17,7 +17,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/api/reviews/**").authenticated()
+                        .requestMatchers("/api/v1/reviews/**").authenticated()
+                        .requestMatchers("/db", "/api/db", "/api/v1/db", "/review-rating-service/db").permitAll()
+                        .requestMatchers("/test").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth

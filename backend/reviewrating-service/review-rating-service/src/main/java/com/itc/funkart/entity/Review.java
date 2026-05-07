@@ -1,41 +1,35 @@
 package com.itc.funkart.entity;
 
+
+
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "reviews",
-        indexes = {
-                @Index(name = "idx_reviews_product", columnList = "product_id"),
-                @Index(name = "idx_reviews_user_product", columnList = "user_id,product_id", unique = true)
-        }
-)
-
+@Table(name = "reviews")
 public class Review {
 
     @Id
-    @GeneratedValue
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
+    @Column(name = "product_id", nullable = false)
     private Long productId;
+
+    @Column(name = "user_id", nullable = false)
     private Long userId;
-    private int rating;
 
-
-    @Column(length = 4000)
-    private String reviewText;
-
-    private Instant createdAt;
-    private Instant updatedAt;
-
-    // getters/setters omitted for brevity
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -55,11 +49,11 @@ public class Review {
         this.userId = userId;
     }
 
-    public int getRating() {
+    public Integer getRating() {
         return rating;
     }
 
-    public void setRating(int rating) {
+    public void setRating(Integer rating) {
         this.rating = rating;
     }
 
@@ -71,41 +65,46 @@ public class Review {
         this.reviewText = reviewText;
     }
 
-    public Instant getCreatedAt() {
+    public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Instant createdAt) {
+    public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
+    private Integer rating;
 
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
+    @Column(name = "review_text")
+    private String reviewText;
+    public Review() {
     }
-
-    // --- Add these lifecycle hooks here ---
-    @PrePersist
-    public void onCreate() {
-        Instant now = Instant.now();
+    public Review(Long productId, Long userId, LocalDateTime now) {
+        this.productId = productId;
+        this.userId = userId;
         this.createdAt = now;
         this.updatedAt = now;
     }
 
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
     @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = Instant.now();
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
-
-    public Review(Long productId, Long userId, Instant createdAt) {
-        this.productId = productId != null ? productId : null;
-        this.userId = userId != null ? userId : null;
-        this.createdAt = createdAt;
-        this.updatedAt = createdAt; // optional: set updatedAt same as createdAt
-    }
-
-
 }

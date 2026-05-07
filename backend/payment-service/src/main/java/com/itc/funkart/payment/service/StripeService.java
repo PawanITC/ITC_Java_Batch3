@@ -81,7 +81,7 @@ public class StripeService {
 
         RequestOptions options = RequestOptions.builder()
                 .setIdempotencyKey(
-                        StripeIdempotencyKeys.createPaymentIntent(orderId)
+                        StripeIdempotencyKeys.createPaymentIntent(paymentId)
                 )
                 .build();
 

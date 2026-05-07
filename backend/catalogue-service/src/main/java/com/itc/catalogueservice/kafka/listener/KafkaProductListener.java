@@ -4,28 +4,23 @@ import com.itc.catalogueservice.exception.kafka.InvalidProductEventException;
 import com.itc.catalogueservice.kafka.listener.dto.ProductEventDTO;
 import com.itc.catalogueservice.service.CatalogueService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
-import org.springframework.kafka.retrytopic.TopicSuffixingStrategy;
-import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class KafkaProductListener {
 
     private final CatalogueService catalogueService;
-    @RetryableTopic(
-            attempts = "3",
-            backoff = @Backoff(delay = 3000),
-            topicSuffixingStrategy = TopicSuffixingStrategy.SUFFIX_WITH_INDEX_VALUE
-    )
 
     @KafkaListener(
             topics = "product-events",
             groupId = "catalogue-service"
     )
     public void listen(ProductEventDTO event) {
+        log.info("RECEIVED EVENT: {}", event);
 
         switch (event.getEventType()) {
 
@@ -35,17 +30,26 @@ public class KafkaProductListener {
                         event.getProduct().getId() == null ||
                         event.getProduct().getName() == null ||
                         event.getProduct().getCategory() == null) {
-                    throw new InvalidProductEventException("Product name is missing");
+                    throw new InvalidProductEventException("Invalid product data");
                 }
+
                 catalogueService.saveProductToCache(event.getProduct());
                 break;
 
             case DELETED:
+                if (event.getProduct() == null ||
+                        event.getProduct().getId() == null) {
+                    throw new InvalidProductEventException("Invalid delete event");
+                }
+
                 catalogueService.deleteProductFromCache(
                         String.valueOf(event.getProduct().getId()),
-                        event.getProduct().getCategory()
+                        event.getProduct().getCategory() // can be null
                 );
                 break;
         }
+
+        log.info("Updated cache for product ID: {}",
+                event.getProduct() != null ? event.getProduct().getId() : "null");
     }
 }

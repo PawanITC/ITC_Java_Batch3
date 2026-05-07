@@ -1,0 +1,87 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins
+
+  containers:
+    - name: jnlp
+      image: jenkins/inbound-agent:jdk17
+      args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']
+
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:debug
+      command: ["/busybox/sh"]
+      args: ["-c", "sleep 999999"]
+      tty: true
+
+    - name: kubectl
+      image: alpine/k8s:1.29.0
+      command: ["cat"]
+      tty: true
+
+  restartPolicy: Never
+'''
+            defaultContainer 'jnlp'
+        }
+    }
+
+    environment {
+        IMAGE = "666127452756.dkr.ecr.eu-west-2.amazonaws.com/catalogue-service:v1"
+    }
+
+    stages {
+
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'cd backend/catalogue-service && ./gradlew test --no-daemon'
+            }
+        }
+
+        stage('Build JAR') {
+            steps {
+                sh 'cd backend/catalogue-service && ./gradlew build -x test --no-daemon'
+            }
+        }
+
+        stage('Build & Push Image (Kaniko)') {
+            steps {
+                container('kaniko') {
+                    sh '''
+                    /kaniko/executor \
+                      --dockerfile=backend/catalogue-service/Dockerfile \
+                      --context=dir://backend/catalogue-service \
+                      --destination=$IMAGE \
+                      --verbosity=info
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                container('kubectl') {
+                    sh '''
+                    kubectl apply -f backend/catalogue-service/k8s/eks/
+                    kubectl get pods -n catalogue-service
+                    '''
+                }
+            }
+        }
+    }
+}
