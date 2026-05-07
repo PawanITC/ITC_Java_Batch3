@@ -40,11 +40,9 @@ public class PaymentOrderEventConsumer {
 
         try {
 
-            // -----------------------------
-            // EVENT TYPE (FROM PAYLOAD)
-            // -----------------------------
             String eventType = (String) event.get("eventType");
 
+            // Ignore non-relevant events (but ACK them)
             if (!"ORDER_INITIATED".equals(eventType)) {
                 log.info("⏭️ Ignored event type={}", eventType);
                 ack.acknowledge();
@@ -57,8 +55,7 @@ public class PaymentOrderEventConsumer {
 
             if (orderId == null || customerId == null || totalAmount == null) {
                 log.error("❌ Invalid ORDER_INITIATED payload={}", event);
-                ack.acknowledge();
-                return;
+                return; // DO NOT ACK → retry
             }
 
             if (paymentRepository.existsByOrderId(orderId)) {
@@ -90,17 +87,14 @@ public class PaymentOrderEventConsumer {
             log.info("✅ PaymentIntent created orderId={} paymentId={}",
                     orderId, payment.getId());
 
+            // SUCCESS → ACK ONLY HERE
+            ack.acknowledge();
+
         } catch (Exception e) {
             log.error("❌ ORDER_EVENT processing failed event={}", event, e);
-        } finally {
-            // IMPORTANT: always commit offset to prevent infinite retry loops
-            ack.acknowledge();
+            // DO NOT ACK → Kafka will retry
         }
     }
-
-    // -----------------------------
-    // SAFE PARSERS
-    // -----------------------------
 
     private Long safeLong(Object obj) {
         if (obj == null) return null;

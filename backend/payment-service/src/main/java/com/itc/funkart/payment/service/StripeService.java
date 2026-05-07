@@ -116,8 +116,7 @@ public class StripeService {
 
         RequestOptions options = RequestOptions.builder()
                 .setIdempotencyKey(
-                        StripeIdempotencyKeys.confirmPaymentIntent(piId, paymentId)
-                )
+                        StripeIdempotencyKeys.confirmPaymentIntent(piId, paymentId)                )
                 .build();
 
         PaymentIntent.retrieve(piId).confirm(params, options);
@@ -166,6 +165,10 @@ public class StripeService {
      */
     public void cancelPaymentIntent(String piId) throws StripeException {
         logger.info("Cancelling Stripe Intent | PI={}", piId);
-        PaymentIntent.retrieve(piId).cancel();
+        RequestOptions options = RequestOptions.builder()
+                .setIdempotencyKey("pi:cancel:payment-intent:" + piId)
+                .build();
+
+        PaymentIntent.retrieve(piId).cancel(options);
     }
 }

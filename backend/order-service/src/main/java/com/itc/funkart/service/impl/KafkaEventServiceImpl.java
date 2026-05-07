@@ -1,11 +1,13 @@
 package com.itc.funkart.service.impl;
 
 import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
+import com.itc.funkart.common.dto.event.order.OrderEvent;
 import com.itc.funkart.common.enums.order.OrderEventType;
 import com.itc.funkart.entity.Order;
 import com.itc.funkart.kafka.producer.OrderEventProducer;
 import com.itc.funkart.mapper.OrderMapper;
 import com.itc.funkart.service.KafkaEventService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -54,17 +56,11 @@ public class KafkaEventServiceImpl implements KafkaEventService {
      * existing mapper method that returns an {@code OrderEvent}.</p>
      */
     @Override
+    @Transactional
     public void sendOrderCreated(Order order) {
-        if (order.getId() == null) {
-            log.error("❌ Cannot send event: Order ID is null for customer {}", order.getCustomerId());
-            return;
-        }
+        OrderEvent event = mapper.toEvent(order, OrderEventType.ORDER_INITIATED);
 
-        // FIX: was mapper.toInitiatedEvent(order) — that method doesn't exist.
-        // OrderMapper.toEvent() returns OrderEvent, which is what ORDERS topic consumers expect.
-        var event = mapper.toEvent(order, OrderEventType.ORDER_INITIATED);
-
-        syncAndSend(() -> producer.publishOrderEvent(event), order.getId().toString());
+        producer.publishOrderEvent(event); // direct publish
     }
 
     @Override
@@ -98,14 +94,14 @@ public class KafkaEventServiceImpl implements KafkaEventService {
 
     public void syncEvent(Order order) {
         OrderEventType type = switch (order.getStatus()) {
-            case PENDING   -> OrderEventType.ORDER_INITIATED;
-            case PAID      -> OrderEventType.PAYMENT_SUCCESS;
-            case SHIPPED   -> OrderEventType.ORDER_SHIPPED;
+            case PENDING -> OrderEventType.ORDER_INITIATED;
+            case PAID -> OrderEventType.PAYMENT_SUCCESS;
+            case SHIPPED -> OrderEventType.ORDER_SHIPPED;
             case DELIVERED -> OrderEventType.ORDER_DELIVERED;
             case CONFIRMED -> OrderEventType.ORDER_CONFIRMED;
             case CANCELLED -> OrderEventType.ORDER_CANCELLED;
-            case FAILED    -> OrderEventType.PAYMENT_FAILED;
-            case REFUNDED  -> OrderEventType.ORDER_REFUNDED;
+            case FAILED -> OrderEventType.PAYMENT_FAILED;
+            case REFUNDED -> OrderEventType.ORDER_REFUNDED;
         };
         sendOrderEvent(order, type);
     }
