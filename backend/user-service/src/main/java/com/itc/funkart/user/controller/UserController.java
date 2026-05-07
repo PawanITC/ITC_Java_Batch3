@@ -29,12 +29,14 @@ public class UserController {
 
     /**
      * Entry point for GitHub OAuth authentication.
+     * Called internally by the API Gateway after it receives the GitHub callback.
+     * Gateway posts the code as JSON body: { "code": "..." }
      */
     @PostMapping("/oauth/github")
-    public ResponseEntity<ApiResponse<OAuthResponse>> oauthGithub(
-            @Valid @RequestBody OAuthRequest request
+    public ResponseEntity<ApiResponse<OAuthResponse>> githubOAuth(
+            @Valid @RequestBody OAuthRequest oAuthRequest
     ) {
-        OAuthResponse data = authFacadeService.handleGithubLogin(request.code());
+        OAuthResponse data = authFacadeService.handleGithubLogin(oAuthRequest.code());
         return ResponseEntity.ok(ApiResponse.success(data, "GitHub login successful"));
     }
 

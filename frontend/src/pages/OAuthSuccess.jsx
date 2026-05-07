@@ -8,19 +8,23 @@ export default function OAuthSuccess() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const finalizeLogin = async () => {
-            await refreshUser();
-            navigate("/", { replace: true });
+        const run = async () => {
+            try {
+                await refreshUser();
+                navigate("/", { replace: true });
+            } catch {
+                navigate("/login", { replace: true });
+            }
         };
-        finalizeLogin();
+
+        run();
     }, [refreshUser, navigate]);
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4 text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                <p className="font-semibold text-foreground">Authenticating with GitHub…</p>
-                <p className="text-sm text-muted-foreground">Please wait while we set up your session.</p>
+        <div className="min-h-screen flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <p>Signing you in…</p>
             </div>
         </div>
     );

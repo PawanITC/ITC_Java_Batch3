@@ -17,7 +17,7 @@ export default function CartItem({ item }) {
                 <button
                     onClick={() =>
                         item.quantity > 1
-                            ? updateItem(item.productId, item.quantity - 1)
+                            ? updateItem(item.productId, -1)
                             : removeItem(item.productId)
                     }
                     disabled={loading}
@@ -29,7 +29,7 @@ export default function CartItem({ item }) {
                 </button>
                 <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
                 <button
-                    onClick={() => updateItem(item.productId, item.quantity + 1)}
+                    onClick={() => updateItem(item.productId, 1)}
                     disabled={loading}
                     className="w-8 h-8 rounded-md border flex items-center justify-center
             hover:bg-muted transition-colors disabled:opacity-50"

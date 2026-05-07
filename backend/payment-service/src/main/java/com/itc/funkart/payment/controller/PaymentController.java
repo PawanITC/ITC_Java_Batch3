@@ -84,9 +84,15 @@ public class PaymentController {
             @AuthenticationPrincipal JwtUserDto user) {
 
         log.debug("→ Fetching latest PaymentIntent | User: {}", user.id());
-        PaymentIntentResponse data = paymentService.getLatestPaymentIntent(user);
+        java.util.Optional<PaymentIntentResponse> data = paymentService.getLatestPaymentIntent(user);
 
-        return ResponseEntity.ok(ApiResponse.success(data, "Latest payment intent retrieved"));
+        // Return 204 (No Content) when payment intent is not yet ready.
+        // The checkout page polls this endpoint — 204 means "keep waiting", not an error.
+        if (data.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(data.get(), "Latest payment intent retrieved"));
     }
 
     /**

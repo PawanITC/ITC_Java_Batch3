@@ -6,8 +6,8 @@ export const cartApi = {
     addItem: (productId, quantity) =>
         api.post("/api/v1/cart/items", { productId, quantity }),
 
-    updateItem: (productId, quantity) =>
-        api.patch(`/api/v1/cart/items/${productId}`, { quantity }),
+    updateItem: (productId, quantityChange) =>
+        api.patch(`/api/v1/cart/items/${productId}`, { quantityChange }),
 
     removeItem: (productId) =>
         api.delete(`/api/v1/cart/items/${productId}`),

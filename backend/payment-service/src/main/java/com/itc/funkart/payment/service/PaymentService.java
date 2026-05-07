@@ -167,18 +167,27 @@ public class PaymentService {
 
     // -----------------------------
     // GET LATEST PAYMENT INTENT (for checkout page restore)
+    // Returns empty Optional when no payment exists yet (caller should return 204).
+    // Throws only on real errors (Stripe API failures).
     // -----------------------------
-    public PaymentIntentResponse getLatestPaymentIntent(JwtUserDto user) {
+    public java.util.Optional<PaymentIntentResponse> getLatestPaymentIntent(JwtUserDto user) {
         try {
-            Payment payment = paymentRepository.findTopByUserIdOrderByCreatedAtDesc(user.id())
-                    .orElseThrow(() -> new PaymentException("No payment found for user"));
+            java.util.Optional<Payment> paymentOpt =
+                    paymentRepository.findTopByUserIdOrderByCreatedAtDesc(user.id());
+
+            if (paymentOpt.isEmpty()) {
+                return java.util.Optional.empty();
+            }
+
+            Payment payment = paymentOpt.get();
 
             if (payment.getStripePaymentIntentId() == null) {
-                throw new PaymentException("Payment intent not yet created");
+                // Order exists but Stripe intent not yet created — still pending
+                return java.util.Optional.empty();
             }
 
             PaymentIntent intent = PaymentIntent.retrieve(payment.getStripePaymentIntentId());
-            return PaymentIntentResponse.from(intent);
+            return java.util.Optional.of(PaymentIntentResponse.from(intent));
         } catch (com.stripe.exception.StripeException ex) {
             throw new PaymentException("Could not retrieve payment intent: " + ex.getMessage());
         }

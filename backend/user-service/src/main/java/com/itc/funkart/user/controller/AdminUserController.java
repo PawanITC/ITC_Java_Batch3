@@ -74,8 +74,9 @@ public class AdminUserController {
         log.info("Admin request: Updating role for user ID: {} to {}", userId, request.role());
 
         if (!(authentication.getPrincipal() instanceof UserPrincipalDto principal)) {
-            log.error("Principal type mismatch: Expected UserPrincipalDto");
-            throw new IllegalStateException("Unexpected principal type in SecurityContext");
+            log.error("Principal type mismatch: Expected UserPrincipalDto, got {}",
+                    authentication.getPrincipal() != null ? authentication.getPrincipal().getClass().getName() : "null");
+            throw new com.itc.funkart.user.exceptions.ForbiddenException("Admin identity could not be verified");
         }
 
         User updatedUser = userService.changeUserRole(userId, request.role(), principal.email());

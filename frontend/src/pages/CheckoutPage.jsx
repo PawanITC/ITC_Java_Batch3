@@ -42,25 +42,27 @@ export default function CheckoutPage() {
                 let clientSecret = null;
                 let intentId = null;
 
-                // ALWAYS prefer fresh backend fetch
-                const MAX_ATTEMPTS = 8;
-                const DELAY_MS = 1200;
+                // Poll until payment intent is ready.
+                // Backend returns 204 (null) while Kafka processes the order — keep waiting.
+                // Backend returns 200 + clientSecret when ready.
+                const MAX_ATTEMPTS = 15;   // 15 × 1500ms = ~22s max
+                const DELAY_MS     = 1500;
 
                 for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                     if (cancelled) return;
 
                     try {
-                        const res = await paymentApi.getLatestIntent();
-
+                        const res  = await paymentApi.getLatestIntent();
                         const data = res?.data ?? res;
 
                         if (data?.clientSecret) {
                             clientSecret = data.clientSecret;
-                            intentId = data.paymentIntentId;
+                            intentId     = data.paymentIntentId;
                             break;
                         }
-                    } catch (e) {
-                        // ignore and retry
+                        // null means 204 — still being prepared, fall through to wait
+                    } catch (_) {
+                        // real error (network/5xx) — still retry silently
                     }
 
                     await new Promise(r => setTimeout(r, DELAY_MS));
@@ -68,7 +70,7 @@ export default function CheckoutPage() {
 
                 if (!clientSecret) {
                     setInitError(
-                        "Payment is still being prepared. Please wait a few seconds and retry checkout."
+                        "Payment is still being prepared. Please wait a moment and try again."
                     );
                     setInitializing(false);
                     return;

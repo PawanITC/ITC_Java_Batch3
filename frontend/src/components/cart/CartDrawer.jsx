@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCart } from "../../context/CartContext.jsx";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 
 export default function CartDrawer({ open, onClose }) {
     const { cart, loading, updateItem, removeItem } = useCart();
@@ -89,7 +88,7 @@ export default function CartDrawer({ open, onClose }) {
                                 <p className="text-muted-foreground text-xs mt-0.5">${item.price.toFixed(2)} each</p>
                                 <div className="flex items-center gap-2 mt-2">
                                     <button
-                                        onClick={() => item.quantity > 1 ? updateItem(item.productId, item.quantity - 1) : removeItem(item.productId)}
+                                        onClick={() => item.quantity > 1 ? updateItem(item.productId, -1) : removeItem(item.productId)}
                                         className="w-6 h-6 rounded-md border border-border flex items-center justify-center hover:bg-secondary transition-colors"
                                         disabled={loading}
                                     >
@@ -97,7 +96,7 @@ export default function CartDrawer({ open, onClose }) {
                                     </button>
                                     <span className="text-sm w-5 text-center font-medium">{item.quantity}</span>
                                     <button
-                                        onClick={() => updateItem(item.productId, item.quantity + 1)}
+                                        onClick={() => updateItem(item.productId, 1)}
                                         className="w-6 h-6 rounded-md border border-border flex items-center justify-center hover:bg-secondary transition-colors"
                                         disabled={loading}
                                     >

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, ShoppingBag, Tag, ArrowRight, MapPin } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Tag, ArrowRight, MapPin, Package } from "lucide-react";
 import AdminOrders from "./AdminOrders";
 import AdminCategories from "./AdminCategories";
 
@@ -26,7 +26,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Quick action cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <button
                     onClick={() => navigate("/admin/users")}
                     className="flex items-center justify-between bg-white border border-border rounded-xl p-5 hover:shadow-md hover:border-primary/30 transition-all text-left group"
@@ -38,6 +38,22 @@ export default function AdminDashboard() {
                         <div>
                             <p className="font-bold text-sm">User Management</p>
                             <p className="text-xs text-muted-foreground">Roles &amp; accounts</p>
+                        </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                </button>
+
+                <button
+                    onClick={() => navigate("/admin/products")}
+                    className="flex items-center justify-between bg-white border border-border rounded-xl p-5 hover:shadow-md hover:border-primary/30 transition-all text-left group"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Package className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <p className="font-bold text-sm">Products</p>
+                            <p className="text-xs text-muted-foreground">Catalog &amp; inventory</p>
                         </div>
                     </div>
                     <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />

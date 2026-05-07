@@ -24,6 +24,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminOrders from "@/pages/admin/AdminOrders";
 import AdminOrderTracking from "@/pages/admin/AdminOrderTracking";
+import AdminProducts from "@/pages/admin/AdminProducts";
 
 function AppRoutes() {
     const { loading, isAuthenticated, user, logout } = useAuth();
@@ -77,6 +78,7 @@ function AppRoutes() {
                         <>
                             <Route path="/admin" element={<AdminDashboard />} />
                             <Route path="/admin/users" element={<AdminUsersPage />} />
+                            <Route path="/admin/products" element={<AdminProducts />} />
                             {/* /admin/orders = order management table (CRUD) */}
                             <Route path="/admin/orders" element={<AdminOrders />} />
                             {/* /admin/tracking = order lookup by ID with timeline */}

@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 
+const API_BASE = "http://localhost:8060";
+
 export default function AuthPage() {
     const [mode, setMode] = useState("login");
+
     return (
         <div className="min-h-screen flex items-center justify-center">
             {mode === "login" ? (
@@ -17,6 +20,8 @@ export default function AuthPage() {
         </div>
     );
 }
+
+/* ================= LOGIN ================= */
 
 function LoginForm({ onSwitch }) {
     const { login } = useAuth();
@@ -35,13 +40,23 @@ function LoginForm({ onSwitch }) {
 
         try {
             await login(email, password);
-            toast({ title: "Welcome back!", description: "You are now logged in." });
+
+            toast({
+                title: "Welcome back!",
+                description: "You are now logged in.",
+            });
+
             navigate("/");
         } catch {
             setError("Invalid credentials. Please try again.");
         } finally {
             setLoading(false);
         }
+    };
+
+    /* ================= FIXED GITHUB OAUTH (MVP) ================= */
+    const handleGithubLogin = () => {
+        window.location.href = `${API_BASE}/api/v1/oauth/github/login`;
     };
 
     return (
@@ -55,6 +70,7 @@ function LoginForm({ onSwitch }) {
                 type="email"
                 required
             />
+
             <Input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -69,12 +85,26 @@ function LoginForm({ onSwitch }) {
                 {loading ? "Logging in…" : "Login"}
             </Button>
 
-            <button type="button" onClick={onSwitch} className="text-sm underline">
+            <button
+                type="button"
+                onClick={handleGithubLogin}
+                className="w-full border p-2 rounded text-sm"
+            >
+                Continue with GitHub
+            </button>
+
+            <button
+                type="button"
+                onClick={onSwitch}
+                className="text-sm underline"
+            >
                 Create account
             </button>
         </form>
     );
 }
+
+/* ================= SIGNUP ================= */
 
 function SignupForm({ onSwitch }) {
     const { signup } = useAuth();
@@ -86,6 +116,7 @@ function SignupForm({ onSwitch }) {
         email: "",
         password: "",
     });
+
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -96,15 +127,15 @@ function SignupForm({ onSwitch }) {
 
         try {
             await signup(form);
-            toast({ title: "Account created!", description: "Welcome to Funkart." });
+
+            toast({
+                title: "Account created!",
+                description: "Welcome to Funkart.",
+            });
+
             navigate("/");
         } catch (err) {
-            const msg =
-                err?.response?.data?.message ??
-                err?.response?.data?.error ??
-                err?.message ??
-                "Registration failed. Please try again.";
-            setError(msg);
+            setError(err?.message || "Registration failed. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -120,6 +151,7 @@ function SignupForm({ onSwitch }) {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
             />
+
             <Input
                 placeholder="Email"
                 type="email"
@@ -127,11 +159,14 @@ function SignupForm({ onSwitch }) {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 required
             />
+
             <Input
                 placeholder="Password"
                 type="password"
                 value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                }
                 required
             />
 
@@ -141,7 +176,11 @@ function SignupForm({ onSwitch }) {
                 {loading ? "Creating…" : "Create Account"}
             </Button>
 
-            <button type="button" onClick={onSwitch} className="text-sm underline">
+            <button
+                type="button"
+                onClick={onSwitch}
+                className="text-sm underline"
+            >
                 Back to login
             </button>
         </form>

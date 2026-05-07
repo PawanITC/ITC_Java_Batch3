@@ -225,7 +225,10 @@ public class UserService {
 
     /**
      * Retrieves all registered users for administrative management.
+     * Read-only transaction keeps the Hibernate session open during entity access,
+     * preventing LazyInitializationException.
      */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public java.util.List<User> findAllUsers() {
         return userRepository.findAll();
     }
