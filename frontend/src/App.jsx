@@ -8,13 +8,24 @@ import { CartProvider } from "@/context/CartContext";
 
 import Layout from "@/components/layout/Layout";
 import AuthPage from "@/pages/AuthPage";
+import OAuthSuccess from "@/pages/OAuthSuccess";
 
 import ProductsPage from "@/pages/ProductsPage";
 import CartPage from "@/pages/CartPage";
 import CheckoutPage from "@/pages/CheckoutPage";
+import PaymentSuccess from "@/pages/PaymentSuccess";
+import PaymentFailure from "@/pages/PaymentFailure";
+import OrderHistory from "@/pages/OrderHistory";
+import OrderDetail from "@/pages/OrderDetail";
+import NotificationsPage from "@/pages/NotificationsPage";
+import ProductReviews from "@/pages/ProductReviews";
+
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminUsersPage from "@/pages/admin/AdminUsersPage";
+import AdminOrderTracking from "@/pages/admin/AdminOrderTracking";
 
 function AppRoutes() {
-    const { loading, isAuthenticated, logout } = useAuth();
+    const { loading, isAuthenticated, user, logout } = useAuth();
 
     if (loading) {
         return (
@@ -24,21 +35,53 @@ function AppRoutes() {
         );
     }
 
+    // OAuth callback — must be reachable before auth resolves
+    // (handled below via top-level route)
+
     if (!isAuthenticated) {
-        return <AuthPage />;
+        return (
+            <Routes>
+                <Route path="/oauth-success" element={<OAuthSuccess />} />
+                <Route path="*" element={<AuthPage />} />
+            </Routes>
+        );
     }
+
+    const isAdmin = Array.isArray(user?.roles)
+        ? user.roles.includes("ROLE_ADMIN")
+        : user?.role === "ROLE_ADMIN";
 
     return (
         <CartProvider>
             <Routes>
+                {/* OAuth landing (in case cookie arrives before refresh completes) */}
+                <Route path="/oauth-success" element={<OAuthSuccess />} />
+
+                {/* Main layout routes */}
                 <Route element={<Layout onLogout={logout} />}>
                     <Route path="/" element={<Navigate to="/products" replace />} />
                     <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/products/:id/reviews" element={<ProductReviews />} />
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
+                    <Route path="/payment-success" element={<PaymentSuccess />} />
+                    <Route path="/payment-failure" element={<PaymentFailure />} />
+                    <Route path="/orders" element={<OrderHistory />} />
+                    <Route path="/orders/history" element={<OrderHistory />} />
+                    <Route path="/orders/:id" element={<OrderDetail />} />
+                    <Route path="/notifications" element={<NotificationsPage />} />
+
+                    {/* Admin — only accessible with ROLE_ADMIN */}
+                    {isAdmin && (
+                        <>
+                            <Route path="/admin" element={<AdminDashboard />} />
+                            <Route path="/admin/users" element={<AdminUsersPage />} />
+                            <Route path="/admin/orders" element={<AdminOrderTracking />} />
+                        </>
+                    )}
                 </Route>
 
-                <Route path="*" element={<Navigate to="/products" />} />
+                <Route path="*" element={<Navigate to="/products" replace />} />
             </Routes>
         </CartProvider>
     );

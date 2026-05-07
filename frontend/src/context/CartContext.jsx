@@ -7,12 +7,16 @@ export function CartProvider({ children }) {
     const [cart, setCart] = useState(null);
     const [loading, setLoading] = useState(false);
 
+    // Backend wraps responses in ApiResponse<CartResponse> — unwrap .data
+    const unwrap = (res) => res?.data ?? res;
+
     const run = async (fn) => {
         try {
             setLoading(true);
             const res = await fn();
-            setCart(res);
-            return res;
+            const cartData = unwrap(res);
+            setCart(cartData);
+            return cartData;
         } finally {
             setLoading(false);
         }
@@ -25,7 +29,7 @@ export function CartProvider({ children }) {
     const fetchCart = useCallback(async () => {
         setLoading(true);
         const data = await cartApi.getCart();
-        setCart(data);
+        setCart(unwrap(data));
         setLoading(false);
     }, []);
 

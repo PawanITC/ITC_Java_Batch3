@@ -1,5 +1,4 @@
 import { useLocation } from 'react-router-dom';
-import { base44 } from '@/lib/base44Client';
 import { useQuery } from '@tanstack/react-query';
 
 

@@ -6,5 +6,5 @@ import { api } from "./api";
  * Returns something like: { id, email, name, roles: ["ROLE_USER"] } or { role: "ROLE_ADMIN" }
  */
 export const authApi = {
-    me: () => api.get("/api/v1/auth/me"),
+    me: () => api.get("/api/v1/users/me"),
 };

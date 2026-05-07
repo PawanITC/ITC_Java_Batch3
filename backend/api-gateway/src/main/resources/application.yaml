@@ -36,6 +36,13 @@ spring:
       server:
         webflux:
           routes:
+            - id: admin-user-service
+              uri: ${internal.service-urls.user}
+              predicates:
+                - Path=/api/v1/admin/users/**
+              filters:
+                - StripPrefix=2
+
             - id: user-service
               uri: ${internal.service-urls.user}
               predicates:

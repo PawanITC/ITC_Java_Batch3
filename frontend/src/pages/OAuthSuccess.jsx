@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { Loader2 } from "lucide-react";
 
 export default function OAuthSuccess() {
