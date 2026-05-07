@@ -33,10 +33,10 @@ public class SecurityConfig {
                         // Public Endpoints
                         .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
 
-                        // User Endpoints
-                        .requestMatchers("/orders/**").hasAuthority("ROLE_USER")
+                        // User & Admin Endpoints — admins must also be able to view/manage orders
+                        .requestMatchers("/orders/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
 
-                        // Admin Endpoints (Optional if you add them later)
+                        // Admin-only order management endpoints
                         .requestMatchers("/admin/orders/**").hasAuthority("ROLE_ADMIN")
 
                         .anyRequest().authenticated()

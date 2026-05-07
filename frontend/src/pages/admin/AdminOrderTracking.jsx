@@ -88,19 +88,19 @@ function OrderTrackingResult({ orderId }) {
                             <Package className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <div>
-                            <h2 className="font-bold text-lg">Order #{order.id}</h2>
+                            <h2 className="font-bold text-lg">Order #{order.orderId ?? order.id}</h2>
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Calendar className="w-3 h-3" /> {date}
                             </p>
                         </div>
                     </div>
-                    <OrderStatusBadge status={order.status} />
+                    <OrderStatusBadge status={order.orderStatus ?? order.status} />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <User className="w-4 h-4" />
-                        <span>{order.customerEmail ?? order.userId ?? "—"}</span>
+                        <span>{order.customerId ?? order.customerEmail ?? order.userId ?? "—"}</span>
                     </div>
                     <div className="flex items-center gap-2 font-semibold">
                         <DollarSign className="w-4 h-4 text-muted-foreground" />
@@ -133,7 +133,7 @@ function OrderTrackingResult({ orderId }) {
             {/* Timeline */}
             <div className="bg-white border rounded-xl p-6">
                 <h3 className="font-semibold text-sm mb-6">Tracking Timeline</h3>
-                <OrderTimeline status={order.status} />
+                <OrderTimeline status={order.orderStatus ?? order.status} />
             </div>
         </div>
     );

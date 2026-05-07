@@ -39,7 +39,8 @@ spring:
             - id: admin-user-service
               uri: ${internal.service-urls.user}
               predicates:
-                - Path=/api/v1/admin/users/**
+                # Include the base path WITHOUT trailing slash so /api/v1/admin/users is also matched
+                - Path=/api/v1/admin/users,/api/v1/admin/users/**
               filters:
                 - StripPrefix=2
 
@@ -60,7 +61,8 @@ spring:
             - id: order-service
               uri: ${internal.service-urls.order}
               predicates:
-                - Path=/api/v1/orders/**,/api/v1/admin/orders/**
+                # Include base paths WITHOUT trailing slash to avoid gateway 404
+                - Path=/api/v1/orders,/api/v1/orders/**,/api/v1/admin/orders,/api/v1/admin/orders/**
               filters:
                 - StripPrefix=2
 
@@ -123,10 +125,10 @@ management:
   otlp:
     tracing:
       # Spring Boot Micrometer sends HTTP traces — must use port 4318, NOT 4317 (gRPC).
-      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://otel-collector:4318}
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://otel-collector:4318/v1/traces}
     metrics:
       export:
-        url: ${MANAGEMENT_OTLP_METRICS_URL:http://otel-collector:4318}
+        url: ${MANAGEMENT_OTLP_METRICS_URL:http://otel-collector:4318/v1/metrics}
 
   metrics:
     tags:

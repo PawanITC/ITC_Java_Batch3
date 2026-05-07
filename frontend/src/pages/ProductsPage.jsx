@@ -27,9 +27,9 @@ function ProductCard({ product }) {
     return (
         <div className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group">
             <div className="relative overflow-hidden">
-                {product.imageUrl ? (
+                {product.imageUrls?.[0] ? (
                     <img
-                        src={product.imageUrl}
+                        src={product.imageUrls[0]}
                         alt={product.name}
                         className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
                     />

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 
-const STATUS_FILTERS = ["ALL", "PENDING", "PROCESSING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED"];
+const STATUS_FILTERS = ["ALL", "PENDING", "PAID", "SHIPPED", "DELIVERED", "CONFIRMED", "CANCELLED", "REFUNDED", "FAILED"];
 
 export default function AdminOrders() {
     const [statusFilter, setStatusFilter] = useState("ALL");
@@ -82,24 +82,24 @@ export default function AdminOrders() {
                         </thead>
                         <tbody className="divide-y">
                         {orders.map((order) => (
-                            <tr key={order.id} className="hover:bg-muted/20 transition-colors">
-                                <td className="px-4 py-3 font-medium">#{order.id}</td>
+                            <tr key={order.orderId} className="hover:bg-muted/20 transition-colors">
+                                <td className="px-4 py-3 font-medium">#{order.orderId}</td>
                                 <td className="px-4 py-3 text-muted-foreground">
                                     {order.createdAt ? format(new Date(order.createdAt), "MMM d, yyyy") : "—"}
                                 </td>
                                 <td className="px-4 py-3 text-muted-foreground">
-                                    {order.userId ?? order.customerEmail ?? "—"}
+                                    {order.customerId ?? order.userId ?? order.customerEmail ?? "—"}
                                 </td>
                                 <td className="px-4 py-3 text-right font-semibold">
                                     ${Number(order.totalAmount ?? 0).toFixed(2)}
                                 </td>
                                 <td className="px-4 py-3">
-                                    <OrderStatusBadge status={order.status} />
+                                    <OrderStatusBadge status={order.orderStatus} />
                                 </td>
                                 <td className="px-4 py-3">
                                     <StatusSelect
-                                        value={order.status}
-                                        onChange={(newStatus) => updateStatus.mutate({ id: order.id, newStatus })}
+                                        value={order.orderStatus}
+                                        onChange={(newStatus) => updateStatus.mutate({ id: order.orderId, newStatus })}
                                         disabled={updateStatus.isPending}
                                     />
                                 </td>

@@ -1,13 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, ArrowRight, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { ShoppingBag, ArrowRight, Loader2, RefreshCw, X } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import CartItem from "../components/cart/CartItem";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 export default function CartPage() {
-    const { cart, loading, error, fetchCart, checkout } = useCart();
+    const { cart, loading, loadError, operationError, clearOperationError, fetchCart, checkout } = useCart();
     const navigate = useNavigate();
 
     useEffect(() => { fetchCart(); }, [fetchCart]);
@@ -30,22 +30,38 @@ export default function CartPage() {
                 {items.length === 0 ? "No items yet." : `${items.length} item${items.length > 1 ? "s" : ""} in your cart`}
             </p>
 
+            {/* Initial load spinner — only while cart hasn't loaded yet */}
             {loading && !cart && (
                 <div className="flex justify-center py-24">
                     <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                 </div>
             )}
 
-            {error && (
+            {/* Load error — only when initial fetch failed and we have no cart data */}
+            {loadError && !cart && (
                 <div className="bg-destructive/10 text-destructive rounded-xl px-6 py-4 flex items-center justify-between mb-6">
-                    <p>Failed to load cart.</p>
+                    <p>{loadError}</p>
                     <Button variant="outline" size="sm" onClick={fetchCart} className="gap-2">
                         <RefreshCw className="w-4 h-4" /> Retry
                     </Button>
                 </div>
             )}
 
-            {!loading && !error && items.length === 0 && (
+            {/* Operation error (add/update/remove) — dismissible, shown alongside loaded cart */}
+            {operationError && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-5 py-3 flex items-center justify-between mb-5 text-sm">
+                    <span>{operationError}</span>
+                    <button
+                        onClick={clearOperationError}
+                        className="ml-4 text-amber-600 hover:text-amber-800 transition-colors"
+                        aria-label="Dismiss"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
+            {!loading && !loadError && items.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-32 gap-5 text-center">
                     <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
                         <ShoppingBag className="w-10 h-10 text-muted-foreground/50" />
@@ -62,10 +78,10 @@ export default function CartPage() {
 
             {items.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Items */}
+                    {/* Items list */}
                     <div className="lg:col-span-2">
-                        <div className="bg-white rounded-xl border overflow-hidden">
-                            <div className="hidden md:grid grid-cols-12 px-5 py-3 bg-secondary text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+                            <div className="hidden md:grid grid-cols-12 px-5 py-3 bg-secondary/60 text-xs font-semibold text-muted-foreground uppercase tracking-widest border-b">
                                 <span className="col-span-5">Product</span>
                                 <span className="col-span-3 text-center">Quantity</span>
                                 <span className="col-span-2 text-right">Subtotal</span>
@@ -79,25 +95,28 @@ export default function CartPage() {
                         </div>
                     </div>
 
-                    {/* Summary */}
+                    {/* Order summary */}
                     <div>
-                        <div className="bg-white rounded-xl border p-6 sticky top-24">
-                            <h2 className="font-bold text-lg mb-5">Order Summary</h2>
+                        <div className="bg-white rounded-xl border shadow-sm p-6 sticky top-24 space-y-4">
+                            <h2 className="font-bold text-lg">Order Summary</h2>
 
-                            <div className="space-y-3 text-sm mb-4">
+                            <div className="space-y-2 text-sm">
                                 {items.map((item) => (
                                     <div key={item.productId} className="flex justify-between text-muted-foreground">
-                                        <span className="truncate max-w-[180px]">{item.productName} <span className="text-foreground">×{item.quantity}</span></span>
-                                        <span>${item.subTotal.toFixed(2)}</span>
+                                        <span className="truncate max-w-[180px]">
+                                            {item.productName}{" "}
+                                            <span className="text-foreground font-medium">×{item.quantity}</span>
+                                        </span>
+                                        <span className="ml-4 tabular-nums">${item.subTotal.toFixed(2)}</span>
                                     </div>
                                 ))}
                             </div>
 
-                            <Separator className="my-4" />
+                            <Separator />
 
-                            <div className="flex justify-between font-bold text-base mb-6">
+                            <div className="flex justify-between font-bold text-base">
                                 <span>Total</span>
-                                <span className="text-lg">${total.toFixed(2)}</span>
+                                <span className="text-lg tabular-nums">${total.toFixed(2)}</span>
                             </div>
 
                             <Button
@@ -105,9 +124,17 @@ export default function CartPage() {
                                 onClick={handleCheckout}
                                 disabled={loading}
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Proceed to Checkout <ArrowRight className="w-4 h-4" /></>}
+                                {loading
+                                    ? <Loader2 className="w-5 h-5 animate-spin" />
+                                    : <>Proceed to Checkout <ArrowRight className="w-4 h-4" /></>
+                                }
                             </Button>
-                            <Button variant="ghost" className="w-full mt-2" onClick={() => navigate("/products")}>
+
+                            <Button
+                                variant="ghost"
+                                className="w-full text-muted-foreground"
+                                onClick={() => navigate("/products")}
+                            >
                                 Continue Shopping
                             </Button>
                         </div>

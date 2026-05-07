@@ -87,6 +87,17 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getFilteredProducts(String search, Long categoryId) {
+        // Normalize to empty string (NOT null) — null causes PostgreSQL to infer bytea type
+        // and blow up with "function lower(bytea) does not exist"
+        String normalizedSearch = (search != null && !search.isBlank()) ? search.trim() : "";
+        return productRepository.findFilteredWithImages(normalizedSearch, categoryId).stream()
+                .map(ProductMapper::toResponse)
+                .toList();
+    }
+
+    @Override
     @Transactional
     @CacheEvict(value = "product-service:products", allEntries = true)
     public void deleteProduct(Long id) {

@@ -2,7 +2,9 @@
 import { useState, useEffect } from "react";
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000000;
+// How long after Radix fires onOpenChange(false) before we remove the toast from state.
+// Must be >= the CSS close-animation duration (≈300 ms) so the slide-out finishes.
+const TOAST_REMOVE_DELAY = 500;
 
 const actionTypes = {
     ADD_TOAST: "ADD_TOAST",

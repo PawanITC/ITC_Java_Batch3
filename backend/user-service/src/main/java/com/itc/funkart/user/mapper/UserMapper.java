@@ -41,6 +41,7 @@ public class UserMapper {
 
         return new UserAdminSummary(
                 user.getId(),
+                user.getName(),
                 user.getEmail(),
                 user.getRole().name(),
                 user.isActive()

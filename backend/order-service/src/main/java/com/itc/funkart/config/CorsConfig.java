@@ -1,11 +1,6 @@
-<<<<<<<< HEAD:backend/order-service/src/main/java/com/itc/funkart/config/CorsConfig.java
 package com.itc.funkart.config;
-========
-package com.itc.funkart.product.config;
->>>>>>>> refs/remotes/origin/main:backend/product-service/src/main/java/com/itc/funkart/product/config/CorsConfig.java
 
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -35,10 +30,7 @@ public class CorsConfig implements WebMvcConfigurer {
 
     private static final List<String> ALLOWED_ORIGINS = List.of(
             "http://localhost:5173",      // Frontend dev server (Vite)
-<<<<<<<< HEAD:backend/order-service/src/main/java/com/itc/funkart/config/CorsConfig.java
-========
             "http://localhost:9090",      // Local API (Swagger/Gateway)
->>>>>>>> refs/remotes/origin/main:backend/product-service/src/main/java/com/itc/funkart/product/config/CorsConfig.java
             "http://localhost:8060",
             "http://funkart.local",       // Local custom domain
             "https://funkart.com"         // Production domain

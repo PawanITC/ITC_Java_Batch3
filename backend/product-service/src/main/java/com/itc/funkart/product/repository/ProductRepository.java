@@ -30,10 +30,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     /**
      * Retrieves all products ordered by creation date, pre-fetching images.
-     * <p>
-     * Use this method for public catalog browsing to ensure a single database
-     * round-trip. Note: Large datasets should be used with Pagination (Pageable).
-     * </p>
+     * Cache miss triggers a JOIN FETCH to hydrate images in a single round-trip.
      *
      * @return List of products with images initialized.
      */
@@ -41,4 +38,24 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "LEFT JOIN FETCH p.images " +
             "ORDER BY p.createdAt DESC")
     List<Product> findAllWithImages();
+
+    /**
+     * Filtered catalog query — supports optional name search and category filter.
+     * <p>
+     * IMPORTANT: pass empty string ("") when no search term is provided — NOT null.
+     * PostgreSQL JDBC infers a null String parameter as bytea, causing
+     * "function lower(bytea) does not exist". The empty-string sentinel avoids this.
+     * </p>
+     *
+     * @param search     Empty string to skip filter, otherwise case-insensitive substring match.
+     * @param categoryId Exact category match (nullable — null skips filter).
+     * @return Filtered list of products with images pre-fetched.
+     */
+    @Query("SELECT DISTINCT p FROM Product p " +
+            "LEFT JOIN FETCH p.images " +
+            "WHERE (:search = '' OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
+            "ORDER BY p.createdAt DESC")
+    List<Product> findFilteredWithImages(@Param("search") String search,
+                                         @Param("categoryId") Long categoryId);
 }

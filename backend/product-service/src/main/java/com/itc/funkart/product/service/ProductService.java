@@ -63,6 +63,16 @@ public interface ProductService {
     List<ProductResponse> getAllProducts();
 
     /**
+     * Retrieves the catalog filtered by optional search text and/or category.
+     * Bypasses the full-catalog cache so that filter results are always fresh.
+     *
+     * @param search     Case-insensitive substring match on product name (nullable).
+     * @param categoryId Exact category ID filter (nullable).
+     * @return Filtered product list.
+     */
+    List<ProductResponse> getFilteredProducts(String search, Long categoryId);
+
+    /**
      * Deletes a product and publishes a deletion event.
      *
      * @param id The ID of the product to remove.
