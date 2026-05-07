@@ -81,7 +81,7 @@ public class StripeService {
 
         RequestOptions options = RequestOptions.builder()
                 .setIdempotencyKey(
-                        StripeIdempotencyKeys.createPaymentIntent(paymentId)
+                        StripeIdempotencyKeys.createPaymentIntent(paymentId, orderId)
                 )
                 .build();
 
@@ -116,7 +116,7 @@ public class StripeService {
 
         RequestOptions options = RequestOptions.builder()
                 .setIdempotencyKey(
-                        StripeIdempotencyKeys.confirmPaymentIntent(piId, paymentId)                )
+                        StripeIdempotencyKeys.confirmPaymentIntent(piId, paymentId))
                 .build();
 
         PaymentIntent.retrieve(piId).confirm(params, options);
@@ -150,7 +150,6 @@ public class StripeService {
 
         return Refund.create(params, options);
     }
-
 
 
     /**

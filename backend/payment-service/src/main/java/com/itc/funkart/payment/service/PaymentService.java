@@ -227,8 +227,8 @@ public class PaymentService {
                 .paymentId(payment.getId())
                 .orderId(payment.getOrderId())
                 .stripeId(intent.getId())
-                .errorMessage(error != null ? error.getMessage() : "Payment declined")
-                .stripeErrorCode(error != null ? error.getCode() : "unknown")
+//                .errorMessage(error != null ? error.getMessage() : "Payment declined")
+//                .stripeErrorCode(error != null ? error.getCode() : "unknown")
                 .timestamp(Instant.now().toEpochMilli())
                 .build());
     }

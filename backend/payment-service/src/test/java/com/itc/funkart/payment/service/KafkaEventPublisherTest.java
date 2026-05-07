@@ -81,8 +81,6 @@ class KafkaEventPublisherTest {
                     .paymentId(202L)
                     .orderId(1L)
                     .stripeId("pi_failed_456")
-                    .errorMessage("Insufficient Funds")
-                    .stripeErrorCode("card_declined")
                     .build();
 
             when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(new CompletableFuture<>());

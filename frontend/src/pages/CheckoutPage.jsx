@@ -100,8 +100,7 @@ export default function CheckoutPage() {
         if (result.success) {
             navigate("/payment-success", {
                 state: {
-                    orderData: result.data,
-                    cart
+                    orderData: result.data
                 }
             });
         } else {

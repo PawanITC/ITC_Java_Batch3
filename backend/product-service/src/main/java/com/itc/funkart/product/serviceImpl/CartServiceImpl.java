@@ -25,11 +25,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Senior-level implementation of {@link CartService}.
- * Centralizes identity resolution and ensures transactional integrity between
- * the RDBMS and Kafka event streams.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -39,10 +34,6 @@ public class CartServiceImpl implements CartService {
     private final ProductRepository productRepository;
     private final CheckoutProducer checkoutProducer;
 
-    /**
-     * Private Gatekeeper: DRYs up the identity and retrieval logic.
-     * Hits the DB once and maintains the entity in the Hibernate Session.
-     */
     private Cart getAuthenticatedCart() {
         Long userId = SecurityUtils.getCurrentUserId();
         return cartRepository.findByUserIdWithItems(userId)
@@ -86,7 +77,11 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public CartResponse removeItemsFromCart(Long productId) {
         Cart cart = getAuthenticatedCart();
-        cart.getItems().removeIf(item -> item.getProduct().getId().equals(productId));
+
+        cart.getItems().removeIf(item ->
+                item.getProduct().getId().equals(productId)
+        );
+
         return CartMapper.toResponse(cartRepository.save(cart));
     }
 
@@ -156,21 +151,8 @@ public class CartServiceImpl implements CartService {
 
         log.debug("🛒 Checkout initiated | user={} | total={}", cart.getUserId(), total);
 
-        registerCheckoutEvent(event, () -> {
-            cart.getItems().clear();
-            cartRepository.save(cart);
-        });
-    }
-
-    private void registerCheckoutEvent(CheckoutInitiatedEvent event, Runnable onSuccess) {
-        checkoutProducer.sendCheckoutEvent(event)
-                .whenComplete((result, ex) -> {
-                    if (ex == null) {
-                        log.info("✅ Kafka ACK received for checkout event");
-                        onSuccess.run();
-                    } else {
-                        log.error("❌ Kafka send failed — cart NOT cleared", ex);
-                    }
-                });
+        // MVP RULE:
+        // ONLY publish event — DO NOT mutate cart state here.
+        checkoutProducer.sendCheckoutEvent(event);
     }
 }

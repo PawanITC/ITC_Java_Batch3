@@ -1,30 +1,54 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { CheckCircle2, ArrowRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { orderApi } from "../lib/orderApi"; // you likely already have or need this
 
 export default function PaymentSuccess() {
     const { state } = useLocation();
     const navigate = useNavigate();
 
-    const orderData = state?.orderData ?? null;
-    const cart = state?.cart ?? null;
+    const [order, setOrder] = useState(state?.orderData ?? null);
+    const [loading, setLoading] = useState(!state?.orderData);
 
-    // Normalize items from either source
-    const items =
-        orderData?.items ??
-        cart?.items ??
-        [];
+    const orderId =
+        state?.orderData?.id ??
+        state?.orderData?.orderId ??
+        null;
 
-    const total =
-        orderData?.totalAmount ??
-        cart?.totalAmount ??
-        items.reduce((sum, i) => {
-            const price = i.subTotal ?? (i.price ?? 0) * (i.quantity ?? 1);
-            return sum + Number(price);
-        }, 0);
+    useEffect(() => {
+        async function loadOrder() {
+            if (order) return;
 
-    const orderId = orderData?.id ?? orderData?.orderId ?? null;
+            try {
+                if (!orderId) {
+                    setLoading(false);
+                    return;
+                }
+
+                const res = await orderApi.getOrder(orderId);
+                setOrder(res.data ?? res);
+            } catch (e) {
+                console.error("Failed to fetch order", e);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        loadOrder();
+    }, [orderId]);
+
+    if (loading) {
+        return (
+            <div className="text-center py-20 text-muted-foreground">
+                Loading order...
+            </div>
+        );
+    }
+
+    const items = order?.items ?? [];
+    const total = order?.totalAmount ?? 0;
 
     return (
         <div className="max-w-lg mx-auto px-4 py-16 text-center">
@@ -37,66 +61,49 @@ export default function PaymentSuccess() {
             </h1>
 
             <p className="text-muted-foreground mb-8">
-                Thank you for your order. We're preparing it now and will notify you when it ships.
+                Your order has been placed successfully.
             </p>
 
-            {(items.length > 0 || orderData) && (
-                <div className="bg-white border rounded-xl p-6 text-left mb-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Package className="w-4 h-4 text-muted-foreground" />
-                        <h2 className="font-semibold text-sm">Order Summary</h2>
+            <div className="bg-white border rounded-xl p-6 text-left mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <Package className="w-4 h-4 text-muted-foreground" />
+                    <h2 className="font-semibold text-sm">Order Summary</h2>
 
-                        {orderId && (
-                            <span className="ml-auto text-xs text-muted-foreground font-mono">
-                                #{orderId}
-                            </span>
-                        )}
-                    </div>
-
-                    {items.length > 0 ? (
-                        <div className="space-y-2 text-sm">
-                            {items.map((item, i) => {
-                                const name =
-                                    item.productName ??
-                                    item.name ??
-                                    `Product #${item.productId}`;
-
-                                const qty = item.quantity ?? 1;
-
-                                const price =
-                                    item.subTotal ??
-                                    item.priceAtPurchase ??
-                                    (item.price ? item.price * qty : 0);
-
-                                return (
-                                    <div
-                                        key={i}
-                                        className="flex justify-between text-muted-foreground"
-                                    >
-                                        <span>
-                                            {name} × {qty}
-                                        </span>
-                                        <span className="font-medium text-foreground">
-                                            ${Number(price).toFixed(2)}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-
-                            <Separator className="my-3" />
-
-                            <div className="flex justify-between font-bold text-base">
-                                <span>Total Paid</span>
-                                <span>${Number(total).toFixed(2)}</span>
-                            </div>
-                        </div>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">
-                            Order details are being synced. Refresh Orders page if needed.
-                        </p>
+                    {order?.id && (
+                        <span className="ml-auto text-xs text-muted-foreground font-mono">
+                            #{order.id}
+                        </span>
                     )}
                 </div>
-            )}
+
+                {items.length > 0 ? (
+                    <div className="space-y-2 text-sm">
+                        {items.map((item, i) => (
+                            <div key={i} className="flex justify-between text-muted-foreground">
+                                <span>
+                                    {item.productName ?? item.name ?? `Product #${item.productId}`}
+                                    {" "}× {item.quantity ?? 1}
+                                </span>
+
+                                <span className="font-medium text-foreground">
+                                    ${(item.subTotal ?? 0).toFixed(2)}
+                                </span>
+                            </div>
+                        ))}
+
+                        <Separator className="my-3" />
+
+                        <div className="flex justify-between font-bold text-base">
+                            <span>Total Paid</span>
+                            <span>${Number(total).toFixed(2)}</span>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        Order is being finalized. Please check Orders page.
+                    </p>
+                )}
+            </div>
 
             <div className="flex flex-col gap-3">
                 <Button onClick={() => navigate("/orders")} className="gap-2">

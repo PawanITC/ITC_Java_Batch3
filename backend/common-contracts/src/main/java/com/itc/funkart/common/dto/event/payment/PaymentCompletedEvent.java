@@ -1,6 +1,5 @@
 package com.itc.funkart.common.dto.event.payment;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 
 /**
@@ -23,33 +22,16 @@ import lombok.Builder;
  */
 @Builder
 public record PaymentCompletedEvent(
-        @JsonProperty("payment_id")
         Long paymentId,
-
-        @JsonProperty("order_id")
         Long orderId,
-
-        @JsonProperty("stripe_id")
+        Long userId,
         String stripeId,
-
-        @JsonProperty("amount")
         Long amount,
-
-        @JsonProperty("timestamp")
-        Long timestamp,
-
-        @JsonProperty("event_type")
-        String eventType
+        Long timestamp
 ) {
-    /**
-     * Canonical constructor to ensure the timestamp is always present if not provided.
-     */
     public PaymentCompletedEvent {
         if (timestamp == null) {
             timestamp = System.currentTimeMillis();
-        }
-        if (eventType == null) {
-            eventType = "PAYMENT_SUCCESS";
         }
     }
 }

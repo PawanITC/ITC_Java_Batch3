@@ -2,34 +2,26 @@ package com.itc.funkart.product.kafka.consumer;
 
 import com.itc.funkart.common.constants.messaging.KafkaGroups;
 import com.itc.funkart.common.constants.messaging.KafkaTopics;
+import com.itc.funkart.product.repository.CartRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-/**
- * <h2>ProductConsumer</h2>
- * <p>
- * Consumes payment lifecycle events from {@code PAYMENT_PROCESS}
- * to update inventory state in response to payment outcomes.
- *
- * <p>
- * Uses Kafka header-driven {@code event_type} emitted by Payment Service.
- * This keeps Product Service decoupled from Payment/Order domain enums.
- * </p>
- */
 @Service
 @Slf4j
 public class ProductConsumer {
 
-    // -------------------------------------------------------------------------
-    // EVENT TYPE CONSTANTS (local contract boundary)
-    // -------------------------------------------------------------------------
-
     private static final String PAYMENT_SUCCESS = "PAYMENT_SUCCESS";
     private static final String PAYMENT_FAILED = "PAYMENT_FAILED";
     private static final String ORDER_REFUNDED = "ORDER_REFUNDED";
+
+    private final CartRepository cartRepository;
+
+    public ProductConsumer(CartRepository cartRepository) {
+        this.cartRepository = cartRepository;
+    }
 
     @KafkaListener(
             topics = KafkaTopics.PAYMENTS_EVENTS,
@@ -37,43 +29,46 @@ public class ProductConsumer {
     )
     public void onPaymentOutcome(Map<String, Object> payload) {
 
-        Long orderId = safeLong(payload.get("order_id"));
-
+        Long userId = safeLong(payload.get("userId")); // ✅ FIXED
         String eventType = payload.get("event_type") != null
                 ? payload.get("event_type").toString()
                 : null;
 
-        if (orderId == null || eventType == null) {
-            log.warn("⚠️ [INVENTORY] Invalid payment event received. payload={}", payload);
+        if (userId == null || eventType == null) {
+            log.warn("⚠️ Invalid payment event: {}", payload);
             return;
         }
 
         switch (eventType) {
 
+            case PAYMENT_SUCCESS -> {
+                log.info("🛒 PAYMENT SUCCESS → clearing cart for user={}", userId);
+
+                cartRepository.findByUserId(userId).ifPresent(cart -> {
+                    cart.getItems().clear();
+                    cartRepository.save(cart);
+                });
+            }
+
             case PAYMENT_FAILED -> {
-                log.info("📦 [INVENTORY] PAYMENT FAILED for Order {} — releasing reserved stock.", orderId);
-                // InventoryService.releaseReservation(orderId);
+                log.info("📦 PAYMENT FAILED for user={}", userId);
             }
 
             case ORDER_REFUNDED -> {
-                log.info("📦 [INVENTORY] PAYMENT REFUNDED for Order {} — restoring stock.", orderId);
-                // InventoryService.restoreStock(orderId);
+                log.info("🔄 REFUND for user={}", userId);
             }
 
-            case PAYMENT_SUCCESS -> {
-                log.info("📦 [INVENTORY] PAYMENT SUCCESS for Order {} — finalising stock deduction.", orderId);
-                // InventoryService.confirmDeduction(orderId);
-            }
-
-            default -> {
-                log.warn("⚠️ [INVENTORY] Unknown event_type={} for orderId={}", eventType, orderId);
-            }
+            default -> log.warn("Unknown event_type={} payload={}", eventType, payload);
         }
     }
 
     private Long safeLong(Object obj) {
         if (obj == null) return null;
         if (obj instanceof Number n) return n.longValue();
-        return Long.valueOf(obj.toString().split("\\.")[0]);
+        try {
+            return Long.parseLong(obj.toString());
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
