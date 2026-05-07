@@ -226,9 +226,10 @@ services:
     environment:
       - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-      - OTEL_METRICS_ENDPOINT=http://otel-collector:4318
+      # Spring Boot Micrometer OTLP (HTTP) — both traces and metrics use port 4318.
+      # Port 4317 is gRPC only; sending HTTP there causes "Connection reset" errors.
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318
+      - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -256,10 +257,8 @@ services:
     environment:
       - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-      - OTEL_METRICS_ENDPOINT=http://otel-collector:4318
-      - OTEL_SERVICE_NAME=product-service
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318
+      - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -287,10 +286,8 @@ services:
     environment:
       - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-      - OTEL_METRICS_ENDPOINT=http://otel-collector:4318
-      - OTEL_SERVICE_NAME=order-service
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318
+      - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -319,10 +316,8 @@ services:
       - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-      - OTEL_METRICS_ENDPOINT=http://otel-collector:4318
-      - OTEL_SERVICE_NAME=payment-service
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318
+      - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -349,10 +344,8 @@ services:
       - "8060:8060"
     environment:
       - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-      - OTEL_METRICS_ENDPOINT=http://otel-collector:4318
-      - OTEL_SERVICE_NAME=api-gateway
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318
+      - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318
     depends_on:
       user-service:
         condition: service_started

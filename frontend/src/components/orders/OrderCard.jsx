@@ -10,7 +10,7 @@ export default function OrderCard({ order }) {
 
     return (
         <button
-            onClick={() => navigate(`/orders/${order.id}`)}
+            onClick={() => navigate(`/orders/${order.orderId}`)}
             className="w-full bg-white border border-border rounded-xl p-5 hover:shadow-md hover:border-primary/30 transition-all duration-200 text-left group"
         >
             <div className="flex items-center justify-between gap-4">
@@ -20,7 +20,7 @@ export default function OrderCard({ order }) {
                     </div>
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-sm">Order #{order.id}</span>
+                            <span className="font-bold text-sm">Order #{order.orderId}</span>
                             <span className="text-xs text-muted-foreground">{date}</span>
                         </div>
                         {itemCount > 0 && (
@@ -32,7 +32,7 @@ export default function OrderCard({ order }) {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <OrderStatusBadge status={order.status} />
+                    <OrderStatusBadge status={order.orderStatus} />
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </div>
             </div>

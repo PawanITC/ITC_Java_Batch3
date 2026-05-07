@@ -32,7 +32,7 @@ export default function OrderDetail() {
         );
     }
 
-    const canCancel = CANCELLABLE.includes(order.status);
+    const canCancel = CANCELLABLE.includes(order.orderStatus);
     const date = order.createdAt ? format(new Date(order.createdAt), "MMMM d, yyyy 'at' h:mm a") : "—";
 
     return (
@@ -53,11 +53,11 @@ export default function OrderDetail() {
                             <Package className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <div>
-                            <h1 className="font-bold text-lg">Order #{order.id}</h1>
+                            <h1 className="font-bold text-lg">Order #{order.orderId}</h1>
                             <p className="text-sm text-muted-foreground">{date}</p>
                         </div>
                     </div>
-                    <OrderStatusBadge status={order.status} />
+                    <OrderStatusBadge status={order.orderStatus} />
                 </div>
             </div>
 
@@ -88,7 +88,7 @@ export default function OrderDetail() {
                     variant="destructive"
                     className="w-full"
                     disabled={cancelMutation.isPending}
-                    onClick={() => cancelMutation.mutate(order.id)}
+                    onClick={() => cancelMutation.mutate(order.orderId)}
                 >
                     {cancelMutation.isPending ? (
                         <span className="flex items-center gap-2">

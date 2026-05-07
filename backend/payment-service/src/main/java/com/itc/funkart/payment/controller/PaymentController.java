@@ -72,6 +72,24 @@ public class PaymentController {
     }
 
     /**
+     * Retrieves the most recent PaymentIntent for the authenticated user.
+     * Called by the checkout page to restore an in-flight payment after navigation
+     * (e.g. browser back, page refresh) when no checkoutResult is in router state.
+     *
+     * @param user The authenticated user from the Security Context.
+     * @return 200 OK with clientSecret and paymentIntentId for Stripe Elements.
+     */
+    @GetMapping("/my-latest")
+    public ResponseEntity<ApiResponse<PaymentIntentResponse>> getLatestPaymentIntent(
+            @AuthenticationPrincipal JwtUserDto user) {
+
+        log.debug("→ Fetching latest PaymentIntent | User: {}", user.id());
+        PaymentIntentResponse data = paymentService.getLatestPaymentIntent(user);
+
+        return ResponseEntity.ok(ApiResponse.success(data, "Latest payment intent retrieved"));
+    }
+
+    /**
      * Retrieves specific payment details.
      */
     @GetMapping("/{paymentId}")

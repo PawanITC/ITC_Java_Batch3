@@ -50,7 +50,7 @@ export default function OrderHistory() {
             {orders?.length > 0 && (
                 <div className="space-y-4">
                     {orders.map((order) => (
-                        <OrderCard key={order.id} order={order} />
+                        <OrderCard key={order.orderId} order={order} />
                     ))}
                 </div>
             )}

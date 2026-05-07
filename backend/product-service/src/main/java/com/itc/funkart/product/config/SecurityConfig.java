@@ -72,7 +72,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtWebFilter jwtWebFilter;
-    private final CorsConfig corsConfig;
 
     /**
      * Defines the primary security filter chain bean.
@@ -85,8 +84,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                // Use the configuration source from our centralized CorsConfig
-                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
+                // CORS is handled entirely by the API Gateway — disable it here
+                // to prevent a duplicate Access-Control-Allow-Origin header.
+                .cors(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )

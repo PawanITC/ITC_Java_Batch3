@@ -51,14 +51,37 @@ export default function CheckoutPage() {
                 clientSecret = checkoutResult.clientSecret;
                 intentId = checkoutResult.paymentIntentId;
             } else {
-                // Fallback: fetch the latest intent
-                const intent = await paymentApi.getLatestIntent();
-                clientSecret = intent?.clientSecret;
-                intentId = intent?.paymentIntentId;
+                // Fallback: fetch the latest intent.
+                // The saga is async (Kafka), so we poll with retries to give the
+                // payment-service time to create the Stripe PaymentIntent.
+                const MAX_ATTEMPTS = 10;
+                const DELAY_MS = 1500;
+                for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+                    if (cancelled) return;
+                    try {
+                        const intent = await paymentApi.getLatestIntent();
+                        if (intent?.data?.clientSecret) {
+                            // backend wraps in ApiResponse
+                            clientSecret = intent.data.clientSecret;
+                            intentId = intent.data.paymentIntentId;
+                            break;
+                        } else if (intent?.clientSecret) {
+                            // already unwrapped
+                            clientSecret = intent.clientSecret;
+                            intentId = intent.paymentIntentId;
+                            break;
+                        }
+                    } catch (_) {
+                        // not ready yet — keep polling
+                    }
+                    if (attempt < MAX_ATTEMPTS - 1) {
+                        await new Promise(r => setTimeout(r, DELAY_MS));
+                    }
+                }
             }
 
             if (!clientSecret) {
-                setInitError("Could not load payment details. Please go back to your cart and try again.");
+                setInitError("Payment details not ready yet. The order may still be processing — please wait a moment and refresh, or go back to your cart.");
                 setInitializing(false);
                 return;
             }

@@ -51,10 +51,11 @@ management:
       probability: 1.0
   otlp:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
+      # Spring Boot Micrometer sends HTTP traces — must use port 4318, NOT 4317 (gRPC).
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://otel-collector:4318}
     metrics:
       export:
-        url: ${OTEL_METRICS_ENDPOINT:http://otel-collector:4318}
+        url: ${MANAGEMENT_OTLP_METRICS_URL:http://otel-collector:4318}
   metrics:
     tags:
       application: ${spring.application.name}

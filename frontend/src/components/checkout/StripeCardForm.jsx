@@ -18,8 +18,12 @@ export default function StripeCardForm({ stripe, elements, onSubmit, loading, er
     const [cardError, setCardError] = useState(null);
 
     useEffect(() => {
-        if (!elements || cardReady) return;
+        if (!elements) return;
 
+        // card.destroy() (not unmount) deregisters the element from the Elements instance.
+        // This is critical in React StrictMode which runs cleanup + re-mount in dev:
+        // card.unmount() only removes from DOM but keeps it registered, so the second
+        // elements.create("card") call throws "Can only create one Element of type card".
         const card = elements.create("card", {
             style: {
                 base: {
@@ -36,8 +40,11 @@ export default function StripeCardForm({ stripe, elements, onSubmit, loading, er
         card.on("change", (e) => setCardError(e.error?.message ?? null));
         setCardReady(true);
 
-        return () => card.unmount();
-    }, [elements, cardReady]);
+        return () => {
+            setCardReady(false);
+            card.destroy();
+        };
+    }, [elements]); // cardReady intentionally excluded — it would cause an infinite loop
 
     const handleSubmit = async (e) => {
         e.preventDefault();

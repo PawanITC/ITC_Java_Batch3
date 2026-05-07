@@ -166,6 +166,25 @@ public class PaymentService {
     }
 
     // -----------------------------
+    // GET LATEST PAYMENT INTENT (for checkout page restore)
+    // -----------------------------
+    public PaymentIntentResponse getLatestPaymentIntent(JwtUserDto user) {
+        try {
+            Payment payment = paymentRepository.findTopByUserIdOrderByCreatedAtDesc(user.id())
+                    .orElseThrow(() -> new PaymentException("No payment found for user"));
+
+            if (payment.getStripePaymentIntentId() == null) {
+                throw new PaymentException("Payment intent not yet created");
+            }
+
+            PaymentIntent intent = PaymentIntent.retrieve(payment.getStripePaymentIntentId());
+            return PaymentIntentResponse.from(intent);
+        } catch (com.stripe.exception.StripeException ex) {
+            throw new PaymentException("Could not retrieve payment intent: " + ex.getMessage());
+        }
+    }
+
+    // -----------------------------
     // WEBHOOK (SOURCE OF TRUTH)
     // -----------------------------
     public void handlePaymentSuccess(PaymentIntent intent) {

@@ -7,7 +7,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource; // Servlet 
 
 import java.util.List;
 
-@Configuration
+// @Configuration — DISABLED: this service sits behind the API Gateway which owns CORS.
+// Re-enabling this would add a second Access-Control-Allow-Origin header and
+// cause browsers to reject all cross-origin responses with a "multiple values" error.
 public class CorsConfig {
 
     @Bean

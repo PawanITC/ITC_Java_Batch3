@@ -19,7 +19,7 @@ import java.util.List;
  * </p>
  */
 @RestController
-@RequestMapping("/api/v1/orders")
+@RequestMapping("/orders")
 @RequiredArgsConstructor
 @Slf4j
 public class OrderController {
