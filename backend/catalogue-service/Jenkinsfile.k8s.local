@@ -124,7 +124,7 @@ spec:
                       -t /test.jmx \
                       -R $SLAVES \
                       -l /results.jtl \
-                      -Jthreads=600 \
+                      -Jthreads=200 \
                       -Jramp=30 \
                       -Jduration=120 \
                       -Jjmeter.save.saveservice.response_data=false \
