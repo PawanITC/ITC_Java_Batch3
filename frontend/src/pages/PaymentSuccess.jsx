@@ -3,11 +3,13 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, ArrowRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { orderApi } from "../lib/orderApi"; // you likely already have or need this
+import { orderApi } from "../lib/orderApi";
+import { useCart } from "../context/CartContext.jsx";
 
 export default function PaymentSuccess() {
     const { state } = useLocation();
     const navigate = useNavigate();
+    const { fetchCart } = useCart();
 
     const [order, setOrder] = useState(state?.orderData ?? null);
     const [loading, setLoading] = useState(!state?.orderData);
@@ -16,6 +18,11 @@ export default function PaymentSuccess() {
         state?.orderData?.id ??
         state?.orderData?.orderId ??
         null;
+
+    // Sync cart with backend on arrival — it will be empty after a successful checkout
+    useEffect(() => {
+        fetchCart();
+    }, []);
 
     useEffect(() => {
         async function loadOrder() {

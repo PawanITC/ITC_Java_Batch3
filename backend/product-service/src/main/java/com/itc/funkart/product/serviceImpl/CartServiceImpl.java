@@ -151,8 +151,15 @@ public class CartServiceImpl implements CartService {
 
         log.debug("🛒 Checkout initiated | user={} | total={}", cart.getUserId(), total);
 
-        // MVP RULE:
-        // ONLY publish event — DO NOT mutate cart state here.
+        // Publish the checkout event first — if Kafka throws the @Transactional
+        // rolls back and the cart is preserved so the user can retry.
         checkoutProducer.sendCheckoutEvent(event);
+
+        // Clear the cart now that the event is safely published.
+        // In a full saga this would happen on PAYMENT_SUCCESS, but for MVP
+        // we clear eagerly here to keep the UX simple.
+        cart.getItems().clear();
+        cartRepository.save(cart);
+        log.debug("🛒 Cart cleared after checkout | user={}", cart.getUserId());
     }
 }

@@ -1,9 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Package, AlertTriangle } from "lucide-react";
+import { useQueries } from "@tanstack/react-query";
 import { useOrder, useCancelOrder } from "../hooks/useOrders";
 import OrderStatusBadge from "../components/orders/OrderStatusBadge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { productApi } from "../lib/productApi";
 import { format } from "date-fns";
 
 const CANCELLABLE = ["PENDING", "CONFIRMED"];
@@ -13,6 +15,22 @@ export default function OrderDetail() {
     const navigate = useNavigate();
     const { data: order, isLoading, isError } = useOrder(id);
     const cancelMutation = useCancelOrder();
+
+    // Fetch product details for each order item to get name + image
+    const productQueries = useQueries({
+        queries: (order?.items ?? []).map((item) => ({
+            queryKey: ["product", item.productId],
+            queryFn: () => productApi.getProduct(item.productId).then((r) => r?.data ?? r),
+            staleTime: 1000 * 60 * 5,
+        })),
+    });
+
+    // Build a lookup map: productId -> { name, imageUrl }
+    const productMap = (order?.items ?? []).reduce((acc, item, i) => {
+        const p = productQueries[i]?.data;
+        acc[item.productId] = p ? { name: p.name, imageUrl: p.imageUrls?.[0] ?? null } : null;
+        return acc;
+    }, {});
 
     if (isLoading) {
         return (
@@ -65,15 +83,36 @@ export default function OrderDetail() {
             <div className="bg-white border rounded-xl p-6 space-y-4">
                 <h2 className="font-semibold">Items</h2>
                 <div className="space-y-3">
-                    {order.items?.map((item, i) => (
-                        <div key={i} className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                {item.productName ?? `Product #${item.productId}`}{" "}
-                  <span className="text-foreground font-medium">× {item.quantity}</span>
-              </span>
-                            <span className="font-medium">${Number(item.subTotal ?? item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                    ))}
+                    {order.items?.map((item, i) => {
+                        const product = productMap[item.productId];
+                        const name = product?.name ?? `Product #${item.productId}`;
+                        const imageUrl = product?.imageUrl;
+                        return (
+                            <div key={i} className="flex items-center gap-3">
+                                {/* Product thumbnail */}
+                                <div className="w-12 h-12 rounded-lg bg-muted shrink-0 overflow-hidden">
+                                    {imageUrl ? (
+                                        <img
+                                            src={imageUrl}
+                                            alt={name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-xl">🎨</div>
+                                    )}
+                                </div>
+                                {/* Name + qty */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{name}</p>
+                                    <p className="text-xs text-muted-foreground">× {item.quantity}</p>
+                                </div>
+                                {/* Subtotal */}
+                                <span className="text-sm font-medium shrink-0">
+                                    ${Number(item.subTotal ?? item.priceAtPurchase * item.quantity).toFixed(2)}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold">
@@ -92,8 +131,8 @@ export default function OrderDetail() {
                 >
                     {cancelMutation.isPending ? (
                         <span className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Cancelling…
-            </span>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Cancelling…
+                        </span>
                     ) : (
                         "Cancel Order"
                     )}

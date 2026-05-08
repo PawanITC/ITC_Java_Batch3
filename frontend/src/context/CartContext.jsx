@@ -78,11 +78,15 @@ export function CartProvider({ children }) {
         }
     }, [toast]);
 
+    // Total quantity across all items (not unique item count)
+    const itemCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+
     return (
         <CartContext.Provider
             value={{
                 cart,
                 loading,
+                itemCount,
                 // keep backward-compat "error" pointing at load error
                 error: loadError,
                 loadError,

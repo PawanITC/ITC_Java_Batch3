@@ -5,7 +5,7 @@ import { useCart } from "../../context/CartContext.jsx";
 import { Button } from "@/components/ui/button";
 
 export default function CartDrawer({ open, onClose }) {
-    const { cart, loading, updateItem, removeItem } = useCart();
+    const { cart, loading, itemCount, updateItem, removeItem } = useCart();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -41,10 +41,10 @@ export default function CartDrawer({ open, onClose }) {
                     <div className="flex items-center gap-2.5">
                         <ShoppingBag className="w-5 h-5" />
                         <h2 className="font-bold text-lg">Cart</h2>
-                        {items.length > 0 && (
+                        {itemCount > 0 && (
                             <span className="bg-accent text-accent-foreground text-xs font-bold rounded-full px-2 py-0.5">
-                {items.length}
-              </span>
+                                {itemCount}
+                            </span>
                         )}
                     </div>
                     <button
