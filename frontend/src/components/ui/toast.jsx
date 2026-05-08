@@ -10,9 +10,9 @@ const ToastViewport = React.forwardRef(({ className, ...props }, ref) => (
     <ToastPrimitives.Viewport
         ref={ref}
         className={cn(
-            // Bottom-right on desktop, bottom-centre on mobile — never covers the cart drawer
+            // Bottom-left — swipe left to dismiss
             "fixed z-[100] flex max-h-screen w-full flex-col-reverse gap-2 p-4" +
-            " bottom-0 right-0" +
+            " bottom-0 left-0" +
             " sm:max-w-[380px]",
             className
         )}
@@ -28,7 +28,7 @@ const toastVariants = cva(
         "transition-all",
         // open/close animations
         "data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-4 data-[state=open]:fade-in-0",
-        "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right-full data-[state=closed]:fade-out-80",
+        "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left-full data-[state=closed]:fade-out-80",
         // swipe-to-dismiss
         "data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none",
         "data-[swipe=cancel]:translate-x-0",

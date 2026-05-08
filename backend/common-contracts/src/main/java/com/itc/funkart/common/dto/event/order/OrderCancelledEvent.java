@@ -10,10 +10,16 @@ import java.time.LocalDateTime;
  * Signals that an order has been voided.
  * Essential for inventory restock and payment refund flows.
  * </p>
+ *
+ * @param eventType Always {@link OrderEventType#ORDER_CANCELLED}.
+ * @param orderId   The identifier of the cancelled order.
+ * @param userId    The customer who owns the order.
+ * @param reason    Optional human-readable cancellation reason.
+ * @param timestamp The moment the cancellation was processed.
  */
 @Builder
 public record OrderCancelledEvent(
-        OrderEventType eventType, // Always OrderEventType.ORDER_CANCELLED
+        OrderEventType eventType,
         Long orderId,
         Long userId,
         String reason,

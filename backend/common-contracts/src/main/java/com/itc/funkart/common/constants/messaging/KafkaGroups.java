@@ -17,15 +17,19 @@ package com.itc.funkart.common.constants.messaging;
  */
 public final class KafkaGroups {
 
+    /** Consumer group for the Order Service. Increment version when offsets must be reset. */
     public static final String ORDER_SERVICE_GROUP = "order-service-group-v2";
 
+    /** Consumer group for the Payment Service. Increment version when offsets must be reset. */
     public static final String PAYMENT_SERVICE_GROUP = "payment-service-group-v6";
 
+    /** Consumer group for the Product/Inventory Service. */
     public static final String PRODUCT_SERVICE_GROUP = "product-service-group-v1";
 
-    /** Reserved for user-domain event consumption. */
+    /** Consumer group for the User Service (auth and profile events). */
     public static final String USER_SERVICE_GROUP = "user-service-group-v1";
 
+    /** Consumer group for the Notification Service (email and SMS delivery). */
     public static final String NOTIFICATION_SERVICE_GROUP = "notification-service-group-v1";
 
     private KafkaGroups() {

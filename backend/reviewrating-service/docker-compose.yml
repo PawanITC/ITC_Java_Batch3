@@ -113,7 +113,7 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SPRING_REDIS_HOST: ${REDIS_HOST}
       SPRING_PROFILES_ACTIVE: docker
-
+      JWT_SECRET: ${JWT_SECRET}
 
     volumes:
       - C:/otel/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar

@@ -1,115 +1,197 @@
-//package com.itc.funkart.kafka;
-//
-//import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
-//import com.itc.funkart.common.dto.event.order.OrderInitiatedEvent;
-//import com.itc.funkart.common.enums.order.OrderEventType;
-//import com.itc.funkart.common.enums.order.OrderStatus;
-//import com.itc.funkart.kafka.consumer.OrderEventConsumer;
-//import com.itc.funkart.service.OrderService;
-//import org.junit.jupiter.api.DisplayName;
-//import org.junit.jupiter.api.Test;
-//import org.junit.jupiter.api.extension.ExtendWith;
-//import org.mockito.InjectMocks;
-//import org.mockito.Mock;
-//import org.mockito.junit.jupiter.MockitoExtension;
-//import org.springframework.test.context.ActiveProfiles;
-//
-//import java.math.BigDecimal;
-//import java.time.LocalDateTime;
-//import java.util.List;
-//
-//import static org.mockito.ArgumentMatchers.any;
-//import static org.mockito.Mockito.*;
-//
-///**
-// * <h2>OrderEventConsumerTest</h2>
-// * <p>
-// * Verifies that the Kafka consumer correctly routes specialized events
-// * to the appropriate business logic in the {@link OrderService}.
-// * </p>
-// *
-// * <h3>Testing Strategy:</h3>
-// * <ul>
-// *   <li><b>Type-Safe Routing:</b> Ensures the {@code @KafkaHandler} methods
-// *   delegate to the correct service methods.</li>
-// *   <li><b>Resiliency:</b> Confirms that the consumer catches service-layer
-// *   exceptions to prevent Kafka partition blocking.</li>
-// *   <li><b>Memory Isolation:</b> Uses Mocks to isolate the transport layer
-// *   from the database (Heap efficiency).</li>
-// * </ul>
-// */
-//@ExtendWith(MockitoExtension.class)
-//@ActiveProfiles("test")
-//class OrderEventConsumerTest {
-//
-//    @Mock
-//    private OrderService orderService;
-//
-//    @InjectMocks
-//    private OrderEventConsumer consumer;
-//
-//    @Test
-//    @DisplayName("Should trigger order creation when OrderInitiatedEvent is received")
-//    void handleOrderInitiated_Success() {
-//        // Arrange: Updated to match your Record(eventType, orderId, userId, totalAmount, productIds)
-//        OrderInitiatedEvent event = new OrderInitiatedEvent(
-//                OrderEventType.ORDER_INITIATED,
-//                2001L, // orderId (Newly added for traceability)
-//                100L,  // userId
-//                new BigDecimal("250.00"),
-//                List.of(),
-//                "usd", null
-//        );
-//
-//        // Act
-//        consumer.handleCheckoutInitiated(event);
-//
-//        // Assert: Ensure the service was called with the exact Record snapshot
-//        verify(orderService, times(1)).processOrderInitiation(event);
-//    }
-//
-//    @Test
-//    @DisplayName("Should update status to CANCELLED when OrderCancelledEvent is received")
-//    void handleOrderCancelled_Success() {
-//        // Arrange
-//        OrderCancelledEvent event = OrderCancelledEvent.builder()
-//                .orderId(500L)
-//                .userId(100L)
-//                .eventType(OrderEventType.ORDER_CANCELLED)
-//                .reason("Customer changed mind")
-//                .timestamp(LocalDateTime.now())
-//                .build();
-//
-//        // Act
-//        consumer.handleOrderCancelled(event);
-//
-//        // Assert: Confirm status routing logic
-//        verify(orderService, times(1)).updateOrderStatus(500L, OrderStatus.CANCELLED);
-//    }
-//
-//    @Test
-//    @DisplayName("Should not crash when service throws an exception")
-//    void handleOrderInitiated_ErrorHandling() {
-//        // Arrange
-//        OrderInitiatedEvent event = new OrderInitiatedEvent(
-//                OrderEventType.ORDER_INITIATED, 2002L, 1L, BigDecimal.TEN, List.of(),"usd",null
-//        );
-//        doThrow(new RuntimeException("Database Connection Timeout")).when(orderService).processOrderInitiation(any());
-//
-//        // Act & Assert: This shouldn't throw an exception to the listener container
-//        // due to the internal try-catch in the consumer.
-//        consumer.handleCheckoutInitiated(event);
-//
-//        verify(orderService).processOrderInitiation(event);
-//    }
-//
-//    @Test
-//    @DisplayName("Should handle unknown event types gracefully")
-//    void handleUnknown_Success() {
-//        // Act: Simulate an object type the consumer doesn't have a specific handler for
-//        consumer.handleUnknown("Malformed JSON or unsupported event type");
-//
-//        // Assert: No business logic should be executed
-//        verifyNoInteractions(orderService);
-//    }
-//}
+package com.itc.funkart.kafka;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itc.funkart.common.dto.event.checkout.CheckoutInitiatedEvent;
+import com.itc.funkart.common.dto.event.payment.PaymentCompletedEvent;
+import com.itc.funkart.common.dto.event.payment.PaymentFailedEvent;
+import com.itc.funkart.common.dto.event.payment.PaymentRefundedEvent;
+import com.itc.funkart.common.enums.order.OrderEventType;
+import com.itc.funkart.common.enums.order.OrderStatus;
+import com.itc.funkart.kafka.consumer.OrderEventConsumer;
+import com.itc.funkart.service.OrderService;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.test.context.ActiveProfiles;
+
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+/**
+ * <h2>OrderEventConsumerTest</h2>
+ *
+ * <p>Rewrote from commented-out version — the original used {@code OrderInitiatedEvent}
+ * and {@code @KafkaHandler} routing, both of which no longer exist. The consumer was
+ * refactored to receive raw {@code Map<String, Object>} payloads deserialized via
+ * {@link ObjectMapper}.</p>
+ *
+ * <p>Key contracts tested:</p>
+ * <ul>
+ *   <li>Success path: deserialize → service → {@code ack.acknowledge()}</li>
+ *   <li>Service exception → NO ack (Kafka retry)</li>
+ *   <li>Deserialization failure → NO ack (Kafka retry)</li>
+ *   <li>Payment event routing by {@code event_type} header value</li>
+ *   <li>Unknown event types handled without service calls</li>
+ * </ul>
+ */
+@ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
+class OrderEventConsumerTest {
+
+    @Mock private OrderService orderService;
+    @Mock private ObjectMapper objectMapper;
+    @Mock private Acknowledgment ack;
+    @InjectMocks private OrderEventConsumer consumer;
+
+    // =========================================================
+    // handleCheckoutInitiated
+    // =========================================================
+
+    @Nested
+    @DisplayName("handleCheckoutInitiated")
+    class CheckoutInitiatedTests {
+
+        @Test
+        @DisplayName("Success: deserializes, calls service, acknowledges")
+        void success() {
+            Map<String, Object> payload = Map.of("customerId", 100L);
+            CheckoutInitiatedEvent event = new CheckoutInitiatedEvent(
+                    OrderEventType.ORDER_INITIATED, 100L, new BigDecimal("250.00"),
+                    List.of(), "usd", null);
+            when(objectMapper.convertValue(payload, CheckoutInitiatedEvent.class)).thenReturn(event);
+
+            consumer.handleCheckoutInitiated(payload, ack);
+
+            verify(orderService).processOrderInitiation(event);
+            verify(ack).acknowledge();
+        }
+
+        @Test
+        @DisplayName("Service throws: does NOT acknowledge (forces Kafka retry)")
+        void serviceException_noAck() {
+            Map<String, Object> payload = Map.of("customerId", 100L);
+            CheckoutInitiatedEvent event = new CheckoutInitiatedEvent(
+                    OrderEventType.ORDER_INITIATED, 100L, BigDecimal.ZERO, List.of(), "usd", null);
+            when(objectMapper.convertValue(payload, CheckoutInitiatedEvent.class)).thenReturn(event);
+            doThrow(new RuntimeException("DB timeout")).when(orderService).processOrderInitiation(any());
+
+            consumer.handleCheckoutInitiated(payload, ack);
+
+            verify(ack, never()).acknowledge();
+        }
+
+        @Test
+        @DisplayName("Deserialization fails: does NOT acknowledge (forces Kafka retry)")
+        void deserializationFailure_noAck() {
+            Map<String, Object> payload = Map.of("bad", true);
+            when(objectMapper.convertValue(payload, CheckoutInitiatedEvent.class))
+                    .thenThrow(new IllegalArgumentException("bad payload"));
+
+            consumer.handleCheckoutInitiated(payload, ack);
+
+            verifyNoInteractions(orderService);
+            verify(ack, never()).acknowledge();
+        }
+    }
+
+    // =========================================================
+    // handlePaymentOutcome
+    // =========================================================
+
+    @Nested
+    @DisplayName("handlePaymentOutcome — routing by event_type header")
+    class PaymentOutcomeTests {
+
+        private byte[] h(String type) { return type.getBytes(StandardCharsets.UTF_8); }
+
+        @Test
+        @DisplayName("PAYMENT_SUCCESS → updateOrderStatus(orderId, PAID)")
+        void paymentSuccess() {
+            Map<String, Object> payload = Map.of("orderId", 55L);
+            PaymentCompletedEvent ev = PaymentCompletedEvent.builder()
+                    .paymentId(1L).orderId(55L).stripeId("pi_1").amount(5000L).build();
+            when(objectMapper.convertValue(payload, PaymentCompletedEvent.class)).thenReturn(ev);
+
+            consumer.handlePaymentOutcome(payload, h("PAYMENT_SUCCESS"), ack);
+
+            verify(orderService).updateOrderStatus(55L, OrderStatus.PAID);
+            verify(ack).acknowledge();
+        }
+
+        @Test
+        @DisplayName("PAYMENT_FAILED → updateOrderStatus(orderId, FAILED)")
+        void paymentFailed() {
+            Map<String, Object> payload = Map.of("orderId", 66L);
+            PaymentFailedEvent ev = PaymentFailedEvent.builder()
+                    .paymentId(2L).orderId(66L).stripeId("pi_2").build();
+            when(objectMapper.convertValue(payload, PaymentFailedEvent.class)).thenReturn(ev);
+
+            consumer.handlePaymentOutcome(payload, h("PAYMENT_FAILED"), ack);
+
+            verify(orderService).updateOrderStatus(66L, OrderStatus.FAILED);
+            verify(ack).acknowledge();
+        }
+
+        @Test
+        @DisplayName("ORDER_REFUNDED → updateOrderStatus(orderId, REFUNDED)")
+        void orderRefunded() {
+            Map<String, Object> payload = Map.of("orderId", 77L);
+            PaymentRefundedEvent ev = PaymentRefundedEvent.builder()
+                    .paymentId(3L).orderId(77L).stripeRefundId("re_1")
+                    .amountRefunded(5000L).currency("usd").build();
+            when(objectMapper.convertValue(payload, PaymentRefundedEvent.class)).thenReturn(ev);
+
+            consumer.handlePaymentOutcome(payload, h("ORDER_REFUNDED"), ack);
+
+            verify(orderService).updateOrderStatus(77L, OrderStatus.REFUNDED);
+            verify(ack).acknowledge();
+        }
+
+        @Test
+        @DisplayName("Unknown type: no service call, still acknowledges")
+        void unknownType_acknowledgesWithoutService() {
+            consumer.handlePaymentOutcome(Map.of(), h("UNKNOWN_TYPE"), ack);
+
+            verifyNoInteractions(orderService);
+            verify(ack).acknowledge();
+        }
+
+        @Test
+        @DisplayName("Service throws: does NOT acknowledge (forces Kafka retry)")
+        void serviceException_noAck() {
+            Map<String, Object> payload = Map.of("orderId", 99L);
+            PaymentCompletedEvent ev = PaymentCompletedEvent.builder()
+                    .paymentId(4L).orderId(99L).stripeId("pi_4").amount(100L).build();
+            when(objectMapper.convertValue(payload, PaymentCompletedEvent.class)).thenReturn(ev);
+            doThrow(new RuntimeException("CB open")).when(orderService).updateOrderStatus(any(), any());
+
+            consumer.handlePaymentOutcome(payload, h("PAYMENT_SUCCESS"), ack);
+
+            verify(orderService).updateOrderStatus(99L, OrderStatus.PAID);
+            verify(ack, never()).acknowledge();
+        }
+
+        @Test
+        @DisplayName("Deserialization fails: does NOT acknowledge (forces Kafka retry)")
+        void deserializationFailure_noAck() {
+            Map<String, Object> payload = Map.of("bad", "data");
+            when(objectMapper.convertValue(payload, PaymentCompletedEvent.class))
+                    .thenThrow(new IllegalArgumentException("bad payload"));
+
+            consumer.handlePaymentOutcome(payload, h("PAYMENT_SUCCESS"), ack);
+
+            verifyNoInteractions(orderService);
+            verify(ack, never()).acknowledge();
+        }
+    }
+}

@@ -21,7 +21,13 @@ public record UserLoginEvent(
         Long timestamp
 ) {
     /**
-     * Business Factory Method.
+     * Convenience factory — automatically captures the current epoch timestamp.
+     *
+     * @param userId The authenticated user's database ID.
+     * @param email  The email address used for this login.
+     * @param method The authentication strategy (e.g., {@code "email"}, {@code "github"}).
+     * @param role   The user's currently assigned role.
+     * @return A fully populated {@link UserLoginEvent}.
      */
     public static UserLoginEvent of(Long userId, String email, String method, String role) {
         return new UserLoginEvent(

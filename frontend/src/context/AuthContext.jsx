@@ -5,6 +5,8 @@ import {
     useState,
     useCallback,
 } from "react";
+import { queryClientInstance } from "../lib/query-client";
+import { CURRENT_USER_KEY } from "../hooks/useCurrentUser";
 
 const AuthContext = createContext(null);
 
@@ -26,7 +28,10 @@ export function AuthProvider({ children }) {
             }
 
             const data = await res.json();
-            setUser(data.data ?? data);
+            const userData = data.data ?? data;
+            setUser(userData);
+            // Sync the React Query cache so Header reflects the new user immediately
+            queryClientInstance.setQueryData(CURRENT_USER_KEY, userData);
         } catch (err) {
             console.error("refreshUser failed:", err);
             setUser(null);
@@ -75,7 +80,9 @@ export function AuthProvider({ children }) {
             console.error(err);
         }
 
+        // Clear both state systems so Header and routes both reflect logged-out state
         setUser(null);
+        queryClientInstance.removeQueries({ queryKey: CURRENT_USER_KEY });
     };
 
     return (

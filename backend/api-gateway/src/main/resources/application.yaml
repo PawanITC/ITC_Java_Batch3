@@ -7,6 +7,7 @@ internal:
     payment: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
     product: ${PRODUCT_SERVICE_URL:http://product-service:8080}
     order: ${ORDER_SERVICE_URL:http://order-service:8080}
+    review: ${REVIEW_SERVICE_URL:http://review-rating-service:9097}
 
 spring:
   application:
@@ -88,6 +89,13 @@ spring:
               uri: ${internal.service-urls.payment}
               predicates:
                 - Path=/api/v1/payments/**
+              filters:
+                - StripPrefix=2
+
+            - id: review-service
+              uri: ${internal.service-urls.review}
+              predicates:
+                - Path=/api/v1/reviews/**
               filters:
                 - StripPrefix=2
 

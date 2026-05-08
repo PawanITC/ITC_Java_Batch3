@@ -1,3 +1,26 @@
+// ============================================================================
+// StripeServiceTest — INTENTIONALLY KEPT COMMENTED OUT
+//
+// StripeService wraps the Stripe Java SDK whose public API surface is entirely
+// static methods (PaymentIntent.create(), PaymentIntent.retrieve(), Refund.create(),
+// etc.). Mocking static methods in JUnit 5 requires either:
+//
+//   (a) mockito-inline / mockito-subclass — which conflicts with our current
+//       Mockito configuration and causes "already instrumented" errors at
+//       runtime when combined with other @Mock fields, OR
+//   (b) real Stripe test credentials + network access — not available in CI.
+//
+// The business logic that *calls* StripeService is already comprehensively
+// covered in PaymentServiceTest, which mocks StripeService as a whole.
+// That is the correct boundary for unit testing.
+//
+// To enable these tests in future:
+//   1. Add mockito-inline to payment-service dependencies:
+//      testImplementation 'org.mockito:mockito-inline:5.x.x'
+//   2. Uncomment the class below (no other changes needed — the mockStatic
+//      setup already follows the MockedStatic pattern correctly).
+// ============================================================================
+
 //package com.itc.funkart.payment.service;
 //
 //import com.stripe.exception.ApiConnectionException;

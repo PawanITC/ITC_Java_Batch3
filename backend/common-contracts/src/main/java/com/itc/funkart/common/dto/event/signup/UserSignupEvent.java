@@ -24,8 +24,13 @@ public record UserSignupEvent(
         Long timestamp
 ) {
     /**
-     * Business Factory Method: Simplifies creation in the User Service.
-     * Automatically handles the JVM timestamp.
+     * Convenience factory — automatically captures the current epoch timestamp.
+     *
+     * @param userId The newly generated user ID from the database.
+     * @param email  The registered email address.
+     * @param name   The display name provided during registration.
+     * @param role   The assigned role (e.g., {@code "ROLE_USER"}).
+     * @return A fully populated {@link UserSignupEvent}.
      */
     public static UserSignupEvent of(Long userId, String email, String name, String role) {
         return new UserSignupEvent(
