@@ -35,6 +35,24 @@ spring:
     gateway:
       server:
         webflux:
+          globalcors:
+            cors-configurations:
+              "[/**]":
+                allowedOrigins:
+                  - ${FRONTEND_URL:http://localhost:5173}
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - PATCH
+                  - OPTIONS
+                allowedHeaders: "*"
+                exposedHeaders:
+                  - Authorization
+                  - Set-Cookie
+                allowCredentials: true
+                maxAge: 3600
           routes:
             - id: admin-user-service
               uri: ${internal.service-urls.user}

@@ -56,7 +56,8 @@ public class PaymentService {
                     request.currency(),
                     user.id(),
                     payment.getId(),
-                    payment.getOrderId()
+                    payment.getOrderId(),
+                    payment.getIdempotencyKey()
             );
 
             payment.setStripePaymentIntentId(stripeIntent.getId());

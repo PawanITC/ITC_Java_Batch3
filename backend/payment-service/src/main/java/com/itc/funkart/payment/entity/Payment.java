@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * <h2>Payment Entity</h2>
@@ -70,6 +71,14 @@ public class Payment {
     private String stripePaymentIntentId;
 
     /**
+     * Stable UUID used as the Stripe idempotency key when creating a PaymentIntent.
+     * Generated once on entity creation; survives Kafka retries within the same DB lifecycle.
+     * A DB wipe produces a new UUID → new Stripe key → no IdempotencyException on replay.
+     */
+    @Column(nullable = false, unique = true, updatable = false, length = 36)
+    private String idempotencyKey;
+
+    /**
      * Current transaction status (e.g., PENDING, SUCCEEDED, FAILED, REFUNDED).
      */
     @Column(nullable = false)
@@ -101,6 +110,7 @@ public class Payment {
         this.amount = amount;
         this.currency = currency;
         this.status = "PENDING";
+        this.idempotencyKey = UUID.randomUUID().toString();
     }
 
     /**

@@ -78,7 +78,8 @@ public class PaymentOrderEventConsumer {
                     "usd",
                     customerId,
                     payment.getId(),
-                    payment.getOrderId()
+                    payment.getOrderId(),
+                    payment.getIdempotencyKey()
             );
 
             payment.setStripePaymentIntentId(intent.getId());

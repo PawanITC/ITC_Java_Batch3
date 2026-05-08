@@ -44,10 +44,13 @@ public class StripeService {
      * retries do not result in multiple Intents for the same Order.
      * </p>
      *
-     * @param amount    Transaction amount in the smallest currency unit (e.g., cents for USD).
-     * @param currency  3-character ISO currency code (e.g., "usd").
-     * @param userId    Internal ID of the user initiating the payment for metadata tagging.
-     * @param paymentId Local database ID used for metadata and the idempotency key.
+     * @param amount         Transaction amount in the smallest currency unit (e.g., cents for USD).
+     * @param currency       3-character ISO currency code (e.g., "usd").
+     * @param userId         Internal ID of the user initiating the payment for metadata tagging.
+     * @param paymentId      Local database ID used for metadata.
+     * @param orderId        Order ID used for metadata.
+     * @param idempotencyKey Stable UUID from the Payment entity. Tied to the DB record so a DB
+     *                       wipe generates a fresh key, avoiding Stripe IdempotencyException on replay.
      * @return A {@link PaymentIntent} object containing the {@code client_secret} for the frontend.
      * @throws StripeException If the request fails due to network issues, invalid parameters, or API limits.
      */
@@ -56,7 +59,8 @@ public class StripeService {
             String currency,
             Long userId,
             Long paymentId,
-            Long orderId
+            Long orderId,
+            String idempotencyKey
     ) throws StripeException {
 
         logger.debug("Requesting Stripe Intent | orderId={} paymentId={} amount={}",
@@ -80,9 +84,7 @@ public class StripeService {
                 .build();
 
         RequestOptions options = RequestOptions.builder()
-                .setIdempotencyKey(
-                        StripeIdempotencyKeys.createPaymentIntent(paymentId, orderId)
-                )
+                .setIdempotencyKey(idempotencyKey)
                 .build();
 
         return PaymentIntent.create(params, options);
