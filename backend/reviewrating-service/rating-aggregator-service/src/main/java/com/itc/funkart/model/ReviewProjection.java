@@ -1,6 +1,4 @@
 package com.itc.funkart.model;
 
-public interface ReviewProjection {
-    Long getProductId();
-    int getRating();
-}
+// Replaced by the ReviewRepository JPQL query returning RatingStatsDto.
+public class ReviewProjection {}

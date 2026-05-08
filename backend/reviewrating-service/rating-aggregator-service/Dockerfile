@@ -1,5 +1,19 @@
-FROM eclipse-temurin:17-jdk
+# ==================================================
+# Rating Aggregator Service — Read side (CQRS)
+# ==================================================
+FROM eclipse-temurin:17-jre-jammy
+
 WORKDIR /app
-COPY build/libs/rating-aggregator-service-0.0.1-SNAPSHOT.jar app.jar
-EXPOSE 9096
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+RUN addgroup --system spring && adduser --system spring --ingroup spring
+RUN chown -R spring:spring /app
+USER spring:spring
+
+LABEL maintainer="Abbas"
+LABEL service.name="rating-aggregator-service"
+
+COPY --chown=spring:spring reviewrating-service/rating-aggregator-service/build/libs/rating-aggregator-service.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

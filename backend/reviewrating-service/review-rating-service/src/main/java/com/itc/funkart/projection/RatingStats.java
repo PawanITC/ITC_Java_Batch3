@@ -1,8 +1,4 @@
 package com.itc.funkart.projection;
 
-public interface RatingStats {
-    Double getAvg();
-    Long getCount();
-}
-
-
+// Replaced by RatingStatsDto record in the dto package.
+public class RatingStats {}

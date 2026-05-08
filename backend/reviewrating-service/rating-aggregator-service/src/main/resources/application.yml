@@ -1,42 +1,57 @@
-server:
-  port: 9096
-
 spring:
   application:
     name: rating-aggregator-service
 
-
-
   kafka:
-    bootstrap-servers: localhost:9092   # ✅ NEW EXTERNAL KAFKA
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
     consumer:
       group-id: rating-aggregator-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: java.util.Map
+        spring.json.trusted.packages: "com.itc.funkart.*"
 
-  data:
-    redis:
-      host: localhost
-      port: 6379
+server:
+  port: 8080
+  shutdown: graceful
 
-  datasource:
-    url: jdbc:postgresql://18.175.222.132:32680/postgres
-    username: postgres
-    password: Ie422p9Cx8
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://otel-collector:4318/v1/traces}
+    metrics:
+      export:
+        url: ${MANAGEMENT_OTLP_METRICS_URL:http://otel-collector:4318/v1/metrics}
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %m%n"
 
-otel:
-  exporter:
-    otlp:
-      endpoint: http://localhost:4318
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600s}
+
+app:
+  kafka:
+    topic:
+      reviews: review.events.v1
+
+  loki:
+    endpoint: ${LOKI_URL:http://loki:3100/loki/api/v1/push}

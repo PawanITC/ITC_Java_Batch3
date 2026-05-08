@@ -1,72 +1,47 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://18.175.222.132:32680/postgres
-    username: postgres
-    password: Ie422p9Cx8
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          secret-key: your256bitsecretkeymustbeatleast32chars!!
+  application:
+    name: review-rating-service
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        enable.idempotence: true
-        acks: all
-        retries: 10
-        max.in.flight.requests.per.connection: 5
         spring.json.add.type.headers: false
-      template:
-        default-topic: review.events.v1
 
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: health,info,prometheus
+server:
+  port: 8080
+  shutdown: graceful
 
-  resilience4j:
-    circuitbreaker:
-      instances:
-        userService:
-          registerHealthIndicator: true
-          slidingWindowSize: 10
-          minimumNumberOfCalls: 5
-          failureRateThreshold: 50
-          waitDurationInOpenState: 10s
-          permittedNumberOfCallsInHalfOpenState: 3
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://otel-collector:4318/v1/traces}
+    metrics:
+      export:
+        url: ${MANAGEMENT_OTLP_METRICS_URL:http://otel-collector:4318/v1/metrics}
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
-    retry:
-      instances:
-        userService:
-          maxAttempts: 3
-          waitDuration: 500ms
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %m%n"
 
-      timelimiter:
-        instances:
-          userService:
-            timeoutDuration: 2s
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600s}
 
-rating-aggregator:
-  base-url: http://localhost:9096/aggregator
-
-app:
-  kafka:
-    topic:
-      review-created: review.events.v1
-
-
-
-
-
+  loki:
+    endpoint: ${LOKI_URL:http://loki:3100/loki/api/v1/push}

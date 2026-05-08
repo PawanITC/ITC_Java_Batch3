@@ -2,16 +2,16 @@ package com.itc.funkart.service;
 
 import com.itc.funkart.dto.ReviewRequest;
 import com.itc.funkart.dto.ReviewResponse;
-import com.itc.funkart.entity.Review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 
-@Service
 public interface ReviewService {
+
     ReviewResponse createOrUpdateReview(Long productId, Long userId, ReviewRequest request);
-    Review createReview(Review review);
-    Review getReview(Long productId, Long userId);
+
     Page<ReviewResponse> getReviewsForProduct(Long productId, Pageable pageable);
+
     void deleteReview(Long productId, Long userId);
+
+    void adminDeleteReview(Long reviewId);
 }

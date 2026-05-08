@@ -1,15 +1,5 @@
 package com.itc.funkart;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableScheduling;
-
-@SpringBootApplication
-@EnableScheduling
-public class FunkartApplication {
-
-	public static void main(String[] args) {
-		SpringApplication.run(FunkartApplication.class, args);
-	}
-
-}
+// Replaced by ReviewRatingServiceApplication — kept as an empty class to satisfy the file system.
+// DO NOT annotate with @SpringBootApplication.
+public class FunkartApplication {}

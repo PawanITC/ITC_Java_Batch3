@@ -203,9 +203,10 @@ services:
                       # blocking all microservices that depend on it.
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:13133/"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     depends_on:
       jaeger:
         condition: service_started
@@ -217,6 +218,35 @@ services:
       - db-network
 
   # --- 5. MICROSERVICES ---
+  notification-service:
+    container_name: notification-service
+    build:
+      context: ./backend
+      dockerfile: notification-service/Dockerfile
+    env_file: ./backend/notification-service/.env
+    environment:
+      - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=9092
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
+      - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    networks:
+      - db-network
+
   user-service:
     container_name: user-service
     build:
@@ -334,6 +364,68 @@ services:
     networks:
       - db-network
 
+  review-rating-service:
+    container_name: review-rating-service
+    build:
+      context: ./backend
+      dockerfile: reviewrating-service/review-rating-service/Dockerfile
+    env_file: ./backend/reviewrating-service/review-rating-service/.env
+    ports:
+      - "8086:8080"
+    environment:
+      - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
+      - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - db-network
+
+  rating-aggregator-service:
+    container_name: rating-aggregator-service
+    build:
+      context: ./backend
+      dockerfile: reviewrating-service/rating-aggregator-service/Dockerfile
+    env_file: ./backend/reviewrating-service/rating-aggregator-service/.env
+    ports:
+      - "8087:8080"
+    environment:
+      - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
+      - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - db-network
+
   api-gateway:
     container_name: api-gateway
     build:
@@ -354,6 +446,12 @@ services:
       order-service:
         condition: service_started
       payment-service:
+        condition: service_started
+      review-rating-service:
+        condition: service_started
+      rating-aggregator-service:
+        condition: service_started
+      notification-service:
         condition: service_started
     networks:
       - db-network

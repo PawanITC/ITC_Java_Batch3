@@ -1,5 +1,4 @@
 package com.itc.funkart.service;
 
-public interface RatingSummaryService {
-    public void recalculateSummary(Long productId);
-}
+// Rating summary recalculation is now part of ReviewServiceImpl.
+public class RatingSummaryService {}

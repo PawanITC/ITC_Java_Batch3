@@ -1,81 +1,88 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.3.0'
-	id 'com.github.davidmc24.gradle.plugin.avro' version '1.8.0'
-	id 'io.spring.dependency-management' version '1.1.5'
-	id 'jacoco'
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
-group = 'com.example'
+group = 'com.itc.funkart'
 version = '0.0.1-SNAPSHOT'
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+}
 
 repositories {
-	mavenLocal()
-	mavenCentral()
+    mavenCentral()
 }
-
-avro {
-	fieldVisibility = "PRIVATE"
-}
-
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation("io.opentelemetry:opentelemetry-api:1.39.0")
-	implementation("io.opentelemetry:opentelemetry-sdk:1.39.0")
-	implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.39.0")
-	implementation 'org.postgresql:postgresql:42.7.1'
-	implementation 'com.mysql:mysql-connector-j:8.3.0'
-	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-	implementation 'io.micrometer:micrometer-registry-prometheus'
-	implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
-	implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    // =====================
+    // Shared Contracts
+    // =====================
+    implementation project(':common-contracts')
+
+    // === 1. BOILERPLATE & TOOLS ===
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // === 2. CORE WEB & VALIDATION ===
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // === 3. SECURITY & JWT ===
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // === 4. DATABASE & PERSISTENCE ===
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql'
+    testImplementation 'com.h2database:h2'
+
+    // === 5. MESSAGING ===
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // === 6. REDIS (Cache invalidation after review mutations) ===
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'io.lettuce:lettuce-core'
-	implementation 'org.springframework.kafka:spring-kafka'
-	implementation("com.itc.funkart:review-events-schema:1.0.0")
 
+    // === 7. OBSERVABILITY ===
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
-
-
-
-	// Kafka
-	implementation 'org.springframework.kafka:spring-kafka'
-
-	// Jackson
-	implementation 'com.fasterxml.jackson.core:jackson-databind'
-
-	// Lombok (optional)
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
-
-
-
-
-	runtimeOnly 'org.postgresql:postgresql'
-
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testImplementation 'org.mockito:mockito-core:5.11.0'
-	testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // === 8. TESTING ===
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
 }
 
-test {
-	useJUnitPlatform()
-	finalizedBy jacocoTestReport
+tasks.named('test') {
+    useJUnitPlatform()
+    jvmArgs("-XX:+EnableDynamicAgentLoading")
+    finalizedBy jacocoTestReport
 }
 
 jacocoTestReport {
-	dependsOn test
-	reports {
-		xml.required = true
-		html.required = true
-	}
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.named('jar') {
+    enabled = false
+}
+
+tasks.named('bootJar') {
+    archiveFileName = "review-rating-service.jar"
 }

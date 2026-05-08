@@ -7,6 +7,8 @@ include 'product-service'
 include 'order-service'
 include 'payment-service'
 include 'notification-service'
+include 'review-rating-service'
+include 'rating-aggregator-service'
 
 // Since settings.gradle is ALREADY inside the 'backend' folder,
 // we just point to the subdirectories directly.
@@ -17,3 +19,5 @@ project(':product-service').projectDir = file('product-service')
 project(':order-service').projectDir = file('order-service')
 project(':payment-service').projectDir = file('payment-service')
 project(':notification-service').projectDir = file('notification-service')
+project(':review-rating-service').projectDir = file('reviewrating-service/review-rating-service')
+project(':rating-aggregator-service').projectDir = file('reviewrating-service/rating-aggregator-service')

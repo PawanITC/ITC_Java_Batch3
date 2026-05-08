@@ -1,33 +1,42 @@
 package com.itc.funkart.config;
 
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity  // required for @PreAuthorize on the admin delete endpoint
+@EnableWebSecurity
+@EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtWebFilter jwtWebFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(AbstractHttpConfigurer::disable)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**").permitAll()
-                        // Updated path: gateway strips /api/v1 via StripPrefix=2, controller is at /reviews
-                        .requestMatchers("/reviews/**").authenticated()
-                        .requestMatchers("/db", "/api/db", "/api/v1/db", "/review-rating-service/db").permitAll()
-                        .requestMatchers("/test").permitAll()
+                        .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                        // Public: read reviews and rating summaries
+                        .requestMatchers("GET", "/reviews/**").permitAll()
+                        // Admin moderation endpoint
+                        .requestMatchers("/reviews/admin/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MODERATOR")
+                        // All other review mutations require auth
                         .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(oauth -> oauth
-                        .jwt(Customizer.withDefaults())
-                );
+                .addFilterBefore(jwtWebFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

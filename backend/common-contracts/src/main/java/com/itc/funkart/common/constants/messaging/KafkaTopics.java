@@ -34,6 +34,10 @@ public final class KafkaTopics {
     public static final String PAYMENTS_EVENTS = "payments.events.v1";
     public static final String PAYMENTS_DLQ = "payments.events.v1.dlq";
 
+    // REVIEW DOMAIN
+    public static final String REVIEWS = "review.events.v1";
+    public static final String REVIEWS_DLQ = "review.events.v1.dlq";
+
     // NOTIFICATION DOMAIN
     public static final String NOTIFICATIONS = "notifications.events.v1";
 
