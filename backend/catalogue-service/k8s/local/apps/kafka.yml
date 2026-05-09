@@ -18,7 +18,7 @@ spec:
       initContainers:
         - name: volume-permissions
           image: confluentinc/cp-kafka:7.6.0
-          command: ['sh', '-c', 'chown -R 1000:1000 /var/lib/kafka/data']
+          command: [ 'sh', '-c', 'chown -R 1000:1000 /var/lib/kafka/data' ]
           securityContext:
             runAsUser: 0
           volumeMounts:

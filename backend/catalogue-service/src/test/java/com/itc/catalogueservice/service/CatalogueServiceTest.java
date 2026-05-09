@@ -34,7 +34,7 @@ class CatalogueServiceTest {
                 .thenReturn(CompletableFuture.completedFuture(List.of(new ProductDTO())));
 
         List<ProductDTO> products =
-                catalogueService.getProducts(null, 1,10,null,null,null,null).join();
+                catalogueService.getProducts(null, 1, 10, null, null, null, null).join();
 
         assertNotNull(products);
         assertFalse(products.isEmpty());
@@ -42,14 +42,14 @@ class CatalogueServiceTest {
 
     //Should test for when products are not returned and method throws NoProductsException
     @Test
-    void getProducts_shouldThrowNoProductsException(){
+    void getProducts_shouldThrowNoProductsException() {
 
         when(productApiClient.getProducts())
                 .thenReturn(CompletableFuture.completedFuture(List.of()));
 
         CompletionException ex = assertThrows(
                 CompletionException.class,
-                () -> catalogueService.getProducts(null,1,10,null,null,null,null).join()
+                () -> catalogueService.getProducts(null, 1, 10, null, null, null, null).join()
         );
 
         assertTrue(ex.getCause() instanceof NoProductsException);

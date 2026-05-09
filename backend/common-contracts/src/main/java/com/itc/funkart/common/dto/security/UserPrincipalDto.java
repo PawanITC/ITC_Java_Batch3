@@ -27,10 +27,10 @@ import lombok.Builder;
  * only identity and authorization metadata.
  * </p>
  *
- * @param userId    The unique database identifier of the user.
- * @param name  The display name of the user.
- * @param email The authenticated email address of the user.
- * @param role  The security role assigned to the user (e.g., ROLE_USER, ROLE_ADMIN).
+ * @param userId The unique database identifier of the user.
+ * @param name   The display name of the user.
+ * @param email  The authenticated email address of the user.
+ * @param role   The security role assigned to the user (e.g., ROLE_USER, ROLE_ADMIN).
  */
 @Builder
 public record UserPrincipalDto(
@@ -38,4 +38,5 @@ public record UserPrincipalDto(
         String name,
         String email,
         String role
-) {}
+) {
+}

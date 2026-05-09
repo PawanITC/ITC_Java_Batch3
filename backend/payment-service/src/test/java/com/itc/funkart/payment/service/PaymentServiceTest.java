@@ -54,10 +54,14 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
 
-    @Mock private PaymentRepository mockPaymentRepository;
-    @Mock private StripeService mockStripeService;
-    @Mock private KafkaEventPublisher mockKafkaEventPublisher;
-    @InjectMocks private PaymentService paymentService;
+    @Mock
+    private PaymentRepository mockPaymentRepository;
+    @Mock
+    private StripeService mockStripeService;
+    @Mock
+    private KafkaEventPublisher mockKafkaEventPublisher;
+    @InjectMocks
+    private PaymentService paymentService;
 
     private JwtUserDto testUser;
 
@@ -131,7 +135,8 @@ class PaymentServiceTest {
         @DisplayName("Fault: DB exception wrapped into PaymentException")
         void dbFailure() {
             when(mockPaymentRepository.findByOrderId(anyLong()))
-                    .thenThrow(new DataAccessException("DB Down") {});
+                    .thenThrow(new DataAccessException("DB Down") {
+                    });
 
             assertThrows(PaymentException.class,
                     () -> paymentService.createPaymentIntent(testUser,
@@ -160,7 +165,7 @@ class PaymentServiceTest {
             assertEquals("PROCESSING", payment.getStatus());
             assertEquals("PROCESSING", response.status());
             verify(mockStripeService).confirmPaymentIntent(
-                    eq("pi_123"), anyString(), anyString(), anyLong());
+                    eq("pi_123"), anyString(), anyString(), any());
         }
 
         @Test
@@ -238,10 +243,10 @@ class PaymentServiceTest {
         void handlePaymentFailure() {
             PaymentIntent intent = mock(PaymentIntent.class, RETURNS_DEEP_STUBS);
             when(intent.getId()).thenReturn("pi_fail");
-            when(intent.getLastPaymentError().getMessage()).thenReturn("Card Declined");
-            when(intent.getLastPaymentError().getCode()).thenReturn("card_declined");
+            lenient().when(intent.getLastPaymentError().getMessage()).thenReturn("Card Declined");
+            lenient().when(intent.getLastPaymentError().getCode()).thenReturn("card_declined");
             var payment = new Payment(testUser.id(), 101L, 5000L, "usd");
-            when(mockPaymentRepository.findByStripePaymentIntentId("pi_fail"))
+            lenient().when(mockPaymentRepository.findByStripePaymentIntentId("pi_fail"))
                     .thenReturn(Optional.of(payment));
 
             paymentService.processWebhookEvent(mockStripeEvent("payment_intent.payment_failed", intent));

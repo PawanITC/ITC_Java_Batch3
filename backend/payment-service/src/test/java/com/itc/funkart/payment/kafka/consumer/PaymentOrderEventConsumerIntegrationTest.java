@@ -1,33 +1,69 @@
 package com.itc.funkart.payment.kafka.consumer;
 
 import com.itc.funkart.common.constants.messaging.KafkaTopics;
+import com.itc.funkart.common.dto.event.order.OrderEvent;
+import com.itc.funkart.common.enums.order.OrderEventType;
+import com.itc.funkart.payment.entity.Payment;
 import com.itc.funkart.payment.repository.PaymentRepository;
 import com.itc.funkart.payment.service.StripeService;
-import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.kafka.test.utils.ContainerTestUtils;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.LocalDateTime;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * <h2>PaymentOrderEventConsumer — Integration Test</h2>
+ *
+ * <p>Verifies the full Kafka → consumer → Stripe → DB path using an
+ * embedded Kafka broker and an H2 in-memory database (profile: test).</p>
+ *
+ * <h3>Why {@code ORDERS} topic, not {@code CHECKOUT_INITIATED}?</h3>
+ * <p>{@link PaymentOrderEventConsumer} listens to {@code KafkaTopics.ORDERS}
+ * ({@code orders.events.v1}) for {@code ORDER_INITIATED} events published by
+ * the Order Service after the order row is persisted. The old
+ * {@code CHECKOUT_INITIATED} topic carries the raw checkout request and is
+ * consumed by the Order Service, not Payment Service.</p>
+ *
+ * <h3>Why {@code OrderEvent}, not {@code OrderCreatedEvent}?</h3>
+ * <p>{@code OrderCreatedEvent} is a payment-specific DTO for the checkout flow
+ * and uses snake_case JSON fields ({@code order_id}, {@code user_id}, {@code amount}).
+ * The consumer reads a {@code Map<String, Object>} and accesses camelCase keys
+ * ({@code eventType}, {@code orderId}, {@code customerId}, {@code totalAmount})
+ * — exactly the shape that {@code OrderEvent} serialises to.</p>
+ *
+ * <h3>Why {@code spring.json.use.type.headers: false} in test YAML?</h3>
+ * <p>With type headers enabled the deserializer produces a typed {@code OrderEvent}
+ * instance, which cannot be assigned to {@code Map<String, Object>}. Disabling
+ * them lets Jackson produce a {@code LinkedHashMap}, which is exactly what the
+ * production consumer expects.</p>
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @EmbeddedKafka(
-        partitions = 1,
-        topics = {KafkaTopics.CHECKOUT_INITIATED},
+        // 3 partitions matches the consumer's concurrency so every thread gets one.
+        // ContainerTestUtils.waitForAssignment(container, 3) then completes cleanly.
+        partitions = 3,
+        topics = {
+                KafkaTopics.ORDERS,          // orders.events.v1 — what the consumer listens on
+                KafkaTopics.PAYMENTS_EVENTS, // payments.events.v1 — avoids NewTopic bean warnings
+                KafkaTopics.PAYMENTS_DLQ     // dead-letter queue
+        },
         bootstrapServersProperty = "spring.kafka.bootstrap-servers"
 )
 class PaymentOrderEventConsumerIntegrationTest {
@@ -41,45 +77,95 @@ class PaymentOrderEventConsumerIntegrationTest {
     @MockitoBean
     private StripeService stripeService;
 
+    @Autowired
+    private KafkaListenerEndpointRegistry registry;
+
+    @BeforeEach
+    void setup() throws Exception {
+        // Wait until every listener container has all its partitions assigned.
+        // With partitions=3 and concurrency=3 each sub-consumer gets exactly 1.
+        for (var container : registry.getListenerContainers()) {
+            ContainerTestUtils.waitForAssignment(container, 3);
+        }
+    }
+
     @Test
-    @DisplayName("Should pre-create PaymentIntent on ORDER_INITIATED")
-    void shouldProcessInitiatedEvent() throws StripeException {
+    void shouldProcessOrderInitiatedEvent_andCreateStripeIntent() throws Exception {
 
-        paymentRepository.deleteAll();
-
-        PaymentIntent mockPI = mock(PaymentIntent.class);
-        when(mockPI.getId()).thenReturn("pi_mock_123");
+        // ── GIVEN: Stripe mock ─────────────────────────────────────────────────
+        // Amount in cents: totalAmount=360.00 × 100 = 36 000 cents
+        PaymentIntent pi = mock(PaymentIntent.class);
+        when(pi.getId()).thenReturn("pi_mock_123");
 
         when(stripeService.createPaymentIntent(
-                anyLong(), anyString(), anyLong(), anyLong()
-        )).thenReturn(mockPI);
+                eq(36_000L),   // amountCents
+                eq("usd"),     // currency (hardcoded in consumer)
+                eq(4L),        // customerId
+                any(),         // payment.getId() — generated by DB
+                eq(123L),      // orderId
+                anyString()    // idempotencyKey — generated per payment
+        )).thenReturn(pi);
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("orderId", 123L);
-        payload.put("customerId", 4L);
-        payload.put("totalAmount", 360.00);
-        payload.put("currency", "usd");
+        // ── GIVEN: OrderEvent matching what Order Service publishes ────────────
+        // Consumer reads: eventType → "ORDER_INITIATED", orderId, customerId, totalAmount
+        // totalAmount is in dollars; consumer multiplies by 100 for Stripe cents.
+        OrderEvent event = new OrderEvent(
+                OrderEventType.ORDER_INITIATED,
+                123L,                        // orderId
+                4L,                          // customerId
+                new BigDecimal("360.00"),    // totalAmount — dollars, not cents
+                LocalDateTime.now(),
+                null                         // items — not needed by payment consumer
+        );
 
-        kafkaTemplate.send(KafkaTopics.CHECKOUT_INITIATED, payload);
+        kafkaTemplate.send(KafkaTopics.ORDERS, "123", event);
+        kafkaTemplate.flush();
 
+        // ── ASSERT: Stripe called + Payment row persisted ─────────────────────
         await()
-                .atMost(Duration.ofSeconds(10))
+                .atMost(Duration.ofSeconds(15))
                 .untilAsserted(() -> {
-
-                    var payment = paymentRepository.findByOrderId(123L)
-                            .orElseThrow();
-
-                    assertEquals("PENDING", payment.getStatus());
-                    assertEquals("pi_mock_123", payment.getStripePaymentIntentId());
-                    assertEquals(36000L, payment.getAmount());
 
                     verify(stripeService, times(1))
                             .createPaymentIntent(
-                                    eq(36000L),
+                                    eq(36_000L),
                                     eq("usd"),
                                     eq(4L),
-                                    anyLong()
+                                    any(),
+                                    eq(123L),
+                                    anyString()
                             );
+
+                    Payment payment = paymentRepository.findByOrderId(123L)
+                            .orElseThrow(() -> new AssertionError("Payment row not found for orderId=123"));
+
+                    assertThat(payment.getStatus()).isEqualTo("PENDING");
+                    assertThat(payment.getStripePaymentIntentId()).isEqualTo("pi_mock_123");
+                });
+    }
+
+    @Test
+    void shouldIgnoreNonInitiatedEvents_withoutCallingStripe() throws Exception {
+
+        // ── GIVEN: a PAYMENT_SUCCESS event (should be silently ACKed, not processed)
+        OrderEvent event = new OrderEvent(
+                OrderEventType.PAYMENT_SUCCESS,
+                999L,
+                7L,
+                new BigDecimal("50.00"),
+                LocalDateTime.now(),
+                null
+        );
+
+        kafkaTemplate.send(KafkaTopics.ORDERS, "999", event);
+        kafkaTemplate.flush();
+
+        // ── ASSERT: Stripe is never called, no Payment row created ────────────
+        await()
+                .atMost(Duration.ofSeconds(8))
+                .untilAsserted(() -> {
+                    verifyNoInteractions(stripeService);
+                    assertThat(paymentRepository.findByOrderId(999L)).isEmpty();
                 });
     }
 }

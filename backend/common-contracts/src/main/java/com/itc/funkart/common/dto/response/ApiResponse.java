@@ -21,13 +21,21 @@ import java.time.temporal.ChronoUnit;
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
-    /** The actual payload of the response. */
+    /**
+     * The actual payload of the response.
+     */
     private T data;
-    /** Standardized error details if the request failed. */
+    /**
+     * Standardized error details if the request failed.
+     */
     private ErrorDetails error;
-    /** Human-readable message regarding the operation. */
+    /**
+     * Human-readable message regarding the operation.
+     */
     private String message;
-    /** High-precision timestamp of when the response was generated. */
+    /**
+     * High-precision timestamp of when the response was generated.
+     */
     private Instant timestamp;
 
     /**

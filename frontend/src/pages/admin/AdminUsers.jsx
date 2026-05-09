@@ -1,18 +1,34 @@
 import { useState } from "react";
-import { Users, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
-import { useAdminUsers, useUpdateUserRole } from "../../hooks/useAdminUsers";
+import { Users, Loader2, ShieldCheck, ShieldOff, Power } from "lucide-react";
+import { useAdminUsers, useUpdateUserRole, useToggleUserStatus } from "../../hooks/useAdminUsers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function AdminUsers() {
     const { data: users, isLoading, isError } = useAdminUsers();
-    const updateRole = useUpdateUserRole();
-    const [updating, setUpdating] = useState(null);
+    const updateRole    = useUpdateUserRole();
+    const toggleStatus  = useToggleUserStatus();
+
+    const [updatingRole,   setUpdatingRole]   = useState(null);
+    const [togglingStatus, setTogglingStatus] = useState(null);
 
     const handleRoleChange = async (userId, role) => {
-        setUpdating(userId);
-        await updateRole.mutateAsync({ userId, role });
-        setUpdating(null);
+        setUpdatingRole(userId);
+        try {
+            await updateRole.mutateAsync({ userId, role });
+        } finally {
+            setUpdatingRole(null);
+        }
+    };
+
+    const handleToggleStatus = async (userId) => {
+        setTogglingStatus(userId);
+        try {
+            await toggleStatus.mutateAsync(userId);
+        } finally {
+            setTogglingStatus(null);
+        }
     };
 
     return (
@@ -44,6 +60,7 @@ export default function AdminUsers() {
                             <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
                             <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
                             <th className="text-left px-4 py-3 font-medium text-muted-foreground">Role</th>
+                            <th className="text-left px-4 py-3 font-medium text-muted-foreground">Actions</th>
                         </tr>
                         </thead>
                         <tbody className="divide-y">
@@ -61,30 +78,46 @@ export default function AdminUsers() {
                                 <td className="px-4 py-3">
                                     {user.isActive ? (
                                         <span className="inline-flex items-center gap-1 text-xs text-green-700">
-                        <ShieldCheck className="w-3.5 h-3.5" /> Active
-                      </span>
+                                            <ShieldCheck className="w-3.5 h-3.5" /> Active
+                                        </span>
                                     ) : (
                                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                        <ShieldOff className="w-3.5 h-3.5" /> Inactive
-                      </span>
+                                            <ShieldOff className="w-3.5 h-3.5" /> Inactive
+                                        </span>
                                     )}
                                 </td>
                                 <td className="px-4 py-3">
-                                    {updating === user.id ? (
+                                    {updatingRole === user.id ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
                                     ) : (
                                         <Select
                                             value={user.role}
                                             onValueChange={(role) => handleRoleChange(user.id, role)}
                                         >
-                                            <SelectTrigger className="w-32 h-7 text-xs">
+                                            <SelectTrigger className="w-36 h-7 text-xs">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="ROLE_USER" className="text-xs">User</SelectItem>
-                                                <SelectItem value="ROLE_ADMIN" className="text-xs">Admin</SelectItem>
+                                                <SelectItem value="ROLE_USER"      className="text-xs">User</SelectItem>
+                                                <SelectItem value="ROLE_MODERATOR" className="text-xs">Moderator</SelectItem>
+                                                <SelectItem value="ROLE_ADMIN"     className="text-xs">Admin</SelectItem>
                                             </SelectContent>
                                         </Select>
+                                    )}
+                                </td>
+                                <td className="px-4 py-3">
+                                    {togglingStatus === user.id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Button
+                                            variant={user.isActive ? "destructive" : "outline"}
+                                            size="sm"
+                                            className="h-7 text-xs gap-1"
+                                            onClick={() => handleToggleStatus(user.id)}
+                                        >
+                                            <Power className="w-3 h-3" />
+                                            {user.isActive ? "Deactivate" : "Activate"}
+                                        </Button>
                                     )}
                                 </td>
                             </tr>

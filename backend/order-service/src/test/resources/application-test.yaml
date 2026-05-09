@@ -27,10 +27,18 @@ spring:
 
   # --- Kafka (Mock/Embedded) ---
   kafka:
+    bootstrap-servers: localhost:9092 # Dummy but present
     consumer:
       auto-startup: false
+      group-id: test-group
+    producer:
+      # Ensures tests don't hang for 60s if a send event is accidentally triggered
+      retries: 0
     listener:
       auto-startup: false
+    properties:
+      # Critical for JVM speed: how long to wait before forcing a shutdown
+      max.block.ms: 5000
 
   # --- Redis (Disabled/Mocked for tests) ---
   data:

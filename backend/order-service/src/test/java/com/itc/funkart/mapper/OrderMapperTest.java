@@ -6,9 +6,9 @@ import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
 import com.itc.funkart.common.dto.event.order.OrderEvent;
 import com.itc.funkart.common.enums.order.OrderEventType;
 import com.itc.funkart.common.enums.order.OrderStatus;
-import com.itc.funkart.dto.OrderResponse;
-import com.itc.funkart.entity.Order;
-import com.itc.funkart.entity.OrderItem;
+import com.itc.funkart.aggregator.dto.OrderResponse;
+import com.itc.funkart.aggregator.entity.Order;
+import com.itc.funkart.aggregator.entity.OrderItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,10 +32,27 @@ class OrderMapperTest {
     private OrderMapper mapper;
 
     @BeforeEach
-    void setUp() { mapper = new OrderMapper(); }
+    void setUp() {
+        mapper = new OrderMapper();
+    }
 
     // =========================================================
     // toEntity
+    // =========================================================
+
+    private Order sampleOrder(Long id) {
+        Order order = new Order();
+        order.setId(id);
+        order.setCustomerId(1L);
+        order.setStatus(OrderStatus.PENDING);
+        order.setTotalAmount(new BigDecimal("200.00"));
+        order.addOrderItem(OrderItem.builder()
+                .productId(50L).quantity(2).priceAtPurchase(new BigDecimal("100.00")).build());
+        return order;
+    }
+
+    // =========================================================
+    // toEvent
     // =========================================================
 
     @Nested
@@ -61,11 +78,13 @@ class OrderMapperTest {
 
         @Test
         @DisplayName("Returns null for null input")
-        void nullInput() { assertNull(mapper.toEntity(null)); }
+        void nullInput() {
+            assertNull(mapper.toEntity(null));
+        }
     }
 
     // =========================================================
-    // toEvent
+    // toCancelledEvent
     // =========================================================
 
     @Nested
@@ -93,19 +112,23 @@ class OrderMapperTest {
 
         @Test
         @DisplayName("Returns null for null Order")
-        void nullInput() { assertNull(mapper.toEvent(null, OrderEventType.ORDER_INITIATED)); }
+        void nullInput() {
+            assertNull(mapper.toEvent(null, OrderEventType.ORDER_INITIATED));
+        }
 
         @Test
         @DisplayName("Empty items list when order has no items")
         void emptyItems() {
             Order order = new Order();
-            order.setId(1L); order.setCustomerId(1L); order.setTotalAmount(BigDecimal.ZERO);
+            order.setId(1L);
+            order.setCustomerId(1L);
+            order.setTotalAmount(BigDecimal.ZERO);
             assertTrue(mapper.toEvent(order, OrderEventType.ORDER_INITIATED).items().isEmpty());
         }
     }
 
     // =========================================================
-    // toCancelledEvent
+    // toResponse
     // =========================================================
 
     @Nested
@@ -127,7 +150,9 @@ class OrderMapperTest {
 
         @Test
         @DisplayName("Returns null for null Order")
-        void nullInput() { assertNull(mapper.toCancelledEvent(null, "reason")); }
+        void nullInput() {
+            assertNull(mapper.toCancelledEvent(null, "reason"));
+        }
 
         @Test
         @DisplayName("Null reason does not throw")
@@ -137,7 +162,7 @@ class OrderMapperTest {
     }
 
     // =========================================================
-    // toResponse
+    // toInitiatedEvent
     // =========================================================
 
     @Nested
@@ -159,20 +184,24 @@ class OrderMapperTest {
 
         @Test
         @DisplayName("Returns null for null Order")
-        void nullInput() { assertNull(mapper.toResponse(null)); }
+        void nullInput() {
+            assertNull(mapper.toResponse(null));
+        }
 
         @Test
         @DisplayName("Empty items list when order has no items")
         void emptyItems() {
             Order order = new Order();
-            order.setId(1L); order.setCustomerId(1L);
-            order.setTotalAmount(BigDecimal.ZERO); order.setStatus(OrderStatus.PENDING);
+            order.setId(1L);
+            order.setCustomerId(1L);
+            order.setTotalAmount(BigDecimal.ZERO);
+            order.setStatus(OrderStatus.PENDING);
             assertTrue(mapper.toResponse(order).getItems().isEmpty());
         }
     }
 
     // =========================================================
-    // toInitiatedEvent
+    // Helper
     // =========================================================
 
     @Nested
@@ -195,21 +224,8 @@ class OrderMapperTest {
 
         @Test
         @DisplayName("Returns null for null Order")
-        void nullInput() { assertNull(mapper.toInitiatedEvent(null)); }
-    }
-
-    // =========================================================
-    // Helper
-    // =========================================================
-
-    private Order sampleOrder(Long id) {
-        Order order = new Order();
-        order.setId(id);
-        order.setCustomerId(1L);
-        order.setStatus(OrderStatus.PENDING);
-        order.setTotalAmount(new BigDecimal("200.00"));
-        order.addOrderItem(OrderItem.builder()
-                .productId(50L).quantity(2).priceAtPurchase(new BigDecimal("100.00")).build());
-        return order;
+        void nullInput() {
+            assertNull(mapper.toInitiatedEvent(null));
+        }
     }
 }

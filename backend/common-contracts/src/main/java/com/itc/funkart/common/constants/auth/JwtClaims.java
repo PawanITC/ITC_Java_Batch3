@@ -16,16 +16,24 @@ public final class JwtClaims {
      */
     public static final String ISSUER = "funkart-auth-authority";
 
-    /** Standard JWT 'sub' claim for the user identifier. */
+    /**
+     * Standard JWT 'sub' claim for the user identifier.
+     */
     public static final String SUBJECT = "sub";
 
-    /** Custom claim for the user's full name. */
+    /**
+     * Custom claim for the user's full name.
+     */
     public static final String NAME = "name";
 
-    /** Custom claim for the user's email address. */
+    /**
+     * Custom claim for the user's email address.
+     */
     public static final String EMAIL = "email";
 
-    /** Custom claim for the user's assigned {@code UserRole}. */
+    /**
+     * Custom claim for the user's assigned {@code UserRole}.
+     */
     public static final String ROLE = "role";
 
     private JwtClaims() {

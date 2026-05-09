@@ -1,0 +1,89 @@
+spring:
+  application:
+    name: notification-service
+
+  # ── Database — H2 in-memory for fast, isolated test runs ──────────────────
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  h2:
+    console:
+      enabled: true
+
+  # ── Mail — dummy localhost config; tests use mocked beans anyway ───────────
+  mail:
+    host: localhost
+    port: 1025
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+  # ── Kafka — embedded or local broker used by tests ─────────────────────────
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+# ── Twilio — dummy values; tests mock the SMS sender ──────────────────────
+twilio:
+  account-sid: test
+  auth-token: test
+  from-number: "+10000000000"
+
+# ── Resilience4j retry ─────────────────────────────────────────────────────
+resilience4j:
+  retry:
+    instances:
+      smsRetry:
+        max-attempts: 3
+        wait-duration: 2s
+      emailRetry:
+        max-attempts: 3
+        wait-duration: 2s
+
+# ── Kafka topic names ──────────────────────────────────────────────────────
+app:
+  kafka:
+    topics:
+      order-events: orders.events.v1
+      payment-events: payments.events.v1
+
+# ── Observability — points to localhost; real collector not needed in tests ─
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,beans
+
+  tracing:
+    sampling:
+      probability: 1.0
+
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+
+# ── Logging ────────────────────────────────────────────────────────────────
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %m%n"

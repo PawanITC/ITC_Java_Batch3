@@ -27,8 +27,8 @@ public class ProductController {
     /**
      * Retrieves the product catalog.
      * Supports optional filtering via query parameters:
-     *   ?search=keyword  — case-insensitive name substring match
-     *   ?categoryId=1    — filter by category ID
+     * ?search=keyword  — case-insensitive name substring match
+     * ?categoryId=1    — filter by category ID
      * When neither param is present the cached full-catalog path is used.
      */
     @GetMapping

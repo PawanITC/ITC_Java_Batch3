@@ -1,10 +1,10 @@
-
 //Create DTO to for products
 package com.itc.catalogueservice.dto;
 
 import lombok.Data;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
 @Data

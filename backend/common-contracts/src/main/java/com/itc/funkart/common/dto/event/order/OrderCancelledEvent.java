@@ -2,6 +2,7 @@ package com.itc.funkart.common.dto.event.order;
 
 import com.itc.funkart.common.enums.order.OrderEventType;
 import lombok.Builder;
+
 import java.time.LocalDateTime;
 
 /**
@@ -24,4 +25,5 @@ public record OrderCancelledEvent(
         Long userId,
         String reason,
         LocalDateTime timestamp
-) {}
+) {
+}

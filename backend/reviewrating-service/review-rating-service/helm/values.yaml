@@ -1,6 +1,0 @@
-image:
-  repository: ""
-  tag: "latest"
-
-service:
-  port: 9097

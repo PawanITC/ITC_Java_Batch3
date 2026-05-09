@@ -6,12 +6,18 @@ package com.itc.funkart.common.enums.user;
  * Used by Security Filters to perform Role-Based Access Control (RBAC).
  */
 public enum UserRole {
-    /** Standard customer with access to browsing and purchasing. */
+    /**
+     * Standard customer with access to browsing and purchasing.
+     */
     ROLE_USER,
 
-    /** Administrative user with access to inventory and user management. */
+    /**
+     * Administrative user with access to inventory and user management.
+     */
     ROLE_ADMIN,
 
-    /** Support staff with limited access to order management. */
+    /**
+     * Support staff with limited access to order management.
+     */
     ROLE_MODERATOR
 }

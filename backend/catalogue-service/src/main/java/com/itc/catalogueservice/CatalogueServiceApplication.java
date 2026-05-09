@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 @SpringBootApplication
 public class CatalogueServiceApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(CatalogueServiceApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(CatalogueServiceApplication.class, args);
+    }
 }

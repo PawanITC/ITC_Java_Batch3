@@ -17,3 +17,11 @@ export function useUpdateUserRole() {
         onSuccess: () => qc.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
     });
 }
+
+export function useToggleUserStatus() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (userId) => adminUserApi.toggleStatus(userId),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
+    });
+}

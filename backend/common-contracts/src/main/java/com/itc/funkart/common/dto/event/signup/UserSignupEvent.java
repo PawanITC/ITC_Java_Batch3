@@ -6,7 +6,7 @@ import java.time.Instant;
 
 /**
  * Event published to Kafka upon successful creation of a new user account.
- *
+ * <p>
  * Contract for User Signup.
  * Moved to common to allow Email and Analytics services to process new users.
  *

@@ -14,7 +14,7 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${USERPROFILE}/.kube:/root/.kube  
+      - ${USERPROFILE}/.kube:/root/.kube
 
     extra_hosts:
       - "host.docker.internal:host-gateway"

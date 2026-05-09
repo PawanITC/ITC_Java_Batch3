@@ -7,5 +7,5 @@ spec:
   containers:
     - name: jmeter
       image: justb4/jmeter:latest
-      command: ["/bin/sh"]
-      args: ["-c", "sleep infinity"]
+      command: [ "/bin/sh" ]
+      args: [ "-c", "sleep infinity" ]

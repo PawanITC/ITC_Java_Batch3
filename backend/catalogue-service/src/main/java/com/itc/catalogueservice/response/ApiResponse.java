@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 
-public class ApiResponse<T>{
+public class ApiResponse<T> {
     private int status;
     private String message;
     private T data;

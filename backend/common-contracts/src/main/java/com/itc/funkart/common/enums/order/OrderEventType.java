@@ -6,7 +6,9 @@ package com.itc.funkart.common.enums.order;
  * the nature of an Order-related event.
  */
 public enum OrderEventType {
-    /** Emitted when a new order is placed but not yet paid. */
+    /**
+     * Emitted when a new order is placed but not yet paid.
+     */
     ORDER_INITIATED,
 
     /**
@@ -16,24 +18,38 @@ public enum OrderEventType {
      */
     CREATED,
 
-    /** Emitted when payment is successfully captured (PAID). */
+    /**
+     * Emitted when payment is successfully captured (PAID).
+     */
     PAYMENT_SUCCESS,
 
-    /** Emitted when payment fails or is rejected. */
+    /**
+     * Emitted when payment fails or is rejected.
+     */
     PAYMENT_FAILED,
 
-    /** NEW: Emitted when items are dispatched (SHIPPED). */
+    /**
+     * NEW: Emitted when items are dispatched (SHIPPED).
+     */
     ORDER_SHIPPED,
 
-    /** NEW: Emitted when customer receives package (DELIVERED). */
+    /**
+     * NEW: Emitted when customer receives package (DELIVERED).
+     */
     ORDER_DELIVERED,
 
-    /** Emitted when an order is voided (CANCELLED). */
+    /**
+     * Emitted when an order is voided (CANCELLED).
+     */
     ORDER_CANCELLED,
 
-    /** NEW: Emitted when funds are returned (REFUNDED). */
+    /**
+     * NEW: Emitted when funds are returned (REFUNDED).
+     */
     ORDER_REFUNDED,
 
-    /** NEW: Emitted when funds are confirmed (CONFIRMED). */
+    /**
+     * NEW: Emitted when funds are confirmed (CONFIRMED).
+     */
     ORDER_CONFIRMED
 }

@@ -2,10 +2,10 @@ package com.itc.funkart.common.constants.messaging;
 
 /**
  * Funkart Kafka Topic Registry.
- *
+ * <p>
  * Centralized definition of all Kafka topics used across the platform.
  * Ensures consistent event routing and prevents topic drift.
- *
+ * <p>
  * Event Flow:
  * checkout.events.v1 → Order Service
  * orders.events.v1 → downstream consumers

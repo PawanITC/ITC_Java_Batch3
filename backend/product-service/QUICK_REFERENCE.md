@@ -129,19 +129,22 @@ class SampleRepositoryTest {
 ### Service Test Pattern
 
 ```java
+
 @ExtendWith(MockitoExtension.class)
 class SampleServiceTest {
-    @Mock private SampleRepository repo;
-    @InjectMocks private SampleService service;
-    
+    @Mock
+    private SampleRepository repo;
+    @InjectMocks
+    private SampleService service;
+
     @Test
     void shouldReturnValue() {
         // Arrange
         when(repo.findById(1L)).thenReturn(Optional.of(sample));
-        
+
         // Act
         Result result = service.getById(1L);
-        
+
         // Assert
         assertThat(result).isNotNull();
         verify(repo, times(1)).findById(1L);
@@ -152,16 +155,19 @@ class SampleServiceTest {
 ### Controller Test Pattern
 
 ```java
+
 @WebMvcTest(SampleController.class)
 class SampleControllerTest {
-    @Autowired private MockMvc mockMvc;
-    @MockBean private SampleService service;
-    
+    @Autowired
+    private MockMvc mockMvc;
+    @MockBean
+    private SampleService service;
+
     @Test
     void shouldReturnOk() throws Exception {
         // Arrange
         when(service.getAll()).thenReturn(List.of(sample));
-        
+
         // Act & Assert
         mockMvc.perform(get("/api/samples"))
                 .andExpect(status().isOk())
@@ -178,23 +184,51 @@ class SampleControllerTest {
 
 ```java
 // General
-assertThat(value).isNotNull();
-assertThat(value).isEqualTo(expected);
-assertThat(list).hasSize(3);
-assertThat(string).contains("text");
+assertThat(value).
+
+isNotNull();
+
+assertThat(value).
+
+isEqualTo(expected);
+
+assertThat(list).
+
+hasSize(3);
+
+assertThat(string).
+
+contains("text");
 
 // Collections
-assertThat(list).isEmpty();
-assertThat(list).isNotEmpty();
-assertThat(list).containsExactly(item1, item2);
+assertThat(list).
+
+isEmpty();
+
+assertThat(list).
+
+isNotEmpty();
+
+assertThat(list).
+
+containsExactly(item1, item2);
 
 // Numbers
-assertThat(number).isPositive();
-assertThat(number).isBetween(1, 10);
+assertThat(number).
+
+isPositive();
+
+assertThat(number).
+
+isBetween(1,10);
 
 // Exceptions
-assertThatThrownBy(() -> service.delete(999))
-    .isInstanceOf(ResourceNotFoundException.class);
+assertThatThrownBy(() ->service.
+
+delete(999))
+        .
+
+isInstanceOf(ResourceNotFoundException .class);
 ```
 
 ### Mockito
@@ -243,6 +277,7 @@ mockMvc.perform(delete("/api/items/1"))
 **Solution:** For @WebMvcTest, mock all dependencies
 
 ```java
+
 @MockBean
 private ServiceClass service;
 ```

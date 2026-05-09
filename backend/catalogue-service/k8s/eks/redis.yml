@@ -17,7 +17,7 @@ spec:
           image: redis:7-alpine
           ports:
             - containerPort: 6379
-          command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+          command: [ "redis-server", "--appendonly", "yes", "--save", "60", "1000" ]
 
 ---
 apiVersion: v1

@@ -1,7 +1,6 @@
 package com.itc.funkart.common.dto.event.payment;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.itc.funkart.common.enums.order.OrderEventType;
 import lombok.Builder;
 
 /**

@@ -16,20 +16,29 @@ package com.itc.funkart.common.constants;
  */
 public final class ServiceNames {
 
-    /** Identifier for the User and Authentication service. */
+    /**
+     * Identifier for the User and Authentication service.
+     */
     public static final String USER_SERVICE = "user-service";
 
-    /** Identifier for the Catalog and Inventory service. */
+    /**
+     * Identifier for the Catalog and Inventory service.
+     */
     public static final String PRODUCT_SERVICE = "product-service";
 
-    /** Identifier for the Checkout and Order management service. */
+    /**
+     * Identifier for the Checkout and Order management service.
+     */
     public static final String ORDER_SERVICE = "order-service";
 
-    /** Identifier for the Payment processing service. */
+    /**
+     * Identifier for the Payment processing service.
+     */
     public static final String PAYMENT_SERVICE = "payment-service";
 
     /**
      * Private constructor to prevent instantiation of this utility class.
+     *
      * @throws UnsupportedOperationException if an attempt is made to create an instance.
      */
     private ServiceNames() {

@@ -12,6 +12,8 @@ import java.util.Optional;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
-    /** Used by the DataSeeder to avoid duplicate category names on restart. */
+    /**
+     * Used by the DataSeeder to avoid duplicate category names on restart.
+     */
     Optional<Category> findByName(String name);
 }

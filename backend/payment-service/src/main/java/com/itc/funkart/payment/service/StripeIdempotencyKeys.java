@@ -4,7 +4,8 @@ import java.util.UUID;
 
 public final class StripeIdempotencyKeys {
 
-    private StripeIdempotencyKeys() {}
+    private StripeIdempotencyKeys() {
+    }
 
     // IMPORTANT: include orderId to guarantee uniqueness per business flow
     public static String createPaymentIntent(Long paymentId, Long orderId) {

@@ -8,6 +8,10 @@ export const adminUserApi = {
     /** PATCH /api/v1/admin/users/{userId}/role  body: { role } */
     updateRole: (userId, role) =>
         api.patch(`/api/v1/admin/users/${userId}/role`, { role }),
+
+    /** PATCH /api/v1/admin/users/{userId}/status — toggles active/inactive */
+    toggleStatus: (userId) =>
+        api.patch(`/api/v1/admin/users/${userId}/status`),
 };
 
 // ── Products ──────────────────────────────────────────────
@@ -46,6 +50,9 @@ export const adminOrderApi = {
         ).toString();
         return api.get(`/api/v1/admin/orders${qs ? `?${qs}` : ""}`);
     },
+
+    /** GET /api/v1/admin/orders/{id} — no ownership check (admin privilege) */
+    getOrder: (id) => api.get(`/api/v1/admin/orders/${id}`),
 
     /** PATCH /api/v1/admin/orders/{id}/status?newStatus=SHIPPED */
     updateStatus: (id, newStatus) =>

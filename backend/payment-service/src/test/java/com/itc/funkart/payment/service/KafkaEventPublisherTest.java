@@ -49,7 +49,8 @@ class KafkaEventPublisherTest {
                     .orderId(1L)
                     .stripeId("pi_success_123")
                     .amount(2000L)
-                    .build(); // Timestamp handled by canonical constructor
+                    .build();
+            // Timestamp handled by canonical constructor
 
             when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(new CompletableFuture<>());
 

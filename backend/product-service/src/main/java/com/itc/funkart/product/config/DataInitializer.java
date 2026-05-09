@@ -39,11 +39,11 @@ public class DataInitializer implements CommandLineRunner {
 
         log.info("DataInitializer: seeding categories and products …");
 
-        Category posters      = save(cat("Posters",      "Art prints and decorative posters"));
-        Category collectibles = save(cat("Collectibles",  "Limited edition collectible figures"));
-        Category apparel      = save(cat("Apparel",       "Branded clothing and accessories"));
-        Category stationery   = save(cat("Stationery",    "Notebooks, pens, and desk accessories"));
-        Category digital      = save(cat("Digital Art",   "High-res digital art downloads"));
+        Category posters = save(cat("Posters", "Art prints and decorative posters"));
+        Category collectibles = save(cat("Collectibles", "Limited edition collectible figures"));
+        Category apparel = save(cat("Apparel", "Branded clothing and accessories"));
+        Category stationery = save(cat("Stationery", "Notebooks, pens, and desk accessories"));
+        Category digital = save(cat("Digital Art", "High-res digital art downloads"));
 
         // ── Posters ────────────────────────────────────────────────────────
         product("Neon City Skyline Poster", "neon-city-skyline-poster",

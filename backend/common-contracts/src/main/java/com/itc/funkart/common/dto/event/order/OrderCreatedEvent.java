@@ -17,4 +17,5 @@ public record OrderCreatedEvent(
         @JsonProperty("payment_intent_id") String paymentIntentId,
         @JsonProperty("payment_method_id") String paymentMethodId,
         @JsonProperty("return_url") String returnUrl
-) {}
+) {
+}

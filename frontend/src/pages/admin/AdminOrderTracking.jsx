@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, Package, Loader2, User, Calendar, DollarSign } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { orderApi } from "../../lib/orderApi";
+import { adminOrderApi } from "../../lib/adminApi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -51,7 +51,7 @@ const DUMMY_ORDERS = {
 function OrderTrackingResult({ orderId }) {
     const { data: liveOrder, isLoading, isError } = useQuery({
         queryKey: ["admin-track-order", orderId],
-        queryFn: () => orderApi.getOrder(orderId),
+        queryFn: () => adminOrderApi.getOrder(orderId).then((r) => r?.data ?? r),
         retry: false,
     });
 

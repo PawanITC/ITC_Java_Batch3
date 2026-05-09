@@ -15,10 +15,10 @@ import lombok.Builder;
  * Transformation logic must reside in the Producer service.
  * </p>
  *
- * @param paymentId       The internal primary key of the payment record.
- * @param orderId         The associated Order ID.
- * @param stripeId        The external Stripe PaymentIntent ID (pi_...) for traceability.
- * @param timestamp       The epoch millisecond when the failure occurred.
+ * @param paymentId The internal primary key of the payment record.
+ * @param orderId   The associated Order ID.
+ * @param stripeId  The external Stripe PaymentIntent ID (pi_...) for traceability.
+ * @param timestamp The epoch millisecond when the failure occurred.
  */
 @Builder
 public record PaymentFailedEvent(

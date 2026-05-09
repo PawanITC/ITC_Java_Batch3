@@ -368,8 +368,8 @@ services:
     container_name: review-rating-service
     build:
       context: ./backend
-      dockerfile: reviewrating-service/review-rating-service/Dockerfile
-    env_file: ./backend/reviewrating-service/review-rating-service/.env
+      dockerfile: review-rating-service/Dockerfile
+    env_file: ./backend/review-rating-service/.env
     ports:
       - "8086:8080"
     environment:
@@ -399,8 +399,8 @@ services:
     container_name: rating-aggregator-service
     build:
       context: ./backend
-      dockerfile: reviewrating-service/rating-aggregator-service/Dockerfile
-    env_file: ./backend/reviewrating-service/rating-aggregator-service/.env
+      dockerfile: rating-aggregator-service/Dockerfile
+    env_file: ./backend/rating-aggregator-service/.env
     ports:
       - "8087:8080"
     environment:

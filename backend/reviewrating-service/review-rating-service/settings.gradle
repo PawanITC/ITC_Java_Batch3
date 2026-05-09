@@ -1,3 +1,0 @@
-// This service is registered via the root backend/settings.gradle.
-// Do NOT add subproject includes here — it will conflict with the root build.
-rootProject.name = 'review-rating-service'

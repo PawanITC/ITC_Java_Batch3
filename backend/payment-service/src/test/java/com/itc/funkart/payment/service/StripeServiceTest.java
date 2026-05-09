@@ -41,7 +41,7 @@
 //import static org.junit.jupiter.api.Assertions.assertThrows;
 //import static org.mockito.Mockito.*;
 //
-///**
+/// **
 // * <h2>StripeServiceTest</h2>
 // * Validates low-level Stripe SDK communication, verifying metadata tagging,
 // * correct idempotency key generation, and static method interception.

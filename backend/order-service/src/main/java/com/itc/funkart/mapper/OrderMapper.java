@@ -6,11 +6,11 @@ import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
 import com.itc.funkart.common.dto.event.order.OrderEvent;
 import com.itc.funkart.common.enums.order.OrderEventType;
 import com.itc.funkart.common.enums.order.OrderStatus;
-import com.itc.funkart.dto.OrderItemRequest;
-import com.itc.funkart.dto.OrderItemResponse;
-import com.itc.funkart.dto.OrderResponse;
-import com.itc.funkart.entity.Order;
-import com.itc.funkart.entity.OrderItem;
+import com.itc.funkart.aggregator.dto.OrderItemRequest;
+import com.itc.funkart.aggregator.dto.OrderItemResponse;
+import com.itc.funkart.aggregator.dto.OrderResponse;
+import com.itc.funkart.aggregator.entity.Order;
+import com.itc.funkart.aggregator.entity.OrderItem;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

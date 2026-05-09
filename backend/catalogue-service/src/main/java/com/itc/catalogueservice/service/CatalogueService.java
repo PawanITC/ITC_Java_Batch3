@@ -17,7 +17,7 @@ public class CatalogueService {
     private final ProductApiClient productApiClient;
     private final StringRedisTemplate redisTemplate;
 
-    public CatalogueService(ProductApiClient productApiClient, StringRedisTemplate redisTemplate){
+    public CatalogueService(ProductApiClient productApiClient, StringRedisTemplate redisTemplate) {
         this.productApiClient = productApiClient;
         this.redisTemplate = redisTemplate;
     }

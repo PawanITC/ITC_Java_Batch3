@@ -232,4 +232,22 @@ public class UserService {
     public java.util.List<User> findAllUsers() {
         return userRepository.findAll();
     }
+
+    /**
+     * Toggles the active/inactive status of a user account.
+     * Admins cannot deactivate their own account.
+     */
+    @Transactional
+    public User toggleUserActive(Long targetId, String adminEmail) {
+        User targetUser = userRepository.findById(targetId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + targetId));
+
+        if (targetUser.getEmail().equalsIgnoreCase(adminEmail)) {
+            throw new BadRequestException("Security Violation: You cannot deactivate your own account.");
+        }
+
+        targetUser.setActive(!targetUser.isActive());
+        log.info("Admin [{}] set user [{}] active={}", adminEmail, targetUser.getEmail(), targetUser.isActive());
+        return userRepository.save(targetUser);
+    }
 }

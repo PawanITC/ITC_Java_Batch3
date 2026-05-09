@@ -27,4 +27,5 @@ public record SignupRequest(
         @NotBlank(message = "Password is required")
         @Size(min = 8)
         String password
-) {}
+) {
+}

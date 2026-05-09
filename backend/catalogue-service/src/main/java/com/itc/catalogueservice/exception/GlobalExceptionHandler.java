@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoProductsException.class)
     public ResponseEntity<ApiResponse<?>> handleNoProductsException(NoProductsException ex) {
 
-        log.error("Products not available",ex);
+        log.error("Products not available", ex);
 
         ApiResponse<?> response =
                 new ApiResponse<>(HttpStatus.NOT_FOUND.value(), ex.getMessage(), null);
@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<?>> handleConstraintViolation(ConstraintViolationException ex) {
 
-        log.error("Validation failed",ex);
+        log.error("Validation failed", ex);
 
         ApiResponse<?> response =
                 new ApiResponse<>(HttpStatus.BAD_REQUEST.value(),
@@ -59,7 +59,6 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
     }
-
 
 
     // Timeout → external call too slow (TimeLimiter)
