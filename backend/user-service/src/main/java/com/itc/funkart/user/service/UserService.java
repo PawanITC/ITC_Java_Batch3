@@ -234,6 +234,44 @@ public class UserService {
     }
 
     /**
+     * Updates the display name of the authenticated user.
+     */
+    @Transactional
+    public UserProfileDto updateProfile(Long userId, String newName) {
+        if (newName == null || newName.isBlank()) {
+            throw new BadRequestException("Name cannot be blank");
+        }
+        User user = findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setName(newName.trim());
+        user = userRepository.save(user);
+        return new UserProfileDto(user.getId(), user.getName(), user.getEmail(), user.getRole().name());
+    }
+
+    /**
+     * Changes the user's password after verifying the current one.
+     * OAuth-only accounts (password stored as "{OAUTH}") cannot use this method.
+     */
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if ("{OAUTH}".equals(user.getPassword())) {
+            throw new BadRequestException("Password change is not available for OAuth accounts.");
+        }
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new UnauthorizedException("Current password is incorrect.");
+        }
+        if (newPassword == null || newPassword.length() < 8) {
+            throw new BadRequestException("New password must be at least 8 characters.");
+        }
+        user.setPassword(hashPassword(newPassword));
+        userRepository.save(user);
+        log.info("Password changed for user {}", userId);
+    }
+
+    /**
      * Toggles the active/inactive status of a user account.
      * Admins cannot deactivate their own account.
      */

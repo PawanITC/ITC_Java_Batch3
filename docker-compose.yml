@@ -231,6 +231,8 @@ services:
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
       - LOKI_URL=http://loki:3100/loki/api/v1/push
+      # Redirect the raw OTel SDK gRPC exporter (default localhost:4317) to the collector
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -260,6 +262,7 @@ services:
       # Port 4317 is gRPC only; sending HTTP there causes "Connection reset" errors.
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -289,6 +292,7 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -318,6 +322,7 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -348,6 +353,7 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -377,6 +383,8 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -408,6 +416,8 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 20s
@@ -419,8 +429,6 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
-      redis:
-        condition: service_healthy
       otel-collector:
         condition: service_started
     networks:

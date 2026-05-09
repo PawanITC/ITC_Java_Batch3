@@ -4,9 +4,11 @@ import com.itc.funkart.aggregator.auth.JwtService;
 import com.itc.funkart.aggregator.auth.PrincipalFactory;
 import com.itc.funkart.aggregator.dto.RatingSummaryResponse;
 import com.itc.funkart.aggregator.service.RatingSummaryService;
+import com.itc.funkart.aggregator.auth.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -16,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(RatingSummaryController.class)
+@Import(SecurityConfig.class)
 class RatingSummaryControllerTest {
 
     @Autowired

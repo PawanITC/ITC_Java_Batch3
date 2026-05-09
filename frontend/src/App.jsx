@@ -19,6 +19,7 @@ import OrderHistory from "@/pages/OrderHistory";
 import OrderDetail from "@/pages/OrderDetail";
 import NotificationsPage from "@/pages/NotificationsPage";
 import ProductReviews from "@/pages/ProductReviews";
+import ProfilePage from "@/pages/ProfilePage";
 
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
@@ -72,6 +73,7 @@ function AppRoutes() {
                     <Route path="/orders/history" element={<OrderHistory />} />
                     <Route path="/orders/:id" element={<OrderDetail />} />
                     <Route path="/notifications" element={<NotificationsPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
 
                     {/* Admin — only accessible with ROLE_ADMIN */}
                     {isAdmin && (
