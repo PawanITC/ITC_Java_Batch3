@@ -50,9 +50,15 @@ public class CartMapper {
         BigDecimal price = item.getProduct().getPrice();
         int qty = item.getQuantity();
 
+        String imageUrl = item.getProduct().getImages() != null
+                && !item.getProduct().getImages().isEmpty()
+                ? item.getProduct().getImages().get(0).getImageUrl()
+                : null;
+
         return CartItemResponse.builder()
                 .productId(item.getProduct().getId())
                 .productName(item.getProduct().getName())
+                .imageUrl(imageUrl)
                 .price(price)
                 .quantity(qty)
                 .subTotal(price.multiply(BigDecimal.valueOf(qty)))

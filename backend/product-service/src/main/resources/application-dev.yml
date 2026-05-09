@@ -14,3 +14,11 @@ spring:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
+
+# Disable tracing when running locally (no OTEL collector available).
+# OTEL_EXPORTER_OTLP_ENDPOINT defaults to localhost:4317 when env var is absent,
+# which causes noisy ConnectException logs. In Docker the .env file sets the correct
+# collector URL so this override is not needed there.
+management:
+  tracing:
+    enabled: false

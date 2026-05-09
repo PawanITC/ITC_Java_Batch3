@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Star, ThumbsUp, MessageSquare, Trash2, ShieldAlert, Send, ChevronLeft, ChevronRight, Package, Tag, DollarSign } from "lucide-react";
+import { ArrowLeft, Star, ThumbsUp, MessageSquare, Trash2, ShieldAlert, Send, ChevronLeft, ChevronRight, Package, Tag, DollarSign, ZoomIn, X } from "lucide-react";
 import { productApi } from "../lib/productApi";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -219,49 +220,182 @@ function StarPicker({ value, onChange }) {
 }
 
 // ---------------------------------------------------------------------------
+// Lightbox — full-screen image viewer (mobile-friendly)
+// ---------------------------------------------------------------------------
+function Lightbox({ images, startIdx, open, onClose }) {
+    const [idx, setIdx] = useState(startIdx ?? 0);
+
+    if (!open) return null;
+
+    const prev = () => setIdx((i) => Math.max(0, i - 1));
+    const next = () => setIdx((i) => Math.min(images.length - 1, i + 1));
+
+    // keyboard navigation
+    const handleKey = (e) => {
+        if (e.key === "ArrowLeft") prev();
+        if (e.key === "ArrowRight") next();
+        if (e.key === "Escape") onClose();
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent
+                className="max-w-none w-screen h-screen p-0 bg-black/95 border-0 flex items-center justify-center rounded-none"
+                onKeyDown={handleKey}
+                tabIndex={-1}
+            >
+                {/* Close */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 transition text-white flex items-center justify-center"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+
+                {/* Previous */}
+                {images.length > 1 && (
+                    <button
+                        onClick={prev}
+                        disabled={idx === 0}
+                        className="absolute left-3 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 transition text-white flex items-center justify-center disabled:opacity-20"
+                    >
+                        <ChevronLeft className="w-6 h-6" />
+                    </button>
+                )}
+
+                {/* Image */}
+                <img
+                    src={images[idx]}
+                    alt={`Image ${idx + 1}`}
+                    className="max-h-[90vh] max-w-[90vw] object-contain rounded select-none"
+                    draggable={false}
+                />
+
+                {/* Next */}
+                {images.length > 1 && (
+                    <button
+                        onClick={next}
+                        disabled={idx === images.length - 1}
+                        className="absolute right-3 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 transition text-white flex items-center justify-center disabled:opacity-20"
+                    >
+                        <ChevronRight className="w-6 h-6" />
+                    </button>
+                )}
+
+                {/* Dot indicators */}
+                {images.length > 1 && (
+                    <div className="absolute bottom-5 flex gap-2">
+                        {images.map((_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setIdx(i)}
+                                className={cn("w-2 h-2 rounded-full transition-all", i === idx ? "bg-white scale-125" : "bg-white/40")}
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {/* Counter */}
+                {images.length > 1 && (
+                    <span className="absolute top-4 left-4 text-white/60 text-xs font-mono">
+                        {idx + 1} / {images.length}
+                    </span>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Product image gallery (shows multiple images if available)
 // ---------------------------------------------------------------------------
 function ProductGallery({ images, name }) {
     const [idx, setIdx] = useState(0);
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+
     if (!images?.length) {
         return (
             <div className="w-full h-48 bg-secondary rounded-lg flex items-center justify-center text-5xl">🎨</div>
         );
     }
     return (
-        <div className="relative">
-            <img
-                src={images[idx]}
-                alt={`${name} — view ${idx + 1}`}
-                className="w-full h-52 object-cover rounded-lg bg-secondary"
-                onError={(e) => { e.target.style.display = "none"; }}
-            />
+        <>
+            <div className="relative group">
+                {/* Main image — click to open lightbox */}
+                <button
+                    onClick={() => setLightboxOpen(true)}
+                    className="w-full block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg overflow-hidden"
+                    title="Click to zoom"
+                >
+                    <img
+                        src={images[idx]}
+                        alt={`${name} — view ${idx + 1}`}
+                        className="w-full h-64 sm:h-80 object-cover rounded-lg bg-secondary transition-transform duration-300 group-hover:scale-[1.01]"
+                        onError={(e) => { e.target.style.display = "none"; }}
+                    />
+                    {/* Zoom hint overlay */}
+                    <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-full p-2.5">
+                            <ZoomIn className="w-5 h-5 text-white" />
+                        </div>
+                    </div>
+                </button>
+
+                {/* Prev / Next arrows */}
+                {images.length > 1 && (
+                    <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setIdx((i) => Math.max(0, i - 1)); }}
+                            disabled={idx === 0}
+                            className="pointer-events-auto w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/70 transition"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setIdx((i) => Math.min(images.length - 1, i + 1)); }}
+                            disabled={idx === images.length - 1}
+                            className="pointer-events-auto w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/70 transition"
+                        >
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Dot indicators */}
             {images.length > 1 && (
-                <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
-                    <button
-                        onClick={() => setIdx((i) => Math.max(0, i - 1))}
-                        disabled={idx === 0}
-                        className="pointer-events-auto w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/70 transition"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => setIdx((i) => Math.min(images.length - 1, i + 1))}
-                        disabled={idx === images.length - 1}
-                        className="pointer-events-auto w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/70 transition"
-                    >
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
-            {images.length > 1 && (
-                <div className="flex justify-center gap-1 mt-2">
+                <div className="flex justify-center gap-1.5 mt-3">
                     {images.map((_, i) => (
                         <button key={i} onClick={() => setIdx(i)} className={cn("w-2 h-2 rounded-full transition-colors", i === idx ? "bg-primary" : "bg-border")} />
                     ))}
                 </div>
             )}
-        </div>
+
+            {/* Thumbnail strip for multi-image products */}
+            {images.length > 1 && (
+                <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                    {images.map((src, i) => (
+                        <button
+                            key={i}
+                            onClick={() => setIdx(i)}
+                            className={cn(
+                                "shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 transition-all",
+                                i === idx ? "border-primary" : "border-transparent hover:border-border"
+                            )}
+                        >
+                            <img src={src} alt="" className="w-full h-full object-cover" />
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <Lightbox
+                images={images}
+                startIdx={idx}
+                open={lightboxOpen}
+                onClose={() => setLightboxOpen(false)}
+            />
+        </>
     );
 }
 

@@ -79,13 +79,34 @@ export default function CartDrawer({ open, onClose }) {
                     )}
 
                     {items.map((item) => (
-                        <div key={item.productId} className="flex gap-4 items-start">
-                            <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0 text-xl">
-                                🎨
-                            </div>
+                        <div key={item.productId} className="flex gap-3 items-start py-1">
+                            {/* Thumbnail — click to navigate to product */}
+                            <button
+                                onClick={() => { onClose(); navigate(`/products/${item.productId}/reviews`); }}
+                                className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-border hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                title={item.productName}
+                            >
+                                {item.imageUrl ? (
+                                    <img
+                                        src={item.imageUrl}
+                                        alt={item.productName}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-secondary flex items-center justify-center text-2xl">
+                                        🎨
+                                    </div>
+                                )}
+                            </button>
+
                             <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm truncate">{item.productName}</p>
-                                <p className="text-muted-foreground text-xs mt-0.5">${item.price.toFixed(2)} each</p>
+                                <button
+                                    onClick={() => { onClose(); navigate(`/products/${item.productId}/reviews`); }}
+                                    className="font-semibold text-sm text-left line-clamp-2 leading-snug hover:text-primary transition-colors"
+                                >
+                                    {item.productName}
+                                </button>
+                                <p className="text-muted-foreground text-xs mt-0.5">${Number(item.price).toFixed(2)} each</p>
                                 <div className="flex items-center gap-2 mt-2">
                                     <button
                                         onClick={() => item.quantity > 1 ? updateItem(item.productId, -1) : removeItem(item.productId)}
@@ -104,8 +125,9 @@ export default function CartDrawer({ open, onClose }) {
                                     </button>
                                 </div>
                             </div>
+
                             <div className="flex flex-col items-end gap-2 shrink-0">
-                                <p className="font-bold text-sm">${item.subTotal.toFixed(2)}</p>
+                                <p className="font-bold text-sm">${Number(item.subTotal).toFixed(2)}</p>
                                 <button
                                     onClick={() => removeItem(item.productId)}
                                     className="text-muted-foreground hover:text-destructive transition-colors"
