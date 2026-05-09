@@ -1,24 +1,46 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Loader2, ShieldCheck, ShieldOff, ArrowLeft, Search } from "lucide-react";
-import { useAdminUsers, useUpdateUserRole } from "../../hooks/useAdminUsers";
+import { Users, Loader2, ShieldCheck, ShieldOff, ArrowLeft, Search, UserCheck, UserX } from "lucide-react";
+import { useAdminUsers, useUpdateUserRole, useToggleUserStatus } from "../../hooks/useAdminUsers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 
 export default function AdminUsersPage() {
     const navigate = useNavigate();
     const { data: users, isLoading, isError, refetch } = useAdminUsers();
     const updateRole = useUpdateUserRole();
+    const toggleStatus = useToggleUserStatus();
+    const { toast } = useToast();
     const [updating, setUpdating] = useState(null);
+    const [toggling, setToggling] = useState(null);
     const [search, setSearch] = useState("");
 
     const handleRoleChange = async (userId, role) => {
         setUpdating(userId);
-        await updateRole.mutateAsync({ userId, role });
-        setUpdating(null);
+        try {
+            await updateRole.mutateAsync({ userId, role });
+            toast({ title: "Role updated", description: "User role changed successfully." });
+        } catch {
+            toast({ title: "Update failed", description: "Could not change the user's role.", variant: "destructive" });
+        } finally {
+            setUpdating(null);
+        }
+    };
+
+    const handleToggleStatus = async (userId, currentlyActive) => {
+        setToggling(userId);
+        try {
+            await toggleStatus.mutateAsync(userId);
+            toast({ title: currentlyActive ? "User deactivated" : "User activated", description: currentlyActive ? "Account has been suspended." : "Account is now active." });
+        } catch {
+            toast({ title: "Action failed", description: "Could not change account status.", variant: "destructive" });
+        } finally {
+            setToggling(null);
+        }
     };
 
     const filtered = (users ?? []).filter((u) => {
@@ -91,6 +113,7 @@ export default function AdminUsersPage() {
                             <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground hidden sm:table-cell">Email</th>
                             <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground">Status</th>
                             <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground">Role</th>
+                            <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground">Actions</th>
                         </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -140,14 +163,29 @@ export default function AdminUsersPage() {
                                                 value={user.role ?? "ROLE_USER"}
                                                 onValueChange={(role) => handleRoleChange(user.id, role)}
                                             >
-                                                <SelectTrigger className="w-32 h-8 text-xs bg-white">
+                                                <SelectTrigger className="w-36 h-8 text-xs bg-white">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="ROLE_USER" className="text-xs">User</SelectItem>
+                                                    <SelectItem value="ROLE_MODERATOR" className="text-xs">Moderator</SelectItem>
                                                     <SelectItem value="ROLE_ADMIN" className="text-xs">Admin</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                        )}
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        {toggling === user.id ? (
+                                            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                        ) : (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className={cn("h-8 text-xs gap-1.5", user.isActive ? "text-destructive hover:text-destructive hover:bg-destructive/10" : "text-green-600 hover:text-green-700 hover:bg-green-50")}
+                                                onClick={() => handleToggleStatus(user.id, user.isActive)}
+                                            >
+                                                {user.isActive ? <><UserX className="w-3.5 h-3.5" /> Deactivate</> : <><UserCheck className="w-3.5 h-3.5" /> Activate</>}
+                                            </Button>
                                         )}
                                     </td>
                                 </tr>

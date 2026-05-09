@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Star, ThumbsUp, MessageSquare, Trash2, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Star, ThumbsUp, MessageSquare, Trash2, ShieldAlert, Send, ChevronLeft, ChevronRight, Package, Tag, DollarSign } from "lucide-react";
 import { productApi } from "../lib/productApi";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -173,7 +173,168 @@ async function moderatorDelete(reviewId) {
         method: "DELETE",
         credentials: "include",
     });
-    if (!res.ok) throw new Error("Delete failed");
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message ?? `Delete failed (${res.status})`);
+    }
+}
+
+async function submitReview(productId, payload) {
+    const res = await fetch(`/api/v1/reviews/${productId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message ?? `Submission failed (${res.status})`);
+    }
+    return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Interactive star picker for write-review form
+// ---------------------------------------------------------------------------
+function StarPicker({ value, onChange }) {
+    const [hover, setHover] = useState(0);
+    const display = hover || value;
+    return (
+        <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((s) => (
+                <button
+                    key={s}
+                    type="button"
+                    onClick={() => onChange(s)}
+                    onMouseEnter={() => setHover(s)}
+                    onMouseLeave={() => setHover(0)}
+                    className="p-0.5 focus:outline-none"
+                >
+                    <Star className={cn("w-7 h-7 transition-colors", s <= display ? "fill-accent text-accent" : "text-border fill-border")} />
+                </button>
+            ))}
+            {value > 0 && <span className="ml-2 text-sm text-muted-foreground">{["", "Poor", "Fair", "Good", "Great", "Excellent"][value]}</span>}
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Product image gallery (shows multiple images if available)
+// ---------------------------------------------------------------------------
+function ProductGallery({ images, name }) {
+    const [idx, setIdx] = useState(0);
+    if (!images?.length) {
+        return (
+            <div className="w-full h-48 bg-secondary rounded-lg flex items-center justify-center text-5xl">🎨</div>
+        );
+    }
+    return (
+        <div className="relative">
+            <img
+                src={images[idx]}
+                alt={`${name} — view ${idx + 1}`}
+                className="w-full h-52 object-cover rounded-lg bg-secondary"
+                onError={(e) => { e.target.style.display = "none"; }}
+            />
+            {images.length > 1 && (
+                <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
+                    <button
+                        onClick={() => setIdx((i) => Math.max(0, i - 1))}
+                        disabled={idx === 0}
+                        className="pointer-events-auto w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/70 transition"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => setIdx((i) => Math.min(images.length - 1, i + 1))}
+                        disabled={idx === images.length - 1}
+                        className="pointer-events-auto w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/70 transition"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+            {images.length > 1 && (
+                <div className="flex justify-center gap-1 mt-2">
+                    {images.map((_, i) => (
+                        <button key={i} onClick={() => setIdx(i)} className={cn("w-2 h-2 rounded-full transition-colors", i === idx ? "bg-primary" : "bg-border")} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Write Review Form
+// ---------------------------------------------------------------------------
+function WriteReviewForm({ productId, onSuccess }) {
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+    const [rating, setRating] = useState(0);
+    const [title, setTitle] = useState("");
+    const [comment, setComment] = useState("");
+
+    const submitMutation = useMutation({
+        mutationFn: (payload) => submitReview(productId, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["reviews", productId] });
+            toast({ title: "Review submitted!", description: "Thanks for sharing your experience." });
+            setRating(0); setTitle(""); setComment("");
+            if (onSuccess) onSuccess();
+        },
+        onError: (err) => {
+            const msg = err?.message ?? "Something went wrong.";
+            if (msg.includes("already reviewed") || msg.includes("403")) {
+                toast({ title: "Already reviewed", description: "You've already submitted a review for this product.", variant: "destructive" });
+            } else {
+                toast({ title: "Submission failed", description: msg, variant: "destructive" });
+            }
+        },
+    });
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (rating === 0) { toast({ title: "Rating required", description: "Please select a star rating.", variant: "destructive" }); return; }
+        if (!comment.trim()) { toast({ title: "Comment required", description: "Please write a short review.", variant: "destructive" }); return; }
+        submitMutation.mutate({ title: title.trim() || undefined, comment: comment.trim(), rating });
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label className="text-sm font-medium mb-2 block">Your Rating *</label>
+                <StarPicker value={rating} onChange={setRating} />
+            </div>
+            <div>
+                <label className="text-sm font-medium mb-1 block">Title <span className="text-muted-foreground font-normal">(optional)</span></label>
+                <input
+                    type="text"
+                    maxLength={200}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Summarise your experience…"
+                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+            </div>
+            <div>
+                <label className="text-sm font-medium mb-1 block">Review *</label>
+                <textarea
+                    required
+                    maxLength={2000}
+                    rows={4}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="What did you think? Quality, delivery, overall impression…"
+                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <p className="text-xs text-muted-foreground text-right mt-0.5">{comment.length}/2000</p>
+            </div>
+            <Button type="submit" disabled={submitMutation.isPending} className="gap-2">
+                {submitMutation.isPending ? "Submitting…" : <><Send className="w-4 h-4" /> Submit Review</>}
+            </Button>
+        </form>
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -186,10 +347,11 @@ export default function ProductReviews() {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const isModerator = canModerate(user);
+    const [showForm, setShowForm] = useState(false);
 
     const { data: product } = useQuery({
         queryKey: ["product", id],
-        queryFn: () => productApi.getProductById(id),
+        queryFn: () => productApi.getProduct(id).then((r) => r?.data ?? r),
         enabled: !!id,
     });
 
@@ -210,8 +372,8 @@ export default function ProductReviews() {
             queryClient.invalidateQueries({ queryKey: ["reviews", id] });
             toast({ title: "Review removed", description: "The review has been deleted." });
         },
-        onError: () => {
-            toast({ title: "Delete failed", description: "Could not remove the review.", variant: "destructive" });
+        onError: (err) => {
+            toast({ title: "Delete failed", description: err?.message ?? "Could not remove the review.", variant: "destructive" });
         },
     });
 
@@ -223,6 +385,8 @@ export default function ProductReviews() {
         count: reviews.filter((r) => r.rating === s).length,
     }));
 
+    const images = product?.imageUrls ?? (product?.imageUrl ? [product.imageUrl] : []);
+
     return (
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
             {/* Back */}
@@ -233,15 +397,40 @@ export default function ProductReviews() {
                 <ArrowLeft className="w-4 h-4" /> Back to Products
             </button>
 
-            {/* Product header */}
-            <div className="bg-white border border-border rounded-xl p-6">
-                <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center text-3xl shrink-0">
-                        🎨
+            {/* ── Product Information Card ── */}
+            <div className="bg-white border border-border rounded-xl overflow-hidden">
+                {images.length > 0 && (
+                    <div className="p-4 pb-0">
+                        <ProductGallery images={images} name={product?.name ?? ""} />
                     </div>
+                )}
+                <div className="p-6 space-y-3">
                     <div>
-                        <h1 className="font-extrabold text-xl">{product?.name ?? `Product #${id}`}</h1>
-                        <p className="text-muted-foreground text-sm mt-0.5">Customer Reviews</p>
+                        <h1 className="font-extrabold text-2xl">{product?.name ?? `Product #${id}`}</h1>
+                        {product?.category?.name && (
+                            <span className="inline-flex items-center gap-1 mt-1 text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                                <Tag className="w-3 h-3" /> {product.category.name}
+                            </span>
+                        )}
+                    </div>
+
+                    {product?.description && (
+                        <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+                    )}
+
+                    <div className="flex flex-wrap gap-4 pt-1">
+                        {product?.price != null && (
+                            <div className="flex items-center gap-1.5 text-sm font-semibold">
+                                <DollarSign className="w-4 h-4 text-primary" />
+                                £{Number(product.price).toFixed(2)}
+                            </div>
+                        )}
+                        {product?.stockQuantity != null && (
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <Package className="w-4 h-4" />
+                                {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : "Out of stock"}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -288,7 +477,7 @@ export default function ProductReviews() {
                 </div>
                 {reviews.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-6">
-                        No reviews yet for this product.
+                        No reviews yet — be the first!
                     </p>
                 )}
                 {reviews.map((r) => (
@@ -301,12 +490,28 @@ export default function ProductReviews() {
                 ))}
             </div>
 
-            {/* Write review placeholder */}
-            <div className="bg-secondary/40 border border-dashed border-border rounded-xl p-6 text-center space-y-2">
-                <p className="font-semibold">Have this product?</p>
-                <p className="text-sm text-muted-foreground">Sign in to leave a review.</p>
-                <Button variant="outline" size="sm" disabled>Write a Review</Button>
-            </div>
+            {/* ── Write a Review ── */}
+            {user && !isModerator && !usingDummy && (
+                <div className="bg-white border border-border rounded-xl p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="font-bold text-lg">Write a Review</h2>
+                        {!showForm && (
+                            <Button size="sm" onClick={() => setShowForm(true)}>Leave a Review</Button>
+                        )}
+                    </div>
+                    {showForm && (
+                        <WriteReviewForm productId={id} onSuccess={() => setShowForm(false)} />
+                    )}
+                </div>
+            )}
+
+            {!user && (
+                <div className="bg-secondary/40 border border-dashed border-border rounded-xl p-6 text-center space-y-2">
+                    <p className="font-semibold">Have this product?</p>
+                    <p className="text-sm text-muted-foreground">Sign in to leave a review.</p>
+                    <Button variant="outline" size="sm" onClick={() => navigate("/login")}>Sign In</Button>
+                </div>
+            )}
         </div>
     );
 }

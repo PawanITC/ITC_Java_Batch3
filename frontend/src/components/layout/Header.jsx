@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, LogOut, LayoutDashboard, ClipboardList, Store, Menu, X, Package2, Bell } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ShoppingCart, LogOut, LayoutDashboard, ClipboardList, Store, Menu, X, Package2, Bell, UserCircle } from "lucide-react";
 import CartDrawer from "../cart/CartDrawer";
 import { useCurrentUser, isAdmin } from "../../hooks/useCurrentUser";
 import { useCart } from "../../context/CartContext.jsx";
@@ -14,6 +14,7 @@ export default function Header({ onLogout }) {
     const admin = isAdmin(currentUser);
     const { itemCount } = useCart();
     const { pathname } = useLocation();
+    const navigate = useNavigate();
 
     const navLinks = [
         { to: "/products",      label: "Shop",         icon: Store },
@@ -59,9 +60,14 @@ export default function Header({ onLogout }) {
                         {/* Right actions */}
                         <div className="flex items-center gap-2">
                             {currentUser && (
-                                <span className="hidden lg:block text-sm text-muted-foreground mr-2">
-                  Hey, <span className="font-semibold text-foreground">{currentUser.name?.split(" ")[0] || currentUser.email}</span>
-                </span>
+                                <button
+                                    onClick={() => navigate("/profile")}
+                                    className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground mr-2 hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-secondary"
+                                    title="View profile"
+                                >
+                                    <UserCircle className="w-4 h-4" />
+                                    Hey, <span className="font-semibold text-foreground">{currentUser.name?.split(" ")[0] || currentUser.email}</span>
+                                </button>
                             )}
 
                             {/* Cart button */}
@@ -119,6 +125,19 @@ export default function Header({ onLogout }) {
                                 {label}
                             </Link>
                         ))}
+                        <Link
+                            to="/profile"
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                                "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                                pathname === "/profile"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                            )}
+                        >
+                            <UserCircle className="w-4 h-4" />
+                            My Profile
+                        </Link>
                     </div>
                 )}
             </header>

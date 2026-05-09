@@ -15,6 +15,9 @@ export const productApi = {
     /** GET /api/v1/products/{id} */
     getProduct: (id) => api.get(`/api/v1/products/${id}`),
 
+    /** Alias used by several components — same as getProduct */
+    getProductById: (id) => api.get(`/api/v1/products/${id}`),
+
     /** GET /api/v1/categories */
     getCategories: () => api.get("/api/v1/categories"),
 };
