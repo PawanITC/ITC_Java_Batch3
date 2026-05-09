@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import { useCart } from "../context/CartContext";
@@ -14,6 +14,11 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 export default function CheckoutPage() {
     const { cart, fetchCart } = useCart();
     const navigate = useNavigate();
+    const { state } = useLocation();
+
+    // Use the cart snapshot passed from CartPage (captured before checkout() cleared it).
+    // Fall back to the live cart context if navigated here directly.
+    const displayCart = state?.cartSnapshot ?? cart;
 
     const [stripeInstance, setStripeInstance] = useState(null);
     const [elements, setElements] = useState(null);
@@ -24,9 +29,10 @@ export default function CheckoutPage() {
 
     const { status, errorMessage, confirmPayment } = usePayment();
 
+    // Only fetch live cart as fallback when no snapshot was provided
     useEffect(() => {
-        if (!cart) fetchCart();
-    }, [cart, fetchCart]);
+        if (!state?.cartSnapshot && !cart) fetchCart();
+    }, [state, cart, fetchCart]);
 
     useEffect(() => {
         let cancelled = false;
@@ -159,7 +165,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                    <OrderSummary cart={cart} />
+                    <OrderSummary cart={displayCart} />
                 </div>
             </div>
         </div>

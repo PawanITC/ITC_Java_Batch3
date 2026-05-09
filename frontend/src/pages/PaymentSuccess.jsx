@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { CheckCircle2, ArrowRight, Package } from "lucide-react";
+import { CheckCircle2, ArrowRight, Package, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { orderApi } from "../lib/orderApi";
@@ -24,16 +24,12 @@ export default function PaymentSuccess() {
         fetchCart();
     }, []);
 
+    // Initial fetch if we don't already have the order
     useEffect(() => {
         async function loadOrder() {
             if (order) return;
-
+            if (!orderId) { setLoading(false); return; }
             try {
-                if (!orderId) {
-                    setLoading(false);
-                    return;
-                }
-
                 const res = await orderApi.getOrder(orderId);
                 setOrder(res.data ?? res);
             } catch (e) {
@@ -42,9 +38,30 @@ export default function PaymentSuccess() {
                 setLoading(false);
             }
         }
-
         loadOrder();
     }, [orderId]);
+
+    // Poll until the order leaves PENDING — Stripe webhook + Kafka propagation is async
+    useEffect(() => {
+        if (!orderId) return;
+        if (order && order.status !== "PENDING") return; // already updated
+
+        let attempts = 0;
+        const MAX = 12; // 12 × 1500ms = 18 s max
+        const id = setInterval(async () => {
+            if (attempts++ >= MAX) { clearInterval(id); return; }
+            try {
+                const res = await orderApi.getOrder(orderId);
+                const updated = res.data ?? res;
+                if (updated.status !== "PENDING") {
+                    setOrder(updated);
+                    clearInterval(id);
+                }
+            } catch (_) { /* silent — keep polling */ }
+        }, 1500);
+
+        return () => clearInterval(id);
+    }, [orderId, order?.status]);
 
     if (loading) {
         return (
@@ -82,6 +99,28 @@ export default function PaymentSuccess() {
                         </span>
                     )}
                 </div>
+
+                {/* Status badge */}
+                {order?.status && (
+                    <div className="mb-3 flex items-center gap-1.5">
+                        {order.status === "PENDING" ? (
+                            <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+                                <span className="text-xs text-amber-600 font-medium">Finalizing order…</span>
+                            </>
+                        ) : (
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                order.status === "PAID"
+                                    ? "bg-green-100 text-green-700"
+                                    : order.status === "FAILED"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-secondary text-muted-foreground"
+                            }`}>
+                                {order.status}
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 {items.length > 0 ? (
                     <div className="space-y-2 text-sm">

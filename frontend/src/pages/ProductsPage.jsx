@@ -26,7 +26,11 @@ function ProductCard({ product }) {
 
     return (
         <div className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group">
-            <div className="relative overflow-hidden">
+            <div
+                className="relative overflow-hidden cursor-pointer"
+                onClick={() => navigate(`/products/${product.id}/reviews`)}
+                title="View product details & reviews"
+            >
                 {product.imageUrls?.[0] ? (
                     <img
                         src={product.imageUrls[0]}
@@ -45,6 +49,12 @@ function ProductCard({ product }) {
                         </Badge>
                     </div>
                 )}
+                {/* Hover overlay hint */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white text-xs font-semibold bg-black/50 px-3 py-1 rounded-full">
+                        View Details
+                    </span>
+                </div>
             </div>
 
             <div className="p-4 flex flex-col flex-1 gap-2">
@@ -116,20 +126,20 @@ export default function ProductsPage() {
     const handleCategory = (val) => { setCategoryId(val === "all" ? "" : val); setPage(0); };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
             {/* Hero bar */}
-            <div className="mb-10">
-                <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight mb-2">
+            <div className="mb-5">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight mb-1">
                     Browse Our Collection
                 </h1>
-                <p className="text-muted-foreground text-base">
+                <p className="text-muted-foreground text-sm">
                     Handpicked art prints, posters &amp; collectibles for every taste.
                 </p>
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-8">
+            <div className="flex flex-col sm:flex-row gap-3 mb-5">
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -158,14 +168,14 @@ export default function ProductsPage() {
 
             {/* Loading */}
             {isLoading && (
-                <div className="flex justify-center py-32">
+                <div className="flex justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                 </div>
             )}
 
             {/* Error */}
             {isError && (
-                <div className="flex flex-col items-center gap-4 py-24 text-center">
+                <div className="flex flex-col items-center gap-4 py-16 text-center">
                     <p className="text-destructive font-medium">Failed to load products.</p>
                     <Button variant="outline" onClick={refetch} className="gap-2">
                         <RefreshCw className="w-4 h-4" /> Try Again
@@ -175,7 +185,7 @@ export default function ProductsPage() {
 
             {/* Empty */}
             {!isLoading && !isError && products.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-32 gap-4 text-center">
+                <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
                     <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-4xl">🎨</div>
                     <h2 className="text-xl font-bold">No products found</h2>
                     <p className="text-muted-foreground text-sm max-w-xs">Try adjusting your search or clearing the category filter.</p>
@@ -193,7 +203,7 @@ export default function ProductsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-12">
+                <div className="flex justify-center items-center gap-4 mt-8">
                     <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
                         ← Previous
                     </Button>

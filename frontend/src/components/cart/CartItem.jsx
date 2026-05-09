@@ -5,11 +5,11 @@ export default function CartItem({ item }) {
     const { updateItem, removeItem, loading } = useCart();
 
     return (
-        <div className="flex items-center gap-4 py-4 border-b last:border-0">
+        <div className="flex items-center gap-4 py-4 px-5 border-b last:border-0">
             {/* Product info */}
             <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-sm md:text-base truncate">{item.productName}</h3>
-                <p className="text-muted-foreground text-sm mt-0.5">${item.price.toFixed(2)} each</p>
+                <p className="text-muted-foreground text-sm mt-0.5">${Number(item.price).toFixed(2)} each</p>
             </div>
 
             {/* Quantity controls */}

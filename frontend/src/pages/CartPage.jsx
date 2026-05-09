@@ -17,8 +17,10 @@ export default function CartPage() {
 
     const handleCheckout = async () => {
         if (!items.length) return;
+        // Snapshot cart BEFORE checkout() clears it from context
+        const cartSnapshot = cart;
         const result = await checkout();
-        navigate("/checkout", { state: { checkoutResult: result } });
+        navigate("/checkout", { state: { checkoutResult: result, cartSnapshot } });
     };
 
     return (
