@@ -1,7 +1,7 @@
 import { ClipboardList, Loader2, RefreshCw, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useOrderHistory } from "../hooks/useOrders";
-import OrderCard from "../components/orders/OrderCard";
+import { useOrderHistory } from "@/hooks/useOrders";
+import OrderCard from "@/components/orders/OrderCard";
 import { Button } from "@/components/ui/button";
 
 export default function OrderHistory() {

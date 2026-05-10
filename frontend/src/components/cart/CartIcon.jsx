@@ -1,5 +1,5 @@
 import { ShoppingCart } from "lucide-react";
-import { useCart } from "../../context/CartContext.jsx";
+import { useCart } from "@/context/CartContext.jsx";
 
 export default function CartIcon({ onClick }) {
     const { itemCount } = useCart();

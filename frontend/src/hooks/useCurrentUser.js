@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { authApi } from "../lib/authApi";
+import { authApi } from "@/lib/authApi";
 
 export const CURRENT_USER_KEY = ["currentUser"];
 

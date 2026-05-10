@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminOrderApi } from "../lib/adminApi";
+import { adminOrderApi } from "@/lib/adminApi";
 import { useToast } from "@/components/ui/use-toast";
 
 export const ADMIN_ORDERS_KEY = ["admin", "orders"];

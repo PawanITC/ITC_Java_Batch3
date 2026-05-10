@@ -2,7 +2,7 @@ import {useState} from "react";
 import {ShoppingBag, Loader2, RefreshCw} from "lucide-react";
 import {useNavigate} from "react-router-dom";
 import {useAdminOrders, useUpdateOrderStatus} from "@/hooks/useAdminOrders";
-import OrderStatusBadge from "../../components/orders/OrderStatusBadge";
+import OrderStatusBadge from "@/components/orders/OrderStatusBadge";
 import StatusSelect from "@/components/admin/StatusSelect";
 import {Button} from "@/components/ui/button";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";

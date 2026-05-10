@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Package, AlertTriangle, CreditCard } from "lucide-react";
 import { useQueries } from "@tanstack/react-query";
-import { useOrder, useCancelOrder } from "../hooks/useOrders";
-import OrderStatusBadge from "../components/orders/OrderStatusBadge";
+import { useOrder, useCancelOrder } from "@/hooks/useOrders";
+import OrderStatusBadge from "@/components/orders/OrderStatusBadge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { productApi } from "../lib/productApi";
+import { productApi } from "@/lib/productApi";
 import { format } from "date-fns";
 
 const CANCELLABLE = ["PENDING", "CONFIRMED"];

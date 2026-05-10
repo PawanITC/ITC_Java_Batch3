@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { cartApi } from "../lib/cartApi";
+import { cartApi } from "@/lib/cartApi";
 
 export const CART_QUERY_KEY = ["cart"];
 
-/** Fetch cart via React Query (for components that prefer RQ over context) */
+/** Fetch cart via React Query (for components that prefer RQ to context) */
 export function useCartQuery() {
     return useQuery({
         queryKey: CART_QUERY_KEY,

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Users, Loader2, ShieldCheck, ShieldOff, Power } from "lucide-react";
-import { useAdminUsers, useUpdateUserRole, useToggleUserStatus } from "../../hooks/useAdminUsers";
+import { useAdminUsers, useUpdateUserRole, useToggleUserStatus } from "@/hooks/useAdminUsers.js";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
-import { useCart } from "../../context/CartContext.jsx";
+import { useCart } from "@/context/CartContext.jsx";
 import { Button } from "@/components/ui/button";
 
 export default function CartDrawer({ open, onClose }) {

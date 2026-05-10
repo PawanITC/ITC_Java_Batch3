@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { orderApi } from "../lib/orderApi";
+import { orderApi } from "@/lib/orderApi";
 
 export const ORDER_HISTORY_KEY = ["orders", "history"];
 

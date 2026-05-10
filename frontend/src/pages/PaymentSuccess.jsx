@@ -1,12 +1,12 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { CheckCircle2, ArrowRight, Package, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { orderApi } from "../lib/orderApi";
-import { useCart } from "../context/CartContext.jsx";
-import { useQueries } from "@tanstack/react-query";
-import { productApi } from "../lib/productApi";
+import {useLocation, useNavigate} from "react-router-dom";
+import {useEffect, useState} from "react";
+import {ArrowRight, CheckCircle2, Loader2, Package} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {Separator} from "@/components/ui/separator";
+import {orderApi} from "@/lib/orderApi";
+import {useCart} from "@/context/CartContext.jsx";
+import {useQueries} from "@tanstack/react-query";
+import {productApi} from "@/lib/productApi";
 
 export default function PaymentSuccess() {
     const { state } = useLocation();
@@ -64,8 +64,7 @@ export default function PaymentSuccess() {
 
     // ── Compute items BEFORE any early return so hook count is stable ──
     const cartSnapshot = state?.cartSnapshot;
-    const rawItems = order?.items?.length ? order.items : (cartSnapshot?.items ?? []);
-    const items = rawItems;
+    const items = order?.items?.length ? order.items : (cartSnapshot?.items ?? []);
     const total = order?.totalAmount ?? cartSnapshot?.totalAmount ?? 0;
 
     // Enrich items with product name + image (useQueries must be unconditional)

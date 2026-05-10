@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminUserApi } from "../lib/adminApi";
+import { adminUserApi } from "@/lib/adminApi";
 
 export const ADMIN_USERS_KEY = ["admin", "users"];
 

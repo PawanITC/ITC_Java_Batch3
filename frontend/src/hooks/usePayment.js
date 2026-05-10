@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { paymentApi } from "../lib/paymentApi";
+import { paymentApi } from "@/lib/paymentApi";
 
 /**
  * Handles the full payment confirmation flow:

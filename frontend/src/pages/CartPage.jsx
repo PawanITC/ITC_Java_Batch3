@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShoppingBag, ArrowRight, Loader2, RefreshCw, X } from "lucide-react";
-import { useCart } from "../context/CartContext";
-import CartItem from "../components/cart/CartItem";
+import { useCart } from "@/context/CartContext";
+import CartItem from "@/components/cart/CartItem";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 

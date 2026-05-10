@@ -3,9 +3,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ShoppingCart, LogOut, LayoutDashboard, ClipboardList, Store, Menu, X, Bell, UserCircle, Sun, Moon } from "lucide-react";
 import CartDrawer from "../cart/CartDrawer";
 import LogoMark from "./LogoMark";
-import { useCurrentUser, isAdmin } from "../../hooks/useCurrentUser";
-import { useCart } from "../../context/CartContext.jsx";
-import { useTheme } from "../../context/ThemeContext.jsx";
+import { useCurrentUser, isAdmin } from "@/hooks/useCurrentUser";
+import { useCart } from "@/context/CartContext.jsx";
+import { useTheme } from "@/context/ThemeContext.jsx";
 import { cn } from "@/lib/utils";
 
 export default function Header({ onLogout }) {

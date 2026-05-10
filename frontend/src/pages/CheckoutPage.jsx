@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
-import { useCart } from "../context/CartContext";
-import { paymentApi } from "../lib/paymentApi";
-import { usePayment } from "../hooks/usePayment";
-import OrderSummary from "../components/checkout/OrderSummary";
-import StripeCardForm from "../components/checkout/StripeCardForm";
+import { useCart } from "@/context/CartContext";
+import { paymentApi } from "@/lib/paymentApi";
+import { usePayment } from "@/hooks/usePayment";
+import OrderSummary from "@/components/checkout/OrderSummary";
+import StripeCardForm from "@/components/checkout/StripeCardForm";
 import { Button } from "@/components/ui/button";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
