@@ -89,11 +89,13 @@ public class UserService {
         User user = findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        boolean hasPassword = user.getPassword() != null && !"{OAUTH}".equals(user.getPassword());
         return new UserProfileDto(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getRole().name()
+                user.getRole().name(),
+                hasPassword
         );
     }
 
@@ -245,7 +247,8 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setName(newName.trim());
         user = userRepository.save(user);
-        return new UserProfileDto(user.getId(), user.getName(), user.getEmail(), user.getRole().name());
+        boolean hasPassword = user.getPassword() != null && !"{OAUTH}".equals(user.getPassword());
+        return new UserProfileDto(user.getId(), user.getName(), user.getEmail(), user.getRole().name(), hasPassword);
     }
 
     /**

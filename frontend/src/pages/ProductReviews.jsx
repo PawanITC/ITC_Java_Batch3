@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Star, ThumbsUp, MessageSquare, Trash2, ShieldAlert, Send, ChevronLeft, ChevronRight, Package, Tag, ShoppingCart, Loader2, ZoomIn, X, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Star, ThumbsUp, MessageSquare, Trash2, ShieldAlert, Send, ChevronLeft, ChevronRight, Package, Tag, ShoppingCart, Loader2, ZoomIn, X } from "lucide-react";
 import { productApi } from "../lib/productApi";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
@@ -354,7 +354,10 @@ export default function ProductReviews() {
         queryFn: () => fetchReviews(productId),
         enabled: !!productId,
     });
-    const reviews = reviewsError ? DUMMY_REVIEWS : (reviewsRaw ?? []);
+    // Show dummy reviews when the service is down OR when a product simply has no reviews yet,
+    // so every product page looks populated rather than showing an empty state.
+    const usingDummies = reviewsError || !reviewsRaw?.length;
+    const reviews = usingDummies ? DUMMY_REVIEWS : reviewsRaw;
 
     // Moderator delete mutation
     const deleteMutation = useMutation({
@@ -525,7 +528,7 @@ export default function ProductReviews() {
             <div className="space-y-4">
                 <h2 className="font-bold text-lg flex items-center gap-2">
                     <MessageSquare className="w-5 h-5" /> Reviews
-                    {reviewsError && <span className="text-xs font-normal text-muted-foreground ml-2">(sample data — review service unavailable)</span>}
+                    {usingDummies && <span className="text-xs font-normal text-muted-foreground ml-2">(sample reviews)</span>}
                 </h2>
 
                 {reviewsLoading && (

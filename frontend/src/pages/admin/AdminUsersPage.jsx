@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, Loader2, ShieldCheck, ShieldOff, ArrowLeft, Search, UserCheck, UserX } from "lucide-react";
-import { useAdminUsers, useUpdateUserRole, useToggleUserStatus } from "../../hooks/useAdminUsers";
+import { useAdminUsers, useUpdateUserRole, useToggleUserStatus } from "@/hooks/useAdminUsers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -126,14 +126,20 @@ export default function AdminUsersPage() {
                         )}
                         {filtered.map((user) => {
                             const initials = (user.name || user.email || "?")[0].toUpperCase();
-                            const isAdminUser = user.role === "ROLE_ADMIN" || (Array.isArray(user.roles) && user.roles.includes("ROLE_ADMIN"));
+                            const hasRole = (r) =>
+                                user.role === r || (Array.isArray(user.roles) && user.roles.includes(r));
+                            const currentRole = hasRole("ROLE_ADMIN") ? "ROLE_ADMIN"
+                                : hasRole("ROLE_MODERATOR") ? "ROLE_MODERATOR"
+                                : "ROLE_USER";
                             return (
                                 <tr key={user.id} className="hover:bg-muted/20 transition-colors">
                                     <td className="px-5 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className={cn(
                                                 "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0",
-                                                isAdminUser ? "bg-accent" : "bg-primary"
+                                                currentRole === "ROLE_ADMIN" ? "bg-accent"
+                                                    : currentRole === "ROLE_MODERATOR" ? "bg-amber-500"
+                                                    : "bg-primary"
                                             )}>
                                                 {initials}
                                             </div>
@@ -160,7 +166,7 @@ export default function AdminUsersPage() {
                                             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                                         ) : (
                                             <Select
-                                                value={isAdminUser ? "ROLE_ADMIN" : "ROLE_USER"}
+                                                value={currentRole}
                                                 onValueChange={(role) => handleRoleChange(user.id, role)}
                                             >
                                                 <SelectTrigger className="w-36 h-8 text-xs">
@@ -168,6 +174,7 @@ export default function AdminUsersPage() {
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="ROLE_USER" className="text-xs">User</SelectItem>
+                                                    <SelectItem value="ROLE_MODERATOR" className="text-xs">Moderator</SelectItem>
                                                     <SelectItem value="ROLE_ADMIN" className="text-xs">Admin</SelectItem>
                                                 </SelectContent>
                                             </Select>

@@ -23,16 +23,20 @@ import lombok.Builder;
  *   <li>Account management UI</li>
  * </ul>
  *
- * @param id    Unique user identifier
- * @param name  Display name of the user
- * @param email Email address of the user
- * @param role  Assigned system role (e.g. ROLE_USER)
+ * @param id          Unique user identifier
+ * @param name        Display name of the user
+ * @param email       Email address of the user
+ * @param role        Assigned system role (e.g. ROLE_USER)
+ * @param hasPassword {@code true} for email/password accounts; {@code false} for pure OAuth accounts
+ *                    whose password column stores the sentinel value {@code {OAUTH}}.
+ *                    Used by the frontend to show/hide the change-password form.
  */
 @Builder
 public record UserProfileDto(
         Long id,
         String name,
         String email,
-        String role
+        String role,
+        boolean hasPassword
 ) {
 }
