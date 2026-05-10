@@ -201,12 +201,8 @@ services:
                       # Without it, Docker can't reach the health endpoint
                       # and the container stays in unhealthy state forever,
                       # blocking all microservices that depend on it.
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:13133/"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+    # otel-collector-contrib is a distroless image (no shell/wget/nc).
+    # No healthcheck here — microservices use service_started + their own start_period: 60s.
     depends_on:
       jaeger:
         condition: service_started
@@ -446,6 +442,7 @@ services:
       - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       user-service:
         condition: service_started

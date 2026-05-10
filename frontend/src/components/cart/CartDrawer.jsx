@@ -106,7 +106,7 @@ export default function CartDrawer({ open, onClose }) {
                                 >
                                     {item.productName}
                                 </button>
-                                <p className="text-muted-foreground text-xs mt-0.5">${Number(item.price).toFixed(2)} each</p>
+                                <p className="text-muted-foreground text-xs mt-0.5">£{Number(item.price).toFixed(2)} each</p>
                                 <div className="flex items-center gap-2 mt-2">
                                     <button
                                         onClick={() => item.quantity > 1 ? updateItem(item.productId, -1) : removeItem(item.productId)}
@@ -127,7 +127,7 @@ export default function CartDrawer({ open, onClose }) {
                             </div>
 
                             <div className="flex flex-col items-end gap-2 shrink-0">
-                                <p className="font-bold text-sm">${Number(item.subTotal).toFixed(2)}</p>
+                                <p className="font-bold text-sm">£{Number(item.subTotal).toFixed(2)}</p>
                                 <button
                                     onClick={() => removeItem(item.productId)}
                                     className="text-muted-foreground hover:text-destructive transition-colors"
@@ -145,7 +145,7 @@ export default function CartDrawer({ open, onClose }) {
                     <div className="border-t px-6 py-5 space-y-4 bg-secondary/30">
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground text-sm">Subtotal</span>
-                            <span className="font-extrabold text-xl">${total.toFixed(2)}</span>
+                            <span className="font-extrabold text-xl">£{total.toFixed(2)}</span>
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" className="flex-1 bg-white" onClick={() => { onClose(); navigate("/cart"); }}>

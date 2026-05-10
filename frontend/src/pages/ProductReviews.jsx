@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Star, ThumbsUp, MessageSquare, Trash2, ShieldAlert, Send, ChevronLeft, ChevronRight, Package, Tag, DollarSign, ZoomIn, X } from "lucide-react";
+import { ArrowLeft, Star, ThumbsUp, MessageSquare, Trash2, ShieldAlert, Send, ChevronLeft, ChevronRight, Package, Tag, ShoppingCart, Loader2, ZoomIn, X, CheckCircle2 } from "lucide-react";
 import { productApi } from "../lib/productApi";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -498,10 +499,25 @@ export default function ProductReviews() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { addItem, loading: cartLoading } = useCart();
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const isModerator = canModerate(user);
     const [showForm, setShowForm] = useState(false);
+    const [adding, setAdding] = useState(false);
+    const [added, setAdded] = useState(false);
+
+    const handleAddToCart = async () => {
+        if (!product?.id) return;
+        setAdding(true);
+        try {
+            await addItem(product.id, 1);
+            setAdded(true);
+            setTimeout(() => setAdded(false), 1800);
+        } finally {
+            setAdding(false);
+        }
+    };
 
     const { data: product } = useQuery({
         queryKey: ["product", id],
@@ -587,23 +603,39 @@ export default function ProductReviews() {
                             )}
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-border">
-                            {product?.price != null && (
-                                <div className="flex items-center gap-1.5">
-                                    <DollarSign className="w-4 h-4 text-primary" />
-                                    <span className="text-2xl font-extrabold">£{Number(product.price).toFixed(2)}</span>
-                                </div>
-                            )}
-                            {product?.stockQuantity != null && (
-                                <div className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full ${
-                                    product.stockQuantity > 0
-                                        ? "bg-green-50 text-green-700"
-                                        : "bg-red-50 text-red-700"
-                                }`}>
-                                    <Package className="w-3.5 h-3.5" />
-                                    {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : "Out of stock"}
-                                </div>
-                            )}
+                        <div className="space-y-3 pt-2 border-t border-border">
+                            <div className="flex flex-wrap items-center gap-3">
+                                {product?.price != null && (
+                                    <span className="text-2xl font-extrabold">
+                                        £{Number(product.price).toFixed(2)}
+                                    </span>
+                                )}
+                                {product?.stockQuantity != null && (
+                                    <div className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
+                                        product.stockQuantity > 0
+                                            ? "bg-green-50 text-green-700"
+                                            : "bg-red-50 text-red-700"
+                                    }`}>
+                                        <Package className="w-3 h-3" />
+                                        {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : "Out of stock"}
+                                    </div>
+                                )}
+                            </div>
+                            <Button
+                                onClick={handleAddToCart}
+                                disabled={cartLoading || adding || product?.stockQuantity === 0}
+                                className={cn(
+                                    "w-full gap-2 transition-all",
+                                    added ? "bg-green-600 hover:bg-green-600" : ""
+                                )}
+                            >
+                                {adding ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <ShoppingCart className="w-4 h-4" />
+                                )}
+                                {added ? "Added to Cart!" : adding ? "Adding…" : "Add to Cart"}
+                            </Button>
                         </div>
                     </div>
                 </div>

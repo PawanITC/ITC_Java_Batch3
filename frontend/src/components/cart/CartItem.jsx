@@ -9,7 +9,7 @@ export default function CartItem({ item }) {
             {/* Product info */}
             <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-sm md:text-base truncate">{item.productName}</h3>
-                <p className="text-muted-foreground text-sm mt-0.5">${Number(item.price).toFixed(2)} each</p>
+                <p className="text-muted-foreground text-sm mt-0.5">£{Number(item.price).toFixed(2)} each</p>
             </div>
 
             {/* Quantity controls */}

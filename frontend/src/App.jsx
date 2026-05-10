@@ -21,6 +21,7 @@ import NotificationsPage from "@/pages/NotificationsPage";
 import ProductReviews from "@/pages/ProductReviews";
 import ProfilePage from "@/pages/ProfilePage";
 
+import NotFoundPage from "@/pages/NotFoundPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminOrders from "@/pages/admin/AdminOrders";
@@ -89,7 +90,7 @@ function AppRoutes() {
                     )}
                 </Route>
 
-                <Route path="*" element={<Navigate to="/products" replace />} />
+                <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </CartProvider>
     );

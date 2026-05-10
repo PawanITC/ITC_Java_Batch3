@@ -65,7 +65,7 @@ function ProductCard({ product }) {
 
                 <div className="mt-auto pt-4 space-y-2">
                     <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-foreground">${Number(product.price).toFixed(2)}</span>
+                        <span className="text-lg font-bold text-foreground">£{Number(product.price).toFixed(2)}</span>
                         <Button
                             size="sm"
                             onClick={handleAdd}
