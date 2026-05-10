@@ -80,9 +80,13 @@ export function AuthProvider({ children }) {
             console.error(err);
         }
 
-        // Clear both state systems so Header and routes both reflect logged-out state
+        // Wipe the ENTIRE React Query cache on logout.
+        // removeQueries only removed the current-user entry, leaving orders/
+        // notifications/etc. cached. With staleTime=30s a new user logging in
+        // within that window saw the previous user's data. clear() nukes everything
+        // so every page fetches fresh data for the new session.
         setUser(null);
-        queryClientInstance.removeQueries({ queryKey: CURRENT_USER_KEY });
+        queryClientInstance.clear();
     };
 
     return (
