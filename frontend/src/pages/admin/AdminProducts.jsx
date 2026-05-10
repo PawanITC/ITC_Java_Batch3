@@ -193,7 +193,7 @@ export default function AdminProducts() {
                     placeholder="Search by name, brand, or category…"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10 bg-white"
+                    className="pl-10 bg-background"
                 />
             </div>
 
@@ -212,7 +212,7 @@ export default function AdminProducts() {
 
             {/* Table */}
             {!isLoading && !isError && (
-                <div className="bg-white border border-border rounded-xl overflow-hidden">
+                <div className="bg-card border border-border rounded-xl overflow-hidden">
                     <table className="w-full text-sm">
                         <thead className="bg-secondary/60">
                         <tr>
@@ -256,7 +256,7 @@ export default function AdminProducts() {
                                     {p.categoryName ?? "—"}
                                 </td>
                                 <td className="px-5 py-4 font-medium hidden sm:table-cell">
-                                    ${Number(p.price ?? 0).toFixed(2)}
+                                    £{Number(p.price ?? 0).toFixed(2)}
                                 </td>
                                 <td className="px-5 py-4 hidden lg:table-cell">
                                     {p.active !== false ? (
@@ -327,9 +327,9 @@ function ProductModal({ form, setForm, categories, isEdit, isSaving, onSubmit, o
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/40 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b sticky top-0 bg-white rounded-t-2xl">
+                <div className="flex items-center justify-between px-6 py-5 border-b sticky top-0 bg-card rounded-t-2xl">
                     <h2 className="text-lg font-bold">{isEdit ? "Edit Product" : "New Product"}</h2>
                     <button
                         onClick={onClose}
@@ -452,7 +452,7 @@ function ProductModal({ form, setForm, categories, isEdit, isSaving, onSubmit, o
 function DeleteConfirm({ onConfirm, onCancel, isPending }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/40 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
                 <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
                         <Trash2 className="w-5 h-5 text-destructive" />

@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
                     placeholder="Search by name or email…"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10 bg-white"
+                    className="pl-10 bg-background"
                 />
             </div>
 
@@ -105,7 +105,7 @@ export default function AdminUsersPage() {
 
             {/* Table */}
             {!isLoading && !isError && (
-                <div className="bg-white border border-border rounded-xl overflow-hidden">
+                <div className="bg-card border border-border rounded-xl overflow-hidden">
                     <table className="w-full text-sm">
                         <thead className="bg-secondary/60">
                         <tr>
@@ -160,33 +160,38 @@ export default function AdminUsersPage() {
                                             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                                         ) : (
                                             <Select
-                                                value={user.role ?? "ROLE_USER"}
+                                                value={isAdminUser ? "ROLE_ADMIN" : "ROLE_USER"}
                                                 onValueChange={(role) => handleRoleChange(user.id, role)}
                                             >
-                                                <SelectTrigger className="w-36 h-8 text-xs bg-white">
+                                                <SelectTrigger className="w-36 h-8 text-xs">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="ROLE_USER" className="text-xs">User</SelectItem>
-                                                    <SelectItem value="ROLE_MODERATOR" className="text-xs">Moderator</SelectItem>
                                                     <SelectItem value="ROLE_ADMIN" className="text-xs">Admin</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         )}
                                     </td>
                                     <td className="px-5 py-4">
-                                        {toggling === user.id ? (
-                                            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                                        ) : (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className={cn("h-8 text-xs gap-1.5", user.isActive ? "text-destructive hover:text-destructive hover:bg-destructive/10" : "text-green-600 hover:text-green-700 hover:bg-green-50")}
-                                                onClick={() => handleToggleStatus(user.id, user.isActive)}
-                                            >
-                                                {user.isActive ? <><UserX className="w-3.5 h-3.5" /> Deactivate</> : <><UserCheck className="w-3.5 h-3.5" /> Activate</>}
-                                            </Button>
-                                        )}
+                                        <button
+                                            onClick={() => handleToggleStatus(user.id, user.isActive)}
+                                            disabled={toggling === user.id}
+                                            className={cn(
+                                                "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors",
+                                                user.isActive
+                                                    ? "border-destructive/40 text-destructive hover:bg-destructive/10"
+                                                    : "border-green-300 text-green-700 hover:bg-green-50"
+                                            )}
+                                        >
+                                            {toggling === user.id ? (
+                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                            ) : user.isActive ? (
+                                                <><UserX className="w-3 h-3" /> Deactivate</>
+                                            ) : (
+                                                <><UserCheck className="w-3 h-3" /> Activate</>
+                                            )}
+                                        </button>
                                     </td>
                                 </tr>
                             );

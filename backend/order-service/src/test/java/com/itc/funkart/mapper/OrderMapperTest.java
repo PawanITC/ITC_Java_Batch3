@@ -63,10 +63,10 @@ class OrderMapperTest {
         @DisplayName("Maps customerId, totalAmount, defaults status to PENDING")
         void mapsFromInitiatedEvent() {
             CheckoutItemPayload item = new CheckoutItemPayload(
-                    10L, 2, new BigDecimal("125.00"), new BigDecimal("250.00"));
+                    10L, "Test Product", 2, new BigDecimal("125.00"), new BigDecimal("250.00"));
             CheckoutInitiatedEvent event = new CheckoutInitiatedEvent(
                     OrderEventType.ORDER_INITIATED, 100L, new BigDecimal("250.00"),
-                    List.of(item), "usd", null);
+                    List.of(item), "usd", null, null);
 
             Order result = mapper.toEntity(event);
 

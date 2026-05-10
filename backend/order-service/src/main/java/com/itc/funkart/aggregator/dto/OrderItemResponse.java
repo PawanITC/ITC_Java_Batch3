@@ -32,6 +32,11 @@ public class OrderItemResponse {
     private Long productId;
 
     /**
+     * Snapshot of the product name at the time of purchase.
+     */
+    private String productName;
+
+    /**
      * The quantity of this specific product purchased.
      */
     private Integer quantity;

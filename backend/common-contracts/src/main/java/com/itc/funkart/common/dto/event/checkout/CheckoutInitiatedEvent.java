@@ -44,6 +44,8 @@ public record CheckoutInitiatedEvent(
 
         String currency,
 
-        String paymentIntentId
+        String paymentIntentId,
+
+        String customerEmail
 ) {
 }

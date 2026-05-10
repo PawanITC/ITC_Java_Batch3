@@ -78,6 +78,7 @@ public class OrderMapper {
         return OrderResponse.builder()
                 .orderId(order.getId())
                 .customerId(order.getCustomerId())
+                .customerEmail(order.getCustomerEmail())
                 .orderStatus(order.getStatus())
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())
@@ -96,6 +97,7 @@ public class OrderMapper {
 
         // Critical: Mapping userId from the event to customerId in the Entity
         order.setCustomerId(event.customerId());
+        order.setCustomerEmail(event.customerEmail());
         order.setTotalAmount(event.totalAmount());
         order.setStatus(OrderStatus.PENDING);
 
@@ -120,6 +122,7 @@ public class OrderMapper {
         return items.stream()
                 .map(item -> new CheckoutItemPayload(
                         item.getProductId(),
+                        item.getProductName(),
                         item.getQuantity(),
                         item.getPriceAtPurchase(),
                         item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity()))
@@ -133,6 +136,7 @@ public class OrderMapper {
         return items.stream()
                 .map(item -> OrderItemResponse.builder()
                         .productId(item.getProductId())
+                        .productName(item.getProductName())
                         .quantity(item.getQuantity())
                         .priceAtPurchase(item.getPriceAtPurchase())
                         .build())
@@ -153,6 +157,7 @@ public class OrderMapper {
         return CheckoutInitiatedEvent.builder()
                 .eventType(OrderEventType.ORDER_INITIATED)
                 .customerId(order.getCustomerId())
+                .customerEmail(order.getCustomerEmail())
                 .totalAmount(order.getTotalAmount())
                 .items(mapItemEventPayloads(order.getItems()))
                 .currency("usd")

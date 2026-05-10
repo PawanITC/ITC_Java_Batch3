@@ -81,7 +81,7 @@ function ReviewCard({ review, isModerator, onModeratorDelete }) {
     const authorName = review.author ?? `User #${review.userId}`;
 
     return (
-        <div className="bg-white border border-border rounded-xl p-5 space-y-3">
+        <div className="bg-card border border-border rounded-xl p-5 space-y-3">
             {/* Header row */}
             <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-3">
@@ -315,9 +315,10 @@ function Lightbox({ images, startIdx, open, onClose }) {
                             key={i}
                             onClick={() => setIdx(i)}
                             className={cn(
-                                "w-2.5 h-2.5 rounded-full transition-all",
-                                i === idx ? "bg-white scale-125" : "bg-white/35 hover:bg-white/60"
+                                "w-2 h-2 rounded-full transition-all",
+                                i === idx ? "bg-white scale-125" : "bg-white/40 hover:bg-white/70"
                             )}
+                            aria-label={`Go to image ${i + 1}`}
                         />
                     ))}
                 </div>
@@ -328,242 +329,105 @@ function Lightbox({ images, startIdx, open, onClose }) {
 }
 
 // ---------------------------------------------------------------------------
-// Product image gallery (shows multiple images if available)
+// Main page component
 // ---------------------------------------------------------------------------
-function ProductGallery({ images, name }) {
-    const [idx, setIdx] = useState(0);
-    const [lightboxOpen, setLightboxOpen] = useState(false);
-
-    if (!images?.length) {
-        return (
-            <div className="w-full h-48 bg-secondary rounded-lg flex items-center justify-center text-5xl">🎨</div>
-        );
-    }
-    return (
-        <>
-            <div className="relative group">
-                {/* Main image — click to open lightbox */}
-                <button
-                    onClick={() => setLightboxOpen(true)}
-                    className="w-full block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg overflow-hidden"
-                    title="Click to zoom"
-                >
-                    <img
-                        src={images[idx]}
-                        alt={`${name} — view ${idx + 1}`}
-                        className="w-full h-64 sm:h-80 object-cover rounded-lg bg-secondary transition-transform duration-300 group-hover:scale-[1.01]"
-                        onError={(e) => { e.target.style.display = "none"; }}
-                    />
-                    {/* Zoom hint overlay */}
-                    <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-full p-2.5">
-                            <ZoomIn className="w-5 h-5 text-white" />
-                        </div>
-                    </div>
-                </button>
-
-                {/* Prev / Next arrows */}
-                {images.length > 1 && (
-                    <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setIdx((i) => Math.max(0, i - 1)); }}
-                            disabled={idx === 0}
-                            className="pointer-events-auto w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/70 transition"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setIdx((i) => Math.min(images.length - 1, i + 1)); }}
-                            disabled={idx === images.length - 1}
-                            className="pointer-events-auto w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center disabled:opacity-30 hover:bg-black/70 transition"
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            {/* Dot indicators */}
-            {images.length > 1 && (
-                <div className="flex justify-center gap-1.5 mt-3">
-                    {images.map((_, i) => (
-                        <button key={i} onClick={() => setIdx(i)} className={cn("w-2 h-2 rounded-full transition-colors", i === idx ? "bg-primary" : "bg-border")} />
-                    ))}
-                </div>
-            )}
-
-            {/* Thumbnail strip for multi-image products */}
-            {images.length > 1 && (
-                <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-                    {images.map((src, i) => (
-                        <button
-                            key={i}
-                            onClick={() => setIdx(i)}
-                            className={cn(
-                                "shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 transition-all",
-                                i === idx ? "border-primary" : "border-transparent hover:border-border"
-                            )}
-                        >
-                            <img src={src} alt="" className="w-full h-full object-cover" />
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            <Lightbox
-                images={images}
-                startIdx={idx}
-                open={lightboxOpen}
-                onClose={() => setLightboxOpen(false)}
-            />
-        </>
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Write Review Form
-// ---------------------------------------------------------------------------
-function WriteReviewForm({ productId, onSuccess }) {
-    const { toast } = useToast();
+export default function ProductReviews() {
+    const { id: productId } = useParams();
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const { addItem } = useCart();
     const queryClient = useQueryClient();
+    const { toast } = useToast();
+    const isModerator = canModerate(user);
+
+    // Product fetch
+    const { data: productData, isLoading: productLoading } = useQuery({
+        queryKey: ["product", productId],
+        queryFn: () => productApi.getProduct(productId),
+        enabled: !!productId,
+    });
+    const product = productData?.data ?? productData;
+
+    // Reviews fetch
+    const { data: reviewsRaw, isLoading: reviewsLoading, isError: reviewsError } = useQuery({
+        queryKey: ["reviews", productId],
+        queryFn: () => fetchReviews(productId),
+        enabled: !!productId,
+    });
+    const reviews = reviewsError ? DUMMY_REVIEWS : (reviewsRaw ?? []);
+
+    // Moderator delete mutation
+    const deleteMutation = useMutation({
+        mutationFn: moderatorDelete,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["reviews", productId] });
+            toast({ title: "Review removed", description: "The review has been deleted." });
+        },
+        onError: (err) => {
+            toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+        },
+    });
+
+    // Write-review form state
     const [rating, setRating] = useState(0);
     const [title, setTitle] = useState("");
     const [comment, setComment] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
     const submitMutation = useMutation({
         mutationFn: (payload) => submitReview(productId, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["reviews", productId] });
-            toast({ title: "Review submitted!", description: "Thanks for sharing your experience." });
             setRating(0); setTitle(""); setComment("");
-            if (onSuccess) onSuccess();
+            toast({ title: "Review submitted!", description: "Thanks for your feedback." });
         },
         onError: (err) => {
-            const msg = err?.message ?? "Something went wrong.";
-            if (msg.includes("already reviewed") || msg.includes("403")) {
-                toast({ title: "Already reviewed", description: "You've already submitted a review for this product.", variant: "destructive" });
-            } else {
-                toast({ title: "Submission failed", description: msg, variant: "destructive" });
-            }
+            toast({ title: "Submission failed", description: err.message, variant: "destructive" });
         },
     });
 
-    const handleSubmit = (e) => {
+    const handleSubmitReview = async (e) => {
         e.preventDefault();
-        if (rating === 0) { toast({ title: "Rating required", description: "Please select a star rating.", variant: "destructive" }); return; }
-        if (!comment.trim()) { toast({ title: "Comment required", description: "Please write a short review.", variant: "destructive" }); return; }
-        submitMutation.mutate({ title: title.trim() || undefined, comment: comment.trim(), rating });
+        if (rating === 0) { toast({ title: "Please select a rating", variant: "destructive" }); return; }
+        if (!comment.trim()) { toast({ title: "Please write a comment", variant: "destructive" }); return; }
+        setSubmitting(true);
+        await submitMutation.mutateAsync({ rating, title, comment });
+        setSubmitting(false);
     };
 
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label className="text-sm font-medium mb-2 block">Your Rating *</label>
-                <StarPicker value={rating} onChange={setRating} />
-            </div>
-            <div>
-                <label className="text-sm font-medium mb-1 block">Title <span className="text-muted-foreground font-normal">(optional)</span></label>
-                <input
-                    type="text"
-                    maxLength={200}
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Summarise your experience…"
-                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-            </div>
-            <div>
-                <label className="text-sm font-medium mb-1 block">Review *</label>
-                <textarea
-                    required
-                    maxLength={2000}
-                    rows={4}
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="What did you think? Quality, delivery, overall impression…"
-                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-                <p className="text-xs text-muted-foreground text-right mt-0.5">{comment.length}/2000</p>
-            </div>
-            <Button type="submit" disabled={submitMutation.isPending} className="gap-2">
-                {submitMutation.isPending ? "Submitting…" : <><Send className="w-4 h-4" /> Submit Review</>}
-            </Button>
-        </form>
-    );
-}
+    // Lightbox state
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxStart, setLightboxStart] = useState(0);
 
-// ---------------------------------------------------------------------------
-// Page component
-// ---------------------------------------------------------------------------
-export default function ProductReviews() {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const { user } = useAuth();
-    const { addItem, loading: cartLoading } = useCart();
-    const { toast } = useToast();
-    const queryClient = useQueryClient();
-    const isModerator = canModerate(user);
-    const [showForm, setShowForm] = useState(false);
-    const [adding, setAdding] = useState(false);
-    const [added, setAdded] = useState(false);
+    const openLightbox = (idx) => { setLightboxStart(idx); setLightboxOpen(true); };
 
-    const handleAddToCart = async () => {
-        if (!product?.id) return;
-        setAdding(true);
-        try {
-            await addItem(product.id, 1);
-            setAdded(true);
-            setTimeout(() => setAdded(false), 1800);
-        } finally {
-            setAdding(false);
-        }
-    };
-
-    const { data: product } = useQuery({
-        queryKey: ["product", id],
-        queryFn: () => productApi.getProduct(id).then((r) => r?.data ?? r),
-        enabled: !!id,
-    });
-
-    // Load live reviews; merge dummy ones in below real ones for MVP body
-    const { data: liveReviews, isError: reviewsError } = useQuery({
-        queryKey: ["reviews", id],
-        queryFn: () => fetchReviews(id),
-        enabled: !!id,
-        retry: 1,
-    });
-
-    // When service is up: real reviews first, then dummy padding underneath
-    // When service is down: show only dummy reviews with a notice
-    const serviceDown = reviewsError || !liveReviews;
-    const reviews = serviceDown
-        ? DUMMY_REVIEWS
-        : [...(liveReviews ?? []), ...DUMMY_REVIEWS];
-    const usingDummy = serviceDown;
-
-    const deleteMutation = useMutation({
-        mutationFn: moderatorDelete,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["reviews", id] });
-            toast({ title: "Review removed", description: "The review has been deleted." });
-        },
-        onError: (err) => {
-            toast({ title: "Delete failed", description: err?.message ?? "Could not remove the review.", variant: "destructive" });
-        },
-    });
-
-    const avgRating = reviews.length
-        ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
-        : "0.0";
-    const breakdown = [5, 4, 3, 2, 1].map((s) => ({
-        star: s,
-        count: reviews.filter((r) => r.rating === s).length,
-    }));
+    // Rating stats
+    const totalReviews = reviews.length;
+    const avgRating = totalReviews ? (reviews.reduce((s, r) => s + (r.rating ?? 0), 0) / totalReviews) : 0;
+    const distribution = [5, 4, 3, 2, 1].map((s) => ({ star: s, count: reviews.filter((r) => r.rating === s).length }));
 
     const images = product?.imageUrls ?? (product?.imageUrl ? [product.imageUrl] : []);
 
+    if (productLoading) {
+        return (
+            <div className="flex justify-center py-24">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
+
+    if (!product) {
+        return (
+            <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-4">
+                <Package className="w-12 h-12 text-muted-foreground mx-auto" />
+                <h2 className="text-xl font-semibold">Product not found</h2>
+                <Button onClick={() => navigate("/products")}>Back to Products</Button>
+            </div>
+        );
+    }
+
     return (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
             {/* Back */}
             <button
                 onClick={() => navigate("/products")}
@@ -572,152 +436,165 @@ export default function ProductReviews() {
                 <ArrowLeft className="w-4 h-4" /> Back to Products
             </button>
 
-            {/* ── Product Information Card — two-col on desktop ── */}
-            <div className="bg-white border border-border rounded-xl overflow-hidden">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-                    {/* Gallery — left column */}
+            {/* Product hero */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Gallery */}
+                <div className="space-y-3">
                     {images.length > 0 ? (
-                        <div className="p-5 border-b md:border-b-0 md:border-r border-border">
-                            <ProductGallery images={images} name={product?.name ?? ""} />
-                        </div>
+                        <>
+                            <div
+                                className="relative rounded-xl overflow-hidden border border-border cursor-zoom-in group"
+                                onClick={() => openLightbox(0)}
+                            >
+                                <img
+                                    src={images[0]}
+                                    alt={product.name}
+                                    className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                                <div className="absolute bottom-3 right-3 bg-black/50 text-white rounded-full p-1.5">
+                                    <ZoomIn className="w-4 h-4" />
+                                </div>
+                            </div>
+                            {images.length > 1 && (
+                                <div className="flex gap-2 overflow-x-auto pb-1">
+                                    {images.map((url, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => openLightbox(i)}
+                                            className="w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors shrink-0"
+                                        >
+                                            <img src={url} alt={`View ${i + 1}`} className="w-full h-full object-cover" />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </>
                     ) : (
-                        <div className="p-5 border-b md:border-b-0 md:border-r border-border flex items-center justify-center">
-                            <div className="w-full h-64 bg-secondary rounded-lg flex items-center justify-center text-5xl">🎨</div>
+                        <div className="rounded-xl border bg-muted h-72 flex items-center justify-center text-6xl">🎨</div>
+                    )}
+                </div>
+
+                {/* Product info */}
+                <div className="space-y-4">
+                    {product.categoryName && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Tag className="w-3.5 h-3.5" /> {product.categoryName}
                         </div>
                     )}
-
-                    {/* Details — right column */}
-                    <div className="p-6 flex flex-col justify-between space-y-4">
-                        <div className="space-y-3">
-                            <div>
-                                <h1 className="font-extrabold text-2xl leading-tight">{product?.name ?? `Product #${id}`}</h1>
-                                {product?.category?.name && (
-                                    <span className="inline-flex items-center gap-1 mt-2 text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-                                        <Tag className="w-3 h-3" /> {product.category.name}
-                                    </span>
-                                )}
-                            </div>
-
-                            {product?.description && (
-                                <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
-                            )}
-                        </div>
-
-                        <div className="space-y-3 pt-2 border-t border-border">
-                            <div className="flex flex-wrap items-center gap-3">
-                                {product?.price != null && (
-                                    <span className="text-2xl font-extrabold">
-                                        £{Number(product.price).toFixed(2)}
-                                    </span>
-                                )}
-                                {product?.stockQuantity != null && (
-                                    <div className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
-                                        product.stockQuantity > 0
-                                            ? "bg-green-50 text-green-700"
-                                            : "bg-red-50 text-red-700"
-                                    }`}>
-                                        <Package className="w-3 h-3" />
-                                        {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : "Out of stock"}
-                                    </div>
-                                )}
-                            </div>
-                            <Button
-                                onClick={handleAddToCart}
-                                disabled={cartLoading || adding || product?.stockQuantity === 0}
-                                className={cn(
-                                    "w-full gap-2 transition-all",
-                                    added ? "bg-green-600 hover:bg-green-600" : ""
-                                )}
-                            >
-                                {adding ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <ShoppingCart className="w-4 h-4" />
-                                )}
-                                {added ? "Added to Cart!" : adding ? "Adding…" : "Add to Cart"}
-                            </Button>
-                        </div>
+                    <h1 className="text-2xl font-extrabold leading-tight">{product.name}</h1>
+                    {product.description && (
+                        <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
+                    )}
+                    <div className="flex items-center gap-3">
+                        <StarRow rating={Math.round(avgRating)} size="md" />
+                        <span className="text-sm text-muted-foreground">{avgRating.toFixed(1)} ({totalReviews} review{totalReviews !== 1 ? "s" : ""})</span>
                     </div>
+                    <p className="text-3xl font-extrabold">£{Number(product.price).toFixed(2)}</p>
+                    <Button
+                        size="lg"
+                        className="w-full sm:w-auto gap-2"
+                        onClick={() => addItem(product.id, 1)}
+                    >
+                        <ShoppingCart className="w-4 h-4" /> Add to Cart
+                    </Button>
                 </div>
             </div>
 
-            {/* Moderator banner */}
-            {isModerator && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
-                    <ShieldAlert className="w-4 h-4 shrink-0" />
-                    <span>
-                        <strong>Moderator view</strong> — click the trash icon on any review to remove it.
-                        {usingDummy && " (review service may be offline — showing sample data only)"}
-                    </span>
+            {/* Rating breakdown */}
+            {totalReviews > 0 && (
+                <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+                    <h2 className="font-bold text-lg flex items-center gap-2">
+                        <Star className="w-5 h-5 fill-accent text-accent" /> Customer Ratings
+                    </h2>
+                    <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                        <div className="text-center">
+                            <p className="text-5xl font-extrabold">{avgRating.toFixed(1)}</p>
+                            <StarRow rating={Math.round(avgRating)} size="md" />
+                            <p className="text-xs text-muted-foreground mt-1">{totalReviews} reviews</p>
+                        </div>
+                        <div className="flex-1 w-full space-y-1.5">
+                            {distribution.map(({ star, count }) => (
+                                <RatingBar key={star} star={star} count={count} total={totalReviews} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
 
-            {/* Only show notice when service is completely down */}
-            {usingDummy && !isModerator && (
-                <p className="text-xs text-muted-foreground text-center italic">
-                    Live reviews are temporarily unavailable — showing sample reviews.
-                </p>
-            )}
-
-            {/* Rating summary */}
-            <div className="bg-white border border-border rounded-xl p-6">
-                <div className="flex flex-col sm:flex-row gap-8 items-start">
-                    <div className="flex flex-col items-center gap-2 shrink-0">
-                        <span className="text-6xl font-extrabold text-foreground">{avgRating}</span>
-                        <StarRow rating={Math.round(Number(avgRating))} max={5} size="lg" />
-                        <span className="text-sm text-muted-foreground">{reviews.length} reviews</span>
-                    </div>
-                    <div className="flex-1 w-full space-y-2">
-                        {breakdown.map(({ star, count }) => (
-                            <RatingBar key={star} star={star} count={count} total={reviews.length} />
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Review list */}
+            {/* Reviews list */}
             <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                    <h2 className="font-bold text-lg">All Reviews</h2>
-                </div>
-                {reviews.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-6">
-                        No reviews yet — be the first!
-                    </p>
+                <h2 className="font-bold text-lg flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" /> Reviews
+                    {reviewsError && <span className="text-xs font-normal text-muted-foreground ml-2">(sample data — review service unavailable)</span>}
+                </h2>
+
+                {reviewsLoading && (
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
                 )}
-                {reviews.map((r) => (
+
+                {!reviewsLoading && reviews.length === 0 && (
+                    <div className="bg-card border rounded-xl p-8 text-center text-muted-foreground text-sm">
+                        No reviews yet. Be the first to leave one!
+                    </div>
+                )}
+
+                {reviews.map((review) => (
                     <ReviewCard
-                        key={r.id}
-                        review={r}
+                        key={review.id}
+                        review={review}
                         isModerator={isModerator}
-                        onModeratorDelete={(reviewId) => deleteMutation.mutate(reviewId)}
+                        onModeratorDelete={(id) => deleteMutation.mutate(id)}
                     />
                 ))}
             </div>
 
-            {/* ── Write a Review ── */}
-            {user && !isModerator && !usingDummy && (
-                <div className="bg-white border border-border rounded-xl p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="font-bold text-lg">Write a Review</h2>
-                        {!showForm && (
-                            <Button size="sm" onClick={() => setShowForm(true)}>Leave a Review</Button>
-                        )}
+            {/* Write a review */}
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+                <h2 className="font-bold text-lg">Write a Review</h2>
+                <form onSubmit={handleSubmitReview} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Your Rating</label>
+                        <StarPicker value={rating} onChange={setRating} />
                     </div>
-                    {showForm && (
-                        <WriteReviewForm productId={id} onSuccess={() => setShowForm(false)} />
-                    )}
-                </div>
-            )}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Title <span className="text-muted-foreground font-normal">(optional)</span></label>
+                        <input
+                            type="text"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Summarise your experience…"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            maxLength={120}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Comment</label>
+                        <textarea
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            placeholder="Tell others about your experience with this product…"
+                            rows={4}
+                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                            maxLength={1000}
+                        />
+                        <p className="text-xs text-muted-foreground text-right mt-1">{comment.length}/1000</p>
+                    </div>
+                    <Button type="submit" disabled={submitting || submitMutation.isPending} className="gap-2">
+                        {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Submit Review
+                    </Button>
+                </form>
+            </div>
 
-            {!user && (
-                <div className="bg-secondary/40 border border-dashed border-border rounded-xl p-6 text-center space-y-2">
-                    <p className="font-semibold">Have this product?</p>
-                    <p className="text-sm text-muted-foreground">Sign in to leave a review.</p>
-                    <Button variant="outline" size="sm" onClick={() => navigate("/login")}>Sign In</Button>
-                </div>
-            )}
+            {/* Lightbox */}
+            <Lightbox
+                images={images}
+                startIdx={lightboxStart}
+                open={lightboxOpen}
+                onClose={() => setLightboxOpen(false)}
+            />
         </div>
     );
 }

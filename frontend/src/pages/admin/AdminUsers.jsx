@@ -52,7 +52,7 @@ export default function AdminUsers() {
             )}
 
             {users?.length > 0 && (
-                <div className="bg-white border rounded-xl overflow-hidden">
+                <div className="bg-card border rounded-xl overflow-hidden">
                     <table className="w-full text-sm">
                         <thead className="bg-muted/50">
                         <tr>

@@ -1,13 +1,12 @@
 package com.itc.funkart.aggregator.service.impl;
 
+import com.itc.funkart.aggregator.entity.Order;
+import com.itc.funkart.aggregator.kafka.producer.OrderEventProducer;
+import com.itc.funkart.aggregator.service.KafkaEventService;
 import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
 import com.itc.funkart.common.dto.event.order.OrderEvent;
 import com.itc.funkart.common.enums.order.OrderEventType;
-import com.itc.funkart.aggregator.entity.Order;
-import com.itc.funkart.aggregator.kafka.producer.OrderEventProducer;
 import com.itc.funkart.mapper.OrderMapper;
-import com.itc.funkart.aggregator.service.KafkaEventService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -56,11 +55,14 @@ public class KafkaEventServiceImpl implements KafkaEventService {
      * existing mapper method that returns an {@code OrderEvent}.</p>
      */
     @Override
-    @Transactional
     public void sendOrderCreated(Order order) {
+        // Use the same afterCommit guard as sendOrderEvent — Kafka must not receive
+        // ORDER_INITIATED until the order row is actually committed to the DB.
+        String key = order.getId() != null
+                ? order.getId().toString()
+                : order.getCustomerId().toString();
         OrderEvent event = mapper.toEvent(order, OrderEventType.ORDER_INITIATED);
-
-        producer.publishOrderEvent(event); // direct publish
+        syncAndSend(() -> producer.publishOrderEvent(event), key);
     }
 
     @Override

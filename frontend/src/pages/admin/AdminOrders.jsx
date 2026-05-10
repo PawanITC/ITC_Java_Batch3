@@ -1,26 +1,28 @@
-import { useState } from "react";
-import { ShoppingBag, Loader2, RefreshCw } from "lucide-react";
-import { useAdminOrders, useUpdateOrderStatus } from "../../hooks/useAdminOrders";
+import {useState} from "react";
+import {ShoppingBag, Loader2, RefreshCw} from "lucide-react";
+import {useNavigate} from "react-router-dom";
+import {useAdminOrders, useUpdateOrderStatus} from "@/hooks/useAdminOrders";
 import OrderStatusBadge from "../../components/orders/OrderStatusBadge";
-import StatusSelect from "../../components/admin/StatusSelect";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
+import StatusSelect from "@/components/admin/StatusSelect";
+import {Button} from "@/components/ui/button";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {format} from "date-fns";
 
 const STATUS_FILTERS = ["ALL", "PENDING", "PAID", "SHIPPED", "DELIVERED", "CONFIRMED", "CANCELLED", "REFUNDED", "FAILED"];
 
 export default function AdminOrders() {
+    const navigate = useNavigate();
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [page, setPage] = useState(0);
 
     const params = {
-        ...(statusFilter !== "ALL" && { status: statusFilter }),
+        ...(statusFilter !== "ALL" && {status: statusFilter}),
         page,
         size: 10,
         sort: "createdAt,desc",
     };
 
-    const { data: pageData, isLoading, isError, refetch } = useAdminOrders(params);
+    const {data: pageData, isLoading, isError, refetch} = useAdminOrders(params);
     const updateStatus = useUpdateOrderStatus();
 
     const orders = pageData?.content ?? pageData ?? [];
@@ -31,14 +33,17 @@ export default function AdminOrders() {
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <ShoppingBag className="w-6 h-6" />
+                    <ShoppingBag className="w-6 h-6"/>
                     <h2 className="text-xl font-semibold">Order Management</h2>
                 </div>
 
                 {/* Status filter */}
-                <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
+                <Select value={statusFilter} onValueChange={(v) => {
+                    setStatusFilter(v);
+                    setPage(0);
+                }}>
                     <SelectTrigger className="w-40 h-9 text-sm">
-                        <SelectValue />
+                        <SelectValue/>
                     </SelectTrigger>
                     <SelectContent>
                         {STATUS_FILTERS.map((s) => (
@@ -50,7 +55,7 @@ export default function AdminOrders() {
 
             {isLoading && (
                 <div className="flex justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground"/>
                 </div>
             )}
 
@@ -58,7 +63,7 @@ export default function AdminOrders() {
                 <div className="flex items-center gap-3 text-destructive text-sm">
                     <p>Failed to load orders.</p>
                     <Button variant="outline" size="sm" onClick={refetch} className="gap-1.5">
-                        <RefreshCw className="w-3.5 h-3.5" /> Retry
+                        <RefreshCw className="w-3.5 h-3.5"/> Retry
                     </Button>
                 </div>
             )}
@@ -68,7 +73,7 @@ export default function AdminOrders() {
             )}
 
             {orders.length > 0 && (
-                <div className="bg-white border rounded-xl overflow-x-auto">
+                <div className="bg-card border rounded-xl overflow-x-auto">
                     <table className="w-full text-sm min-w-[640px]">
                         <thead className="bg-muted/50">
                         <tr>
@@ -82,24 +87,28 @@ export default function AdminOrders() {
                         </thead>
                         <tbody className="divide-y">
                         {orders.map((order) => (
-                            <tr key={order.orderId} className="hover:bg-muted/20 transition-colors">
+                            <tr
+                                key={order.orderId}
+                                onClick={() => navigate("/admin/tracking", {state: {orderId: order.orderId}})}
+                                className="hover:bg-muted/30 transition-colors cursor-pointer"
+                            >
                                 <td className="px-4 py-3 font-medium">#{order.orderId}</td>
                                 <td className="px-4 py-3 text-muted-foreground">
                                     {order.createdAt ? format(new Date(order.createdAt), "MMM d, yyyy") : "—"}
                                 </td>
                                 <td className="px-4 py-3 text-muted-foreground">
-                                    {order.customerId ?? order.userId ?? order.customerEmail ?? "—"}
+                                    {order.customerEmail ?? order.customerId ?? "—"}
                                 </td>
                                 <td className="px-4 py-3 text-right font-semibold">
-                                    ${Number(order.totalAmount ?? 0).toFixed(2)}
+                                    £ {Number(order.totalAmount ?? 0).toFixed(2)}
                                 </td>
                                 <td className="px-4 py-3">
-                                    <OrderStatusBadge status={order.orderStatus} />
+                                    <OrderStatusBadge status={order.orderStatus}/>
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                                     <StatusSelect
                                         value={order.orderStatus}
-                                        onChange={(newStatus) => updateStatus.mutate({ id: order.orderId, newStatus })}
+                                        onChange={(newStatus) => updateStatus.mutate({id: order.orderId, newStatus})}
                                         disabled={updateStatus.isPending}
                                     />
                                 </td>
@@ -117,9 +126,11 @@ export default function AdminOrders() {
                         Previous
                     </Button>
                     <span className="text-muted-foreground">Page {page + 1} of {totalPages}</span>
-                    <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages - 1}
+                            onClick={() => setPage((p) => p + 1)}>
                         Next
                     </Button>
+               
                 </div>
             )}
         </div>

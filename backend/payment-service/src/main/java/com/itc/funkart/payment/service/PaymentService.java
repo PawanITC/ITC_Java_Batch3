@@ -266,11 +266,25 @@ public class PaymentService {
     }
 
 
+    // Event types this service actually handles — everything else is silently ACK'd
+    private static final java.util.Set<String> HANDLED_EVENTS = java.util.Set.of(
+            "payment_intent.succeeded",
+            "payment_intent.payment_failed",
+            "charge.refunded"
+    );
+
     @Transactional
     public void processWebhookEvent(Event event) {
 
-        log.debug("Processing Webhook Event | ID: {} | Type: {}", event.getId(), event.getType());
+        log.info("📨 Webhook received | ID: {} | Type: {}", event.getId(), event.getType());
 
+        // Skip deserialization (and avoid version-mismatch 500s) for events we don't handle
+        if (!HANDLED_EVENTS.contains(event.getType())) {
+            log.info("ℹ️ Unhandled event type — ACK'ing: {}", event.getType());
+            return;
+        }
+
+        // Deserialize only for events we actually need to process
         StripeObject stripeObject;
         try {
             stripeObject = event.getDataObjectDeserializer()
@@ -283,6 +297,7 @@ public class PaymentService {
                         }
                     });
         } catch (Exception ex) {
+            log.error("❌ Deserialization failed for {} ({}): {}", event.getType(), event.getId(), ex.getMessage());
             throw new PaymentException("Webhook deserialization failure: " + event.getId());
         }
 
@@ -305,8 +320,6 @@ public class PaymentService {
                     handlePaymentRefunded(charge);
                 }
             }
-
-            default -> log.info("ℹ️ Unhandled event type: {}", event.getType());
         }
     }
 

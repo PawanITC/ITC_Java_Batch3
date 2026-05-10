@@ -82,7 +82,7 @@ export default function CartPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Items list */}
                     <div className="lg:col-span-2">
-                        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+                        <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
                             <div className="hidden md:grid grid-cols-12 px-5 py-3 bg-secondary/60 text-xs font-semibold text-muted-foreground uppercase tracking-widest border-b">
                                 <span className="col-span-5">Product</span>
                                 <span className="col-span-3 text-center">Quantity</span>
@@ -99,7 +99,7 @@ export default function CartPage() {
 
                     {/* Order summary */}
                     <div>
-                        <div className="bg-white rounded-xl border shadow-sm p-6 sticky top-24 space-y-4">
+                        <div className="bg-card rounded-xl border shadow-sm p-6 sticky top-24 space-y-4">
                             <h2 className="font-bold text-lg">Order Summary</h2>
 
                             <div className="space-y-2 text-sm">
@@ -109,7 +109,7 @@ export default function CartPage() {
                                             {item.productName}{" "}
                                             <span className="text-foreground font-medium">×{item.quantity}</span>
                                         </span>
-                                        <span className="ml-4 tabular-nums">${item.subTotal.toFixed(2)}</span>
+                                        <span className="ml-4 tabular-nums">£{item.subTotal.toFixed(2)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -118,7 +118,7 @@ export default function CartPage() {
 
                             <div className="flex justify-between font-bold text-base">
                                 <span>Total</span>
-                                <span className="text-lg tabular-nums">${total.toFixed(2)}</span>
+                                <span className="text-lg tabular-nums">£{total.toFixed(2)}</span>
                             </div>
 
                             <Button

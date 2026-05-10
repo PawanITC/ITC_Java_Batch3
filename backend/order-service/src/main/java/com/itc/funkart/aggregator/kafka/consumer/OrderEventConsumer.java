@@ -17,6 +17,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Service
@@ -68,12 +69,17 @@ public class OrderEventConsumer {
     )
     public void handlePaymentOutcome(
             @Payload Map<String, Object> payload,
-            @Header("event_type") byte[] eventTypeBytes,
+            @Header(value = "event_type", required = false) byte[] eventTypeBytes,
             Acknowledgment ack
     ) {
-        String eventType = new String(eventTypeBytes, java.nio.charset.StandardCharsets.UTF_8);
+        // event_type header may be absent on legacy or manually-produced messages —
+        // fall back to the payload's eventType field so we never block the consumer.
+        String eventType = eventTypeBytes != null
+                ? new String(eventTypeBytes, StandardCharsets.UTF_8)
+                : (String) payload.getOrDefault("eventType", "UNKNOWN");
 
-        log.info("💳 [PAYMENTS_EVENTS] type={} payload={}", eventType, payload);
+        log.info("💳 [PAYMENTS_EVENTS] type={} orderId={}", eventType,
+                payload.getOrDefault("orderId", "?"));
 
         try {
             switch (eventType) {
@@ -81,25 +87,25 @@ public class OrderEventConsumer {
                 case "PAYMENT_SUCCESS" -> {
                     PaymentCompletedEvent event =
                             objectMapper.convertValue(payload, PaymentCompletedEvent.class);
-
+                    log.info("✅ Marking order {} as PAID", event.orderId());
                     orderService.updateOrderStatus(event.orderId(), OrderStatus.PAID);
                 }
 
                 case "PAYMENT_FAILED" -> {
                     PaymentFailedEvent event =
                             objectMapper.convertValue(payload, PaymentFailedEvent.class);
-
+                    log.info("❌ Marking order {} as FAILED", event.orderId());
                     orderService.updateOrderStatus(event.orderId(), OrderStatus.FAILED);
                 }
 
                 case "ORDER_REFUNDED" -> {
                     PaymentRefundedEvent event =
                             objectMapper.convertValue(payload, PaymentRefundedEvent.class);
-
+                    log.info("↩️ Marking order {} as REFUNDED", event.orderId());
                     orderService.updateOrderStatus(event.orderId(), OrderStatus.REFUNDED);
                 }
 
-                default -> log.warn("⚠️ Unknown event type: {}", eventType);
+                default -> log.warn("⚠️ Unrecognised payment event type '{}' — ACK'ing to unblock", eventType);
             }
 
             ack.acknowledge();
@@ -107,7 +113,7 @@ public class OrderEventConsumer {
         } catch (Exception e) {
             log.error("❌ PAYMENT_PROCESS failed type={} payload={}",
                     eventType, payload, e);
-            // retry
+            // no ack → Kafka will redeliver
         }
     }
 }

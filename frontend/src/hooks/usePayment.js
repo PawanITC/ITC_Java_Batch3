@@ -38,7 +38,7 @@ export function usePayment() {
 
         // Backend returns PROCESSING — this is expected. Don't poll.
         setStatus("success");
-        return { success: true, data: result };
+        return { success: true, data: result.data };
     };
 
     const reset = () => {

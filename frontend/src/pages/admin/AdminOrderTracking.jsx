@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Search, ArrowLeft, Package, Loader2, User, Calendar, DollarSign } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { adminOrderApi } from "../../lib/adminApi";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Search, ArrowLeft, Package, Loader2, User, Calendar } from "lucide-react";
+import { useQuery, useQueries } from "@tanstack/react-query";
+import { adminOrderApi } from "@/lib/adminApi.js";
+import { productApi } from "@/lib/productApi.js";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import OrderStatusBadge from "../../components/orders/OrderStatusBadge";
-import OrderTimeline from "../../components/orders/OrderTimeline";
+import OrderStatusBadge from "@/components/orders/OrderStatusBadge";
+import OrderTimeline from "@/components/orders/OrderTimeline";
 import { format } from "date-fns";
 
 // Dummy fallback orders for demo purposes
@@ -55,6 +56,29 @@ function OrderTrackingResult({ orderId }) {
         retry: false,
     });
 
+    // Fall back to dummy data if backend returns error
+    const order = (!isError && liveOrder) ? liveOrder : DUMMY_ORDERS[String(orderId)];
+
+    // For items missing productName (old orders pre-migration), fetch names in parallel
+    const itemsNeedingEnrichment = (order?.items ?? []).filter(
+        (item) => !item.productName && item.productId
+    );
+    const productQueries = useQueries({
+        queries: itemsNeedingEnrichment.map((item) => ({
+            queryKey: ["product", item.productId],
+            queryFn: () => productApi.getProduct(item.productId).then((r) => r?.data ?? r),
+            staleTime: 5 * 60 * 1000,
+            retry: false,
+        })),
+    });
+
+    // Build a productId → name lookup from successful fetches
+    const nameMap = {};
+    itemsNeedingEnrichment.forEach((item, i) => {
+        const result = productQueries[i]?.data;
+        if (result?.name) nameMap[item.productId] = result.name;
+    });
+
     if (isLoading) {
         return (
             <div className="flex justify-center py-16">
@@ -62,9 +86,6 @@ function OrderTrackingResult({ orderId }) {
             </div>
         );
     }
-
-    // Fall back to dummy data if backend returns error
-    const order = (!isError && liveOrder) ? liveOrder : DUMMY_ORDERS[String(orderId)];
 
     if (!order) {
         return (
@@ -81,7 +102,7 @@ function OrderTrackingResult({ orderId }) {
     return (
         <div className="space-y-6">
             {/* Order header */}
-            <div className="bg-white border rounded-xl p-6">
+            <div className="bg-card border rounded-xl p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
@@ -100,38 +121,37 @@ function OrderTrackingResult({ orderId }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <User className="w-4 h-4" />
-                        <span>{order.customerId ?? order.customerEmail ?? order.userId ?? "—"}</span>
+                        <span>{order.customerEmail ?? order.customerId ?? "—"}</span>
                     </div>
                     <div className="flex items-center gap-2 font-semibold">
-                        <DollarSign className="w-4 h-4 text-muted-foreground" />
-                        <span>${Number(order.totalAmount ?? 0).toFixed(2)}</span>
+                        <span>£ {Number(order.totalAmount ?? 0).toFixed(2)}</span>
                     </div>
                 </div>
             </div>
 
             {/* Items */}
-            <div className="bg-white border rounded-xl p-6 space-y-3">
+            <div className="bg-card border rounded-xl p-6 space-y-3">
                 <h3 className="font-semibold text-sm">Items</h3>
                 <div className="space-y-2">
                     {order.items?.map((item, i) => (
                         <div key={i} className="flex justify-between text-sm">
               <span className="text-muted-foreground">
-                {item.productName ?? `Product #${item.productId}`}{" "}
+                {item.productName ?? nameMap[item.productId] ?? `Product #${item.productId}`}{" "}
                   <span className="text-foreground font-medium">× {item.quantity}</span>
               </span>
-                            <span className="font-medium">${Number(item.subTotal).toFixed(2)}</span>
+                            <span className="font-medium">£ {Number(item.subTotal).toFixed(2)}</span>
                         </div>
                     ))}
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold text-sm">
                     <span>Total</span>
-                    <span>${Number(order.totalAmount ?? 0).toFixed(2)}</span>
+                    <span>£ {Number(order.totalAmount ?? 0).toFixed(2)}</span>
                 </div>
             </div>
 
             {/* Timeline */}
-            <div className="bg-white border rounded-xl p-6">
+            <div className="bg-card border rounded-xl p-6">
                 <h3 className="font-semibold text-sm mb-6">Tracking Timeline</h3>
                 <OrderTimeline status={order.orderStatus ?? order.status} />
             </div>
@@ -141,8 +161,18 @@ function OrderTrackingResult({ orderId }) {
 
 export default function AdminOrderTracking() {
     const navigate = useNavigate();
+    const { state } = useLocation();
     const [input, setInput] = useState("");
     const [searchedId, setSearchedId] = useState(null);
+
+    // Auto-populate and search when navigated here from the orders table
+    useEffect(() => {
+        if (state?.orderId) {
+            const id = String(state.orderId);
+            setInput(id);
+            setSearchedId(id);
+        }
+    }, [state?.orderId]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -163,28 +193,24 @@ export default function AdminOrderTracking() {
                 <p className="text-sm text-muted-foreground">Look up any order by ID to see its current status and timeline.</p>
             </div>
 
-            <form onSubmit={handleSearch} className="flex gap-2">
-                <div className="relative flex-1">
+            {/* Search form */}
+            <form onSubmit={handleSearch} className="flex gap-3">
+                <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
-                        placeholder="Enter order ID (e.g. 1001)"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        className="pl-9 bg-white"
+                        placeholder="Enter order ID…"
+                        className="pl-10 bg-background"
                     />
                 </div>
-                <Button type="submit" disabled={!input.trim()}>Track</Button>
+                <Button type="submit" disabled={!input.trim()}>
+                    Track
+                </Button>
             </form>
 
+            {/* Result */}
             {searchedId && <OrderTrackingResult orderId={searchedId} />}
-
-            {!searchedId && (
-                <div className="bg-muted/50 rounded-xl px-6 py-10 text-center text-muted-foreground">
-                    <Package className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">Enter an order ID above to track it.</p>
-                    <p className="text-xs mt-1">Demo order IDs: 1001, 1002, 1003, 1004</p>
-                </div>
-            )}
         </div>
     );
 }

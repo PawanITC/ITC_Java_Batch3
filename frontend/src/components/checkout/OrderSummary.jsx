@@ -16,14 +16,14 @@ export default function OrderSummary({ cart }) {
               {item.productName}{" "}
                 <span className="text-foreground font-medium">× {item.quantity}</span>
             </span>
-                        <span className="font-medium">${item.subTotal.toFixed(2)}</span>
+                        <span className="font-medium">£{Number(item.subTotal ?? item.subtotal ?? 0).toFixed(2)}</span>
                     </div>
                 ))}
             </div>
             <Separator />
             <div className="flex justify-between font-semibold text-base">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>£{total.toFixed(2)}</span>
             </div>
         </div>
     );

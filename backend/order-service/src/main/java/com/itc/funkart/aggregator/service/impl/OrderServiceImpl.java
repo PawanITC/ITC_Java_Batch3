@@ -43,6 +43,7 @@ public class OrderServiceImpl implements OrderService {
         event.items().forEach(
                 itemPayload -> order.addOrderItem(OrderItem.builder()
                         .productId(itemPayload.productId())
+                        .productName(itemPayload.productName())
                         .quantity(itemPayload.quantity())
                         .priceAtPurchase(itemPayload.price())
                         .build()));
@@ -76,6 +77,13 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse updateOrderStatus(Long id, OrderStatus newStatus) {
         Order order = repository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException("Order ID " + id + " not found"));
+
+        // Idempotency: Kafka retries may redeliver the same event.
+        // Already in the target state is a no-op — return the current response without re-publishing.
+        if (order.getStatus() == newStatus) {
+            log.info("⏭️ Order {} already has status {} — skipping update", id, newStatus);
+            return mapper.toResponse(order);
+        }
 
         if (order.getStatus().isFinal()) {
             throw new OrderBadRequestException("Cannot modify terminal state: " + order.getStatus());

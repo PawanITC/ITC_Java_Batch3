@@ -12,7 +12,8 @@ spring:
         spring.json.add.type.headers: false
 
     consumer:
-      group-id: payment-service-group-v5
+      group-id: payment-service-group-v6
+      auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 

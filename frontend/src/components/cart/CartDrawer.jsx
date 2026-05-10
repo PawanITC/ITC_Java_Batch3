@@ -32,7 +32,7 @@ export default function CartDrawer({ open, onClose }) {
             )}
 
             <div
-                className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white shadow-2xl z-50 flex flex-col
+                className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-card shadow-2xl z-50 flex flex-col
           transition-transform duration-300 ease-in-out
           ${open ? "translate-x-0" : "translate-x-full"}`}
             >
@@ -80,7 +80,7 @@ export default function CartDrawer({ open, onClose }) {
 
                     {items.map((item) => (
                         <div key={item.productId} className="flex gap-3 items-start py-1">
-                            {/* Thumbnail — click to navigate to product */}
+                            {/* Thumbnail */}
                             <button
                                 onClick={() => { onClose(); navigate(`/products/${item.productId}/reviews`); }}
                                 className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-border hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -132,6 +132,7 @@ export default function CartDrawer({ open, onClose }) {
                                     onClick={() => removeItem(item.productId)}
                                     className="text-muted-foreground hover:text-destructive transition-colors"
                                     disabled={loading}
+                                    aria-label="Remove item"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -142,19 +143,18 @@ export default function CartDrawer({ open, onClose }) {
 
                 {/* Footer */}
                 {items.length > 0 && (
-                    <div className="border-t px-6 py-5 space-y-4 bg-secondary/30">
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground text-sm">Subtotal</span>
-                            <span className="font-extrabold text-xl">£{total.toFixed(2)}</span>
+                    <div className="border-t px-6 py-5 space-y-3">
+                        <div className="flex justify-between font-bold text-base">
+                            <span>Total</span>
+                            <span>£{Number(total).toFixed(2)}</span>
                         </div>
-                        <div className="flex gap-2">
-                            <Button variant="outline" className="flex-1 bg-white" onClick={() => { onClose(); navigate("/cart"); }}>
-                                View Cart
-                            </Button>
-                            <Button className="flex-1 gap-1" onClick={() => { onClose(); navigate("/cart"); }}>
-                                Checkout <ArrowRight className="w-4 h-4" />
-                            </Button>
-                        </div>
+                        <button
+                            className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                            disabled={loading}
+                            onClick={() => { onClose(); navigate("/cart"); }}
+                        >
+                            View Cart & Checkout
+                        </button>
                     </div>
                 )}
             </div>

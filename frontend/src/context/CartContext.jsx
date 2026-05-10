@@ -65,7 +65,8 @@ export function CartProvider({ children }) {
     const checkout = useCallback(async () => {
         try {
             const res = await cartApi.checkout();
-            setCart(null);
+            // Don't clear cart here — CheckoutPage needs it for the Order Summary.
+            // Cart will be re-fetched (and found empty) on PaymentSuccess mount.
             toast({ title: "Checkout started", description: "Redirecting to payment…" });
             return res;
         } catch (err) {

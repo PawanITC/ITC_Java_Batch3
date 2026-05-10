@@ -33,6 +33,9 @@ public class Order {
     @Column(nullable = false)
     private Long customerId;
 
+    @Column
+    private String customerEmail;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

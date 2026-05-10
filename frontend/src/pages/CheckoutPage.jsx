@@ -16,9 +16,14 @@ export default function CheckoutPage() {
     const navigate = useNavigate();
     const { state } = useLocation();
 
-    // Use the cart snapshot passed from CartPage (captured before checkout() cleared it).
-    // Fall back to the live cart context if navigated here directly.
-    const displayCart = state?.cartSnapshot ?? cart;
+    // resumeOrder: set when navigating here from a PENDING order's "Complete Payment" button.
+    // In this case we reuse the existing payment intent — no new checkout() call needed.
+    const resumeOrder = state?.resumeOrder ?? null;
+
+    // For the order summary: prefer the resume order's items, then live cart, then snapshot.
+    const displayCart = resumeOrder
+        ? { items: resumeOrder.items ?? [], totalAmount: resumeOrder.totalAmount ?? 0 }
+        : (cart ?? state?.cartSnapshot);
 
     const [stripeInstance, setStripeInstance] = useState(null);
     const [elements, setElements] = useState(null);
@@ -29,10 +34,10 @@ export default function CheckoutPage() {
 
     const { status, errorMessage, confirmPayment } = usePayment();
 
-    // Only fetch live cart as fallback when no snapshot was provided
+    // Only fetch live cart when we have no other summary source
     useEffect(() => {
-        if (!state?.cartSnapshot && !cart) fetchCart();
-    }, [state, cart, fetchCart]);
+        if (!resumeOrder && !state?.cartSnapshot && !cart) fetchCart();
+    }, [resumeOrder, state, cart, fetchCart]);
 
     useEffect(() => {
         let cancelled = false;
@@ -103,12 +108,15 @@ export default function CheckoutPage() {
     }, []);
 
     const handlePay = async (stripe, els) => {
+        // Snapshot cart NOW before fetchCart() on PaymentSuccess clears it
+        const cartSnapshot = displayCart;
         const result = await confirmPayment(stripe, els, paymentIntentId);
 
         if (result.success) {
             navigate("/payment-success", {
                 state: {
-                    orderData: result.data
+                    orderData: result.data,
+                    cartSnapshot,
                 }
             });
         } else {
@@ -150,7 +158,7 @@ export default function CheckoutPage() {
             </h1>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white rounded-xl border p-6">
+                <div className="bg-card rounded-xl border p-6">
                     <h2 className="font-semibold text-lg mb-6">
                         Payment Details
                     </h2>
@@ -160,7 +168,7 @@ export default function CheckoutPage() {
                         elements={elements}
                         onSubmit={handlePay}
                         loading={status === "processing"}
-                        error={errorMessage}
+                        error={errorMessage ?? null}
                     />
                 </div>
 

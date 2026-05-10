@@ -92,7 +92,7 @@ function NotifCard({ notif, onRead }) {
             className={cn(
                 "flex gap-4 p-4 rounded-xl border transition-colors cursor-pointer",
                 notif.read
-                    ? "bg-white border-border"
+                    ? "bg-card border-border"
                     : "bg-blue-50/40 border-blue-200 hover:bg-blue-50/60"
             )}
             onClick={() => !notif.read && onRead(notif.id)}

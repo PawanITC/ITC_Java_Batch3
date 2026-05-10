@@ -47,7 +47,7 @@ class OrderEventProducerTest {
     @DisplayName("publishOrderEvent(OrderInitiatedEvent) — should use orderId as key and send to ORDERS topic")
     void publishOrderEvent_withInitiatedEvent_shouldSendExpectedPayload() {
         CheckoutItemPayload item = new CheckoutItemPayload(
-                50L, 2, BigDecimal.valueOf(125.00), BigDecimal.valueOf(250.00)
+                50L, "Test Product", 2, BigDecimal.valueOf(125.00), BigDecimal.valueOf(250.00)
         );
 
         // NOTE: OrderInitiatedEvent extends/is a subtype of the event — verify it routes correctly

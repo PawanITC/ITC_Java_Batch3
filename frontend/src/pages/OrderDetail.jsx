@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Package, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, Package, AlertTriangle, CreditCard } from "lucide-react";
 import { useQueries } from "@tanstack/react-query";
 import { useOrder, useCancelOrder } from "../hooks/useOrders";
 import OrderStatusBadge from "../components/orders/OrderStatusBadge";
@@ -64,7 +64,7 @@ export default function OrderDetail() {
             </button>
 
             {/* Header */}
-            <div className="bg-white border rounded-xl p-6">
+            <div className="bg-card border rounded-xl p-6">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
@@ -80,7 +80,7 @@ export default function OrderDetail() {
             </div>
 
             {/* Items */}
-            <div className="bg-white border rounded-xl p-6 space-y-4">
+            <div className="bg-card border rounded-xl p-6 space-y-4">
                 <h2 className="font-semibold">Items</h2>
                 <div className="space-y-3">
                     {order.items?.map((item, i) => {
@@ -108,7 +108,7 @@ export default function OrderDetail() {
                                 </div>
                                 {/* Subtotal */}
                                 <span className="text-sm font-medium shrink-0">
-                                    ${Number(item.subTotal ?? item.priceAtPurchase * item.quantity).toFixed(2)}
+                                    £{Number(item.subTotal ?? item.priceAtPurchase * item.quantity).toFixed(2)}
                                 </span>
                             </div>
                         );
@@ -117,27 +117,40 @@ export default function OrderDetail() {
                 <Separator />
                 <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>${Number(order.totalAmount ?? 0).toFixed(2)}</span>
+                    <span>£{Number(order.totalAmount ?? 0).toFixed(2)}</span>
                 </div>
             </div>
 
             {/* Actions */}
-            {canCancel && (
-                <Button
-                    variant="destructive"
-                    className="w-full"
-                    disabled={cancelMutation.isPending}
-                    onClick={() => cancelMutation.mutate(order.orderId)}
-                >
-                    {cancelMutation.isPending ? (
-                        <span className="flex items-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin" /> Cancelling…
-                        </span>
-                    ) : (
-                        "Cancel Order"
-                    )}
-                </Button>
-            )}
+            <div className="flex flex-col gap-3">
+                {/* Resume payment — only for PENDING orders */}
+                {order.orderStatus === "PENDING" && (
+                    <Button
+                        className="w-full gap-2 bg-amber-500 hover:bg-amber-600 text-white"
+                        onClick={() => navigate("/checkout", { state: { resumeOrder: order } })}
+                    >
+                        <CreditCard className="w-4 h-4" />
+                        Complete Payment
+                    </Button>
+                )}
+
+                {canCancel && (
+                    <Button
+                        variant="destructive"
+                        className="w-full"
+                        disabled={cancelMutation.isPending}
+                        onClick={() => cancelMutation.mutate(order.orderId)}
+                    >
+                        {cancelMutation.isPending ? (
+                            <span className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" /> Cancelling…
+                            </span>
+                        ) : (
+                            "Cancel Order"
+                        )}
+                    </Button>
+                )}
+            </div>
         </div>
     );
 }

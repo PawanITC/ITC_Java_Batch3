@@ -1,6 +1,7 @@
 package com.itc.funkart.product.controller;
 
 import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.common.dto.user.JwtUserDto;
 import com.itc.funkart.product.dto.request.AddToCartRequest;
 import com.itc.funkart.product.dto.request.CartItemUpdateDto;
 import com.itc.funkart.product.dto.response.CartResponse;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -94,8 +96,9 @@ public class CartController {
      */
     @PostMapping("/checkout")
     @Operation(summary = "Checkout and clear cart")
-    public ResponseEntity<ApiResponse<String>> checkout() {
-        cartService.checkout();
+    public ResponseEntity<ApiResponse<String>> checkout(
+            @AuthenticationPrincipal JwtUserDto user) {
+        cartService.checkout(user != null ? user.email() : null);
         return ResponseEntity.ok(ApiResponse.success("Order processed and cart cleared", "Checkout successful"));
     }
 }

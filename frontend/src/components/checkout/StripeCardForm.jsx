@@ -20,6 +20,14 @@ export default function StripeCardForm({ stripe, elements, onSubmit, loading, er
     useEffect(() => {
         if (!elements) return;
 
+        // Detect dark mode once at mount time by checking the <html> class.
+        // We intentionally do NOT add the theme as a dep — destroying and recreating
+        // the card element on every toggle breaks interactivity in React StrictMode.
+        // Users switching themes mid-checkout is rare; they can reload if needed.
+        const isDark = document.documentElement.classList.contains("dark");
+        const textColor        = isDark ? "#f5f5f5" : "#0a0a0a";
+        const placeholderColor = isDark ? "#737373" : "#a3a3a3";
+
         // card.destroy() (not unmount) deregisters the element from the Elements instance.
         // This is critical in React StrictMode which runs cleanup + re-mount in dev:
         // card.unmount() only removes from DOM but keeps it registered, so the second
@@ -28,9 +36,9 @@ export default function StripeCardForm({ stripe, elements, onSubmit, loading, er
             style: {
                 base: {
                     fontSize: "16px",
-                    color: "#0a0a0a",
+                    color: textColor,
                     fontFamily: "ui-sans-serif, system-ui, sans-serif",
-                    "::placeholder": { color: "#a3a3a3" },
+                    "::placeholder": { color: placeholderColor },
                 },
                 invalid: { color: "#ef4444" },
             },
@@ -44,7 +52,7 @@ export default function StripeCardForm({ stripe, elements, onSubmit, loading, er
             setCardReady(false);
             card.destroy();
         };
-    }, [elements]); // cardReady intentionally excluded — it would cause an infinite loop
+    }, [elements]); // elements only — do not add dark/theme here
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -58,7 +66,7 @@ export default function StripeCardForm({ stripe, elements, onSubmit, loading, er
                 <label className="block text-sm font-medium mb-2">Card Details</label>
                 <div
                     ref={cardRef}
-                    className="border rounded-lg px-4 py-3 bg-white focus-within:ring-2 focus-within:ring-ring transition"
+                    className="border rounded-lg px-4 py-3 bg-background focus-within:ring-2 focus-within:ring-ring transition min-h-[46px]"
                 />
                 {cardError && (
                     <p className="text-destructive text-sm mt-1">{cardError}</p>
@@ -74,14 +82,14 @@ export default function StripeCardForm({ stripe, elements, onSubmit, loading, er
             <Button type="submit" className="w-full h-11" disabled={!stripe || !cardReady || loading}>
                 {loading ? (
                     <span className="flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Processing…
-          </span>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Processing…
+                    </span>
                 ) : (
                     <span className="flex items-center gap-2">
-            <Lock className="w-4 h-4" />
-            Pay Now
-          </span>
+                        <Lock className="w-4 h-4" />
+                        Pay Now
+                    </span>
                 )}
             </Button>
 

@@ -71,7 +71,7 @@ class OrderEventConsumerTest {
             Map<String, Object> payload = Map.of("customerId", 100L);
             CheckoutInitiatedEvent event = new CheckoutInitiatedEvent(
                     OrderEventType.ORDER_INITIATED, 100L, new BigDecimal("250.00"),
-                    List.of(), "usd", null);
+                    List.of(), "usd", null, null);
             when(objectMapper.convertValue(payload, CheckoutInitiatedEvent.class)).thenReturn(event);
 
             consumer.handleCheckoutInitiated(payload, ack);
@@ -85,7 +85,7 @@ class OrderEventConsumerTest {
         void serviceException_noAck() {
             Map<String, Object> payload = Map.of("customerId", 100L);
             CheckoutInitiatedEvent event = new CheckoutInitiatedEvent(
-                    OrderEventType.ORDER_INITIATED, 100L, BigDecimal.ZERO, List.of(), "usd", null);
+                    OrderEventType.ORDER_INITIATED, 100L, BigDecimal.ZERO, List.of(), "usd", null, null);
             when(objectMapper.convertValue(payload, CheckoutInitiatedEvent.class)).thenReturn(event);
             doThrow(new RuntimeException("DB timeout")).when(orderService).processOrderInitiation(any());
 

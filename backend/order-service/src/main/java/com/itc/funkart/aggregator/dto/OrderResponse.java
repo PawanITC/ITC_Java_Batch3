@@ -19,6 +19,7 @@ public class OrderResponse {
 
     private Long orderId;
     private Long customerId;
+    private String customerEmail;
     private List<OrderItemResponse> items;
     private BigDecimal totalAmount;
     private OrderStatus orderStatus;

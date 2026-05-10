@@ -34,6 +34,13 @@ public class OrderItem {
     @Column(nullable = false)
     private Long productId;
 
+    /**
+     * Snapshot of the product name at the moment the order was placed.
+     * Stored so order history remains accurate even if the product is renamed.
+     */
+    @Column(nullable = true)
+    private String productName;
+
     @Column(nullable = false)
     private Integer quantity;
 

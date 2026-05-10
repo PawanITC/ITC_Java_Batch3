@@ -116,7 +116,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public void checkout() {
+    public void checkout(String customerEmail) {
         Cart cart = getAuthenticatedCart();
 
         if (cart.getItems().isEmpty()) {
@@ -130,6 +130,7 @@ public class CartServiceImpl implements CartService {
 
                     return new CheckoutItemPayload(
                             ci.getProduct().getId(),
+                            ci.getProduct().getName(),
                             qty,
                             price,
                             price.multiply(BigDecimal.valueOf(qty))
@@ -147,6 +148,7 @@ public class CartServiceImpl implements CartService {
                 .totalAmount(total)
                 .items(items)
                 .currency("USD")
+                .customerEmail(customerEmail)
                 .build();
 
         log.debug("🛒 Checkout initiated | user={} | total={}", cart.getUserId(), total);

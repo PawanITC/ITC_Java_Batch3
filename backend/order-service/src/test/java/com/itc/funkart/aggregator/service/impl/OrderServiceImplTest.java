@@ -69,7 +69,7 @@ class OrderServiceImplTest {
         void success() {
             CheckoutInitiatedEvent event = new CheckoutInitiatedEvent(
                     OrderEventType.ORDER_INITIATED, 100L, new BigDecimal("500.00"),
-                    List.of(), "usd", null);
+                    List.of(), "usd", null, null);
 
             Order entity = new Order();
             entity.setCustomerId(100L);

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 import Layout from "@/components/layout/Layout";
 import AuthPage from "@/pages/AuthPage";
@@ -98,13 +99,15 @@ function AppRoutes() {
 
 export default function App() {
     return (
-        <AuthProvider>
-            <QueryClientProvider client={queryClientInstance}>
-                <Router>
-                    <AppRoutes />
-                </Router>
-                <Toaster />
-            </QueryClientProvider>
-        </AuthProvider>
+        <ThemeProvider>
+            <AuthProvider>
+                <QueryClientProvider client={queryClientInstance}>
+                    <Router>
+                        <AppRoutes />
+                    </Router>
+                    <Toaster />
+                </QueryClientProvider>
+            </AuthProvider>
+        </ThemeProvider>
     );
 }

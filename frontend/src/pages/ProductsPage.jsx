@@ -25,7 +25,7 @@ function ProductCard({ product }) {
     };
 
     return (
-        <div className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group">
+        <div className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col group">
             <div
                 className="relative overflow-hidden cursor-pointer"
                 onClick={() => navigate(`/products/${product.id}/reviews`)}
@@ -44,7 +44,7 @@ function ProductCard({ product }) {
                 )}
                 {product.categoryName && (
                     <div className="absolute top-3 left-3">
-                        <Badge className="bg-white/90 text-foreground border-0 shadow-sm text-xs font-medium">
+                        <Badge className="bg-white text-gray-900 border-0 shadow-sm text-xs font-medium">
                             {product.categoryName}
                         </Badge>
                     </div>
@@ -146,13 +146,13 @@ export default function ProductsPage() {
                         placeholder="Search products…"
                         value={search}
                         onChange={handleSearch}
-                        className="pl-10 bg-white"
+                        className="pl-10 bg-background"
                     />
                 </div>
 
                 {categories.length > 0 && (
                     <Select onValueChange={handleCategory} defaultValue="all">
-                        <SelectTrigger className="w-full sm:w-44 bg-white">
+                        <SelectTrigger className="w-full sm:w-44 bg-background">
                             <SlidersHorizontal className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="All Categories" />
                         </SelectTrigger>
@@ -203,15 +203,13 @@ export default function ProductsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-8">
-                    <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                        ← Previous
+                <div className="flex justify-center items-center gap-3 mt-8 text-sm">
+                    <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                        Previous
                     </Button>
-                    <span className="text-sm text-muted-foreground font-medium">
-            Page {page + 1} of {totalPages}
-          </span>
-                    <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}>
-                        Next →
+                    <span className="text-muted-foreground">Page {page + 1} of {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
+                        Next
                     </Button>
                 </div>
             )}

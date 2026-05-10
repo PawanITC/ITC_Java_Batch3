@@ -7,6 +7,17 @@ export function useOrderHistory() {
     return useQuery({
         queryKey: ORDER_HISTORY_KEY,
         queryFn: () => orderApi.getHistory().then((r) => r?.data ?? r),
+        // Always fetch fresh data when the page is opened — never show a stale list.
+        refetchOnMount: "always",
+        staleTime: 0,
+        // Keep polling every 3 s while any order is PENDING so the list automatically
+        // reflects the status once the payment saga completes on the backend.
+        refetchInterval: (query) => {
+            const orders = query.state.data;
+            return Array.isArray(orders) && orders.some((o) => o.orderStatus === "PENDING")
+                ? 3000
+                : false;
+        },
     });
 }
 

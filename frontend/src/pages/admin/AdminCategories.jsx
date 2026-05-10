@@ -45,7 +45,7 @@ export default function AdminCategories() {
             </div>
 
             {/* Create form */}
-            <form onSubmit={handleCreate} className="bg-white border rounded-xl p-5 space-y-3">
+            <form onSubmit={handleCreate} className="bg-card border rounded-xl p-5 space-y-3">
                 <h3 className="font-medium text-sm">New Category</h3>
                 <div className="flex gap-3 flex-wrap">
                     <Input
@@ -72,7 +72,7 @@ export default function AdminCategories() {
             {isLoading && <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}
 
             {categories?.length > 0 && (
-                <div className="bg-white border rounded-xl divide-y">
+                <div className="bg-card border rounded-xl divide-y">
                     {categories.map((cat) => (
                         <div key={cat.id} className="flex items-center justify-between px-4 py-3">
                             <div>

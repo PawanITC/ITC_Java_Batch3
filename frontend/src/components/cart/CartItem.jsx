@@ -41,7 +41,7 @@ export default function CartItem({ item }) {
 
             {/* Subtotal */}
             <div className="w-20 text-right shrink-0">
-                <p className="font-semibold">${item.subTotal.toFixed(2)}</p>
+                <p className="font-semibold">£{item.subTotal.toFixed(2)}</p>
             </div>
 
             {/* Remove */}

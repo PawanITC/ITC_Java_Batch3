@@ -83,7 +83,7 @@ function EditableField({ label, value, onSave, icon: Icon }) {
                             value={draft}
                             onChange={(e) => setDraft(e.target.value)}
                             onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel(); }}
-                            className="flex-1 text-sm border border-primary/50 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            className="flex-1 text-sm border border-primary/50 rounded-lg px-3 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
                         />
                         <button onClick={handleSave} disabled={saving} className="text-green-600 hover:text-green-700 p-1 disabled:opacity-50">
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -175,7 +175,7 @@ function ChangePasswordSection({ isOAuthUser }) {
                                     required
                                     value={value}
                                     onChange={(e) => onChange(e.target.value)}
-                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 pr-10 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 pr-10 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
                                 />
                                 {toggle && (
                                     <button type="button" onClick={toggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -220,7 +220,7 @@ export default function ProfilePage() {
             </button>
 
             {/* Avatar + role */}
-            <div className="bg-white border border-border rounded-xl p-8 flex flex-col items-center gap-4">
+            <div className="bg-card border border-border rounded-xl p-8 flex flex-col items-center gap-4">
                 <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-3xl font-extrabold text-primary-foreground">
                     {initial}
                 </div>
@@ -232,7 +232,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Account details */}
-            <div className="bg-white border border-border rounded-xl px-6 divide-y divide-border">
+            <div className="bg-card border border-border rounded-xl px-6 divide-y divide-border">
                 <h2 className="font-bold text-base py-4">Account Details</h2>
                 <EditableField
                     label="Display Name"
@@ -254,7 +254,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Account status */}
-            <div className="bg-white border border-border rounded-xl px-6 py-4">
+            <div className="bg-card border border-border rounded-xl px-6 py-4">
                 <h2 className="font-bold text-base mb-3">Account Status</h2>
                 <div className="flex items-center gap-3">
                     <div className={cn("w-2.5 h-2.5 rounded-full", user?.isActive !== false ? "bg-green-500" : "bg-muted")} />

@@ -20,7 +20,7 @@ export default function PaymentFailure() {
                 {error}
             </div>
 
-            <ul className="text-sm text-muted-foreground text-left bg-white border rounded-xl px-5 py-4 mb-8 space-y-2">
+            <ul className="text-sm text-muted-foreground text-left bg-card border rounded-xl px-5 py-4 mb-8 space-y-2">
                 <li>• Check your card details and try again</li>
                 <li>• Ensure your card has sufficient funds</li>
                 <li>• Contact your bank if the issue persists</li>
