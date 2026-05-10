@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Star, ThumbsUp, MessageSquare, Trash2, ShieldAlert, Send, ChevronLeft, ChevronRight, Package, Tag, DollarSign, ZoomIn, X } from "lucide-react";
 import { productApi } from "../lib/productApi";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -220,89 +220,109 @@ function StarPicker({ value, onChange }) {
 }
 
 // ---------------------------------------------------------------------------
-// Lightbox — full-screen image viewer (mobile-friendly)
+// Lightbox — full-screen image viewer, portal-based (no shadcn Dialog quirks)
+// Mobile-friendly: tap outside image closes, swipe-friendly layout
 // ---------------------------------------------------------------------------
 function Lightbox({ images, startIdx, open, onClose }) {
     const [idx, setIdx] = useState(startIdx ?? 0);
 
+    const prev = useCallback(() => setIdx((i) => Math.max(0, i - 1)), []);
+    const next = useCallback(() => setIdx((i) => Math.min(images.length - 1, i + 1)), [images.length]);
+
+    // Sync startIdx when gallery thumbnail changes before opening
+    useEffect(() => { if (open) setIdx(startIdx ?? 0); }, [open, startIdx]);
+
+    // Keyboard navigation + body scroll lock
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e) => {
+            if (e.key === "ArrowLeft") prev();
+            if (e.key === "ArrowRight") next();
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("keydown", handler);
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.removeEventListener("keydown", handler);
+            document.body.style.overflow = "";
+        };
+    }, [open, prev, next, onClose]);
+
     if (!open) return null;
 
-    const prev = () => setIdx((i) => Math.max(0, i - 1));
-    const next = () => setIdx((i) => Math.min(images.length - 1, i + 1));
+    return createPortal(
+        <div
+            className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center"
+            onClick={onClose}           // tap outside image → close
+            role="dialog"
+            aria-modal="true"
+        >
+            {/* Counter */}
+            {images.length > 1 && (
+                <span className="absolute top-4 left-4 text-white/50 text-xs font-mono pointer-events-none select-none">
+                    {idx + 1} / {images.length}
+                </span>
+            )}
 
-    // keyboard navigation
-    const handleKey = (e) => {
-        if (e.key === "ArrowLeft") prev();
-        if (e.key === "ArrowRight") next();
-        if (e.key === "Escape") onClose();
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent
-                className="max-w-none w-screen h-screen p-0 bg-black/95 border-0 flex items-center justify-center rounded-none"
-                onKeyDown={handleKey}
-                tabIndex={-1}
+            {/* Close */}
+            <button
+                onClick={onClose}
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 transition-colors text-white flex items-center justify-center"
+                aria-label="Close"
             >
-                {/* Close */}
+                <X className="w-5 h-5" />
+            </button>
+
+            {/* Prev */}
+            {images.length > 1 && (
                 <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 transition text-white flex items-center justify-center"
+                    onClick={(e) => { e.stopPropagation(); prev(); }}
+                    disabled={idx === 0}
+                    className="absolute left-3 sm:left-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 transition-colors text-white flex items-center justify-center disabled:opacity-20"
+                    aria-label="Previous image"
                 >
-                    <X className="w-5 h-5" />
+                    <ChevronLeft className="w-6 h-6" />
                 </button>
+            )}
 
-                {/* Previous */}
-                {images.length > 1 && (
-                    <button
-                        onClick={prev}
-                        disabled={idx === 0}
-                        className="absolute left-3 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 transition text-white flex items-center justify-center disabled:opacity-20"
-                    >
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-                )}
+            {/* Image — stopPropagation so clicking the image itself doesn't close */}
+            <img
+                src={images[idx]}
+                alt={`View ${idx + 1}`}
+                className="max-h-[88vh] max-w-[88vw] sm:max-w-[80vw] object-contain rounded-lg shadow-2xl select-none"
+                draggable={false}
+                onClick={(e) => e.stopPropagation()}
+            />
 
-                {/* Image */}
-                <img
-                    src={images[idx]}
-                    alt={`Image ${idx + 1}`}
-                    className="max-h-[90vh] max-w-[90vw] object-contain rounded select-none"
-                    draggable={false}
-                />
+            {/* Next */}
+            {images.length > 1 && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); next(); }}
+                    disabled={idx === images.length - 1}
+                    className="absolute right-3 sm:right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 transition-colors text-white flex items-center justify-center disabled:opacity-20"
+                    aria-label="Next image"
+                >
+                    <ChevronRight className="w-6 h-6" />
+                </button>
+            )}
 
-                {/* Next */}
-                {images.length > 1 && (
-                    <button
-                        onClick={next}
-                        disabled={idx === images.length - 1}
-                        className="absolute right-3 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 transition text-white flex items-center justify-center disabled:opacity-20"
-                    >
-                        <ChevronRight className="w-6 h-6" />
-                    </button>
-                )}
-
-                {/* Dot indicators */}
-                {images.length > 1 && (
-                    <div className="absolute bottom-5 flex gap-2">
-                        {images.map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setIdx(i)}
-                                className={cn("w-2 h-2 rounded-full transition-all", i === idx ? "bg-white scale-125" : "bg-white/40")}
-                            />
-                        ))}
-                    </div>
-                )}
-
-                {/* Counter */}
-                {images.length > 1 && (
-                    <span className="absolute top-4 left-4 text-white/60 text-xs font-mono">
-                        {idx + 1} / {images.length}
-                    </span>
-                )}
-            </DialogContent>
-        </Dialog>
+            {/* Dot indicators */}
+            {images.length > 1 && (
+                <div className="absolute bottom-5 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    {images.map((_, i) => (
+                        <button
+                            key={i}
+                            onClick={() => setIdx(i)}
+                            className={cn(
+                                "w-2.5 h-2.5 rounded-full transition-all",
+                                i === idx ? "bg-white scale-125" : "bg-white/35 hover:bg-white/60"
+                            )}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>,
+        document.body
     );
 }
 
@@ -489,7 +509,7 @@ export default function ProductReviews() {
         enabled: !!id,
     });
 
-    // Attempt to load real reviews; fall back to dummy data on failure
+    // Load live reviews; merge dummy ones in below real ones for MVP body
     const { data: liveReviews, isError: reviewsError } = useQuery({
         queryKey: ["reviews", id],
         queryFn: () => fetchReviews(id),
@@ -497,8 +517,13 @@ export default function ProductReviews() {
         retry: 1,
     });
 
-    const reviews = reviewsError || !liveReviews ? DUMMY_REVIEWS : liveReviews;
-    const usingDummy = reviewsError || !liveReviews;
+    // When service is up: real reviews first, then dummy padding underneath
+    // When service is down: show only dummy reviews with a notice
+    const serviceDown = reviewsError || !liveReviews;
+    const reviews = serviceDown
+        ? DUMMY_REVIEWS
+        : [...(liveReviews ?? []), ...DUMMY_REVIEWS];
+    const usingDummy = serviceDown;
 
     const deleteMutation = useMutation({
         mutationFn: moderatorDelete,
@@ -522,7 +547,7 @@ export default function ProductReviews() {
     const images = product?.imageUrls ?? (product?.imageUrl ? [product.imageUrl] : []);
 
     return (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
             {/* Back */}
             <button
                 onClick={() => navigate("/products")}
@@ -531,40 +556,55 @@ export default function ProductReviews() {
                 <ArrowLeft className="w-4 h-4" /> Back to Products
             </button>
 
-            {/* ── Product Information Card ── */}
+            {/* ── Product Information Card — two-col on desktop ── */}
             <div className="bg-white border border-border rounded-xl overflow-hidden">
-                {images.length > 0 && (
-                    <div className="p-4 pb-0">
-                        <ProductGallery images={images} name={product?.name ?? ""} />
-                    </div>
-                )}
-                <div className="p-6 space-y-3">
-                    <div>
-                        <h1 className="font-extrabold text-2xl">{product?.name ?? `Product #${id}`}</h1>
-                        {product?.category?.name && (
-                            <span className="inline-flex items-center gap-1 mt-1 text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                                <Tag className="w-3 h-3" /> {product.category.name}
-                            </span>
-                        )}
-                    </div>
-
-                    {product?.description && (
-                        <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                    {/* Gallery — left column */}
+                    {images.length > 0 ? (
+                        <div className="p-5 border-b md:border-b-0 md:border-r border-border">
+                            <ProductGallery images={images} name={product?.name ?? ""} />
+                        </div>
+                    ) : (
+                        <div className="p-5 border-b md:border-b-0 md:border-r border-border flex items-center justify-center">
+                            <div className="w-full h-64 bg-secondary rounded-lg flex items-center justify-center text-5xl">🎨</div>
+                        </div>
                     )}
 
-                    <div className="flex flex-wrap gap-4 pt-1">
-                        {product?.price != null && (
-                            <div className="flex items-center gap-1.5 text-sm font-semibold">
-                                <DollarSign className="w-4 h-4 text-primary" />
-                                £{Number(product.price).toFixed(2)}
+                    {/* Details — right column */}
+                    <div className="p-6 flex flex-col justify-between space-y-4">
+                        <div className="space-y-3">
+                            <div>
+                                <h1 className="font-extrabold text-2xl leading-tight">{product?.name ?? `Product #${id}`}</h1>
+                                {product?.category?.name && (
+                                    <span className="inline-flex items-center gap-1 mt-2 text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+                                        <Tag className="w-3 h-3" /> {product.category.name}
+                                    </span>
+                                )}
                             </div>
-                        )}
-                        {product?.stockQuantity != null && (
-                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                <Package className="w-4 h-4" />
-                                {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : "Out of stock"}
-                            </div>
-                        )}
+
+                            {product?.description && (
+                                <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+                            )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-border">
+                            {product?.price != null && (
+                                <div className="flex items-center gap-1.5">
+                                    <DollarSign className="w-4 h-4 text-primary" />
+                                    <span className="text-2xl font-extrabold">£{Number(product.price).toFixed(2)}</span>
+                                </div>
+                            )}
+                            {product?.stockQuantity != null && (
+                                <div className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full ${
+                                    product.stockQuantity > 0
+                                        ? "bg-green-50 text-green-700"
+                                        : "bg-red-50 text-red-700"
+                                }`}>
+                                    <Package className="w-3.5 h-3.5" />
+                                    {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : "Out of stock"}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -575,15 +615,15 @@ export default function ProductReviews() {
                     <ShieldAlert className="w-4 h-4 shrink-0" />
                     <span>
                         <strong>Moderator view</strong> — click the trash icon on any review to remove it.
-                        {usingDummy && " (showing sample data — review service may be offline)"}
+                        {usingDummy && " (review service may be offline — showing sample data only)"}
                     </span>
                 </div>
             )}
 
-            {/* Fallback notice for regular users when review service is down */}
+            {/* Only show notice when service is completely down */}
             {usingDummy && !isModerator && (
-                <p className="text-xs text-muted-foreground text-center">
-                    Showing sample reviews — live review service is currently unavailable.
+                <p className="text-xs text-muted-foreground text-center italic">
+                    Live reviews are temporarily unavailable — showing sample reviews.
                 </p>
             )}
 

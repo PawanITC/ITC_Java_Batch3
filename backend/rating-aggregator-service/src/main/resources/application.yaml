@@ -27,12 +27,15 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
     consumer:
       group-id: rating-aggregator-service-group-v1
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # ErrorHandlingDeserializer wraps JsonDeserializer for resilience — bad messages are logged, not crashing
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.use.type.headers: false
+        spring.json.value.default.type: java.util.Map
+        spring.json.trusted.packages: "*"
 
 # ==============================================================================
 # JWT — read-only validation
@@ -74,3 +77,9 @@ logging:
   level:
     root: INFO
     com.itc.funkart.aggregator: DEBUG
+
+# Topic names referenced in application code
+app:
+  kafka:
+    topic:
+      reviews: review.events.v1
