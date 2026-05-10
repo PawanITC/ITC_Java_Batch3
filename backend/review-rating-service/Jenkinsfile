@@ -1,81 +1,90 @@
-/*
 pipeline {
     agent any
 
+    tools {
+        jdk 'jdk17'
+    }
+
     environment {
-        AWS_REGION   = "eu-west-2"
-        AWS_ACCOUNT_ID = "<your-aws-account-id>"
-        ECR_REPO    = "review-rating-service"
-        EKS_CLUSTER = "your-eks-cluster-name"
-        AWS_CREDS   = credentials('aws-creds')
+        DOCKER_HUB_USER          = 'abbasgureitc'
+        IMAGE_NAME               = 'review-rating-service'
+        REGISTRY_CREDENTIALS_ID  = 'docker-hub-credentials'
+        SNYK_TOKEN               = credentials('snyk-token')
+        dockerImage              = ''
     }
 
     stages {
-
-        stage('Checkout') {
+        stage('Check Environment') {
             steps {
-                git branch: 'main',
-                    credentialsId: 'github-creds',
-                    url: 'https://github.com/<your-user>/<your-repo>.git'
+                sh 'java -version'
+                sh 'docker version'
             }
         }
 
-        stage('Build JAR') {
+        stage('Build & Test') {
             steps {
-                sh './gradlew clean bootJar'
+                script {
+                    sh "chmod +x gradlew"
+                    sh "./gradlew clean :common-contracts:publishToMavenLocal :review-rating-service:build :review-rating-service:jacocoTestReport \
+                        -Dspring.profiles.active=test \
+                        --no-daemon --stacktrace"
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                jacoco(
+                    execPattern:      'backend/review-rating-service/build/jacoco/*.exec',
+                    classPattern:     'backend/review-rating-service/build/classes/java/main',
+                    sourcePattern:    'backend/review-rating-service/src/main/java',
+                    inclusionPattern: '**/*.class',
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '80',
+                    buildOverBuild: false
+                )
+            }
+        }
+
+        stage('Security Scan (Snyk)') {
+            steps {
+                script {
+                    sh "snyk auth ${SNYK_TOKEN}"
+                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                        sh 'snyk test --file=backend/review-rating-service/build.gradle --severity-threshold=critical'
+                    }
+                    sh 'snyk monitor --file=backend/review-rating-service/build.gradle'
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    IMAGE_TAG = "${env.BUILD_NUMBER}"
-                    sh """
-                      docker build -t ${ECR_REPO}:${IMAGE_TAG} .
-                    """
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                    dockerImage = docker.build(
+                        "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}",
+                        "-f backend/review-rating-service/Dockerfile ."
+                    )
                 }
             }
         }
 
-        stage('Login to ECR') {
-            steps {
-                withEnv(["AWS_ACCESS_KEY_ID=${AWS_CREDS_USR}",
-                         "AWS_SECRET_ACCESS_KEY=${AWS_CREDS_PSW}",
-                         "AWS_DEFAULT_REGION=${AWS_REGION}"]) {
-                    sh """
-                      aws ecr get-login-password --region ${AWS_REGION} \
-                      | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-                    """
-                }
-            }
-        }
-
-        stage('Tag & Push Image') {
+        stage('Push to Docker Hub') {
             steps {
                 script {
-                    sh """
-                      docker tag ${ECR_REPO}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
-                      docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
-                    """
-                }
-            }
-        }
-
-        stage('Deploy to EKS') {
-            steps {
-                withEnv(["AWS_ACCESS_KEY_ID=${AWS_CREDS_USR}",
-                         "AWS_SECRET_ACCESS_KEY=${AWS_CREDS_PSW}",
-                         "AWS_DEFAULT_REGION=${AWS_REGION}"]) {
-
-                    sh """
-                      aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
-
-                      helm upgrade --install ${ECR_REPO} ./helm \
-                        --set image.repository=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO} \
-                        --set image.tag=${IMAGE_TAG}
-                    """
+                    docker.withRegistry('', REGISTRY_CREDENTIALS_ID) {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
                 }
             }
         }
     }
-} */
+
+    post {
+        success { echo "SUCCESS: ${IMAGE_NAME} is live on Docker Hub." }
+        failure { echo "FAILURE: Build or Security check failed. Check Jenkins logs." }
+        always  { cleanWs() }
+    }
+}
