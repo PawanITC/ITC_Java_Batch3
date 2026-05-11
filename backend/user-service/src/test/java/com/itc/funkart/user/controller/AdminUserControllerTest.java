@@ -113,7 +113,7 @@ class AdminUserControllerTest {
     void getAllUsers_ShouldReturnList() throws Exception {
         // Arrange
         User user = new User();
-        UserAdminSummary summary = new UserAdminSummary(1L, "user@test.com", "ROLE_USER", true);
+        UserAdminSummary summary = new UserAdminSummary(1L, "Test User", "user@test.com", "ROLE_USER", true);
 
         when(userService.findAllUsers()).thenReturn(List.of(user));
         when(userMapper.toAdminSummary(any())).thenReturn(summary);

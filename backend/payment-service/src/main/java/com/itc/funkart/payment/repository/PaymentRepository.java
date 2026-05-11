@@ -59,4 +59,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
      */
     @Query("SELECT p.status FROM Payment p WHERE p.stripePaymentIntentId = :stripeId")
     Optional<String> findStatusByStripeId(@Param("stripeId") String stripeId);
+
+    /**
+     * Retrieves the most recent payment for a given user.
+     * Used by the checkout page to restore an in-flight PaymentIntent after navigation.
+     *
+     * @param userId The authenticated user's ID.
+     * @return An {@link Optional} containing the latest payment, or empty if none.
+     */
+    Optional<Payment> findTopByUserIdOrderByCreatedAtDesc(Long userId);
 }

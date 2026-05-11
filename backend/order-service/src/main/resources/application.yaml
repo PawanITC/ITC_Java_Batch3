@@ -12,7 +12,8 @@ spring:
         spring.json.add.type.headers: false
 
     consumer:
-      group-id: order-service-group-v1
+      group-id: order-service-group-v2
+      auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 
@@ -39,10 +40,13 @@ management:
       probability: 1.0
   otlp:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
+      # Spring Boot Micrometer sends HTTP traces — must use port 4318, NOT 4317 (gRPC).
+      # Use a dedicated env var so docker-compose controls this; OTEL_EXPORTER_OTLP_ENDPOINT
+      # is reserved for the OTEL Java agent (gRPC) and must not be reused here.
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://otel-collector:4318/v1/traces}
     metrics:
       export:
-        url: ${OTEL_METRICS_ENDPOINT:http://otel-collector:4318}
+        url: ${MANAGEMENT_OTLP_METRICS_URL:http://otel-collector:4318/v1/metrics}
   metrics:
     tags:
       application: ${spring.application.name}

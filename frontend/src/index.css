@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /*
+         * FunkArt Gallery Palette — light mode
+         * Inspired by: Velasca (warm cream + deep teal) & Airbnb (clean whitespace)
+         *
+         * Background: warm cream #f9f6f3 — not clinical white, gallery/editorial feel
+         * Card:       pure white #ffffff — cards pop against the warm background
+         * Primary:    deep teal  #2a5f78 — premium, distinctive, not generic navy
+         * Accent:     terracotta #c96a3a — art-gallery warmth, used sparingly
+         * Border:     warm sand  #e2dcd6 — softer than cold blue-grey
+         */
+
+        --background:  32 25% 97%;     /* #f9f6f3 — warm cream */
+        --foreground:  28 18% 11%;     /* #1d1a17 — warm near-black */
+
+        --card:         0  0% 100%;    /* #ffffff — pure white */
+        --card-foreground: 28 18% 11%;
+
+        --popover:      0  0% 100%;
+        --popover-foreground: 28 18% 11%;
+
+        --primary:    202 48% 32%;     /* #2a5f78 — deep editorial teal */
+        --primary-foreground: 32 25% 97%;
+
+        --secondary:   35 22% 93%;     /* #f0ebe4 — warm linen */
+        --secondary-foreground: 28 18% 11%;
+
+        --muted:       35 18% 91%;     /* #ede8e1 — warm muted surface */
+        --muted-foreground: 30  9% 46%; /* #7d7269 — warm mid-grey */
+
+        --accent:      22 58% 50%;     /* #c96a3a — terracotta */
+        --accent-foreground: 32 25% 97%;
+
+        --destructive:  0 72% 54%;
+        --destructive-foreground: 0 0% 98%;
+
+        --border:      32 18% 85%;     /* #e2dcd6 — warm sand border */
+        --input:       32 18% 85%;
+        --ring:       202 48% 32%;     /* matches primary */
+
+        --radius: 0.5rem;              /* slightly crisper than before */
+
+        --font-inter: 'Inter', sans-serif;
+    }
+
+    .dark {
+        /*
+         * Dark mode: warm charcoal — not cold blue-black
+         * Background: #131110 — deep warm dark
+         * Card:       #1e1b18 — slightly lifted warm surface
+         * Primary:    #5a9db8 — lighter teal that reads on dark
+         * Accent:     #d4845e — terracotta lifted for dark
+         */
+
+        --background:  28 18%  7%;     /* #131110 */
+        --foreground:  32 20% 95%;     /* #f5f2ee */
+
+        --card:        28 15% 11%;     /* #1e1b18 */
+        --card-foreground: 32 20% 95%;
+
+        --popover:     28 15% 11%;
+        --popover-foreground: 32 20% 95%;
+
+        --primary:    202 38% 54%;     /* #5a9db8 */
+        --primary-foreground: 28 18% 7%;
+
+        --secondary:   28 12% 16%;     /* #2a2622 */
+        --secondary-foreground: 32 20% 95%;
+
+        --muted:       28 12% 16%;
+        --muted-foreground: 32  8% 58%; /* #9c958e */
+
+        --accent:      22 52% 58%;     /* #d4845e */
+        --accent-foreground: 28 18% 7%;
+
+        --destructive:  0 60% 44%;
+        --destructive-foreground: 0 0% 98%;
+
+        --border:      28 10% 20%;     /* #36312d */
+        --input:       28 10% 20%;
+        --ring:       202 38% 54%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    body {
+        @apply bg-background text-foreground font-inter antialiased;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Refined heading rhythm */
+    h1, h2, h3, h4, h5, h6 {
+        @apply tracking-tight;
+    }
+
+    /* Smooth focus rings */
+    :focus-visible {
+        outline: 2px solid hsl(var(--ring));
+        outline-offset: 2px;
+    }
+}

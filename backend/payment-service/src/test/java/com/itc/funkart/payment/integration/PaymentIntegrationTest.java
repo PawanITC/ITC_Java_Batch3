@@ -6,7 +6,10 @@ import com.itc.funkart.payment.repository.PaymentRepository;
 import com.itc.funkart.payment.service.JwtService;
 import com.itc.funkart.payment.service.StripeService;
 import com.stripe.model.PaymentIntent;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,11 +21,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
@@ -73,7 +78,7 @@ class PaymentIntegrationTest {
             when(mockIntent.getClientSecret()).thenReturn("secret_mock_789");
 
             when(stripeService.createPaymentIntent(
-                    anyLong(), anyString(), anyLong(), anyLong()
+                    anyLong(), anyString(), anyLong(), anyLong(), anyLong(), anyString()
             )).thenReturn(mockIntent);
 
             String requestBody = """
@@ -96,7 +101,7 @@ class PaymentIntegrationTest {
             assertEquals(1, paymentRepository.count());
 
             verify(stripeService, times(1))
-                    .createPaymentIntent(anyLong(), anyString(), anyLong(), anyLong());
+                    .createPaymentIntent(anyLong(), anyString(), anyLong(), anyLong(), anyLong(), anyString());
         }
 
         @Test
@@ -112,7 +117,7 @@ class PaymentIntegrationTest {
                     """;
 
             when(stripeService.createPaymentIntent(
-                    anyLong(), anyString(), anyLong(), anyLong()
+                    anyLong(), anyString(), anyLong(), anyLong(), anyLong(), anyString()
             )).thenThrow(new PaymentException(
                     "PAYMENT_FAILED",
                     "Invalid payment details"
@@ -129,7 +134,7 @@ class PaymentIntegrationTest {
                             .value(containsString("PAYMENT_FAILED")));
 
             verify(stripeService, times(1))
-                    .createPaymentIntent(anyLong(), anyString(), anyLong(), anyLong());
+                    .createPaymentIntent(anyLong(), anyString(), anyLong(), anyLong(), anyLong(), anyString());
         }
     }
 

@@ -2,10 +2,10 @@ package com.itc.funkart.common.constants.messaging;
 
 /**
  * Funkart Kafka Topic Registry.
- *
+ * <p>
  * Centralized definition of all Kafka topics used across the platform.
  * Ensures consistent event routing and prevents topic drift.
- *
+ * <p>
  * Event Flow:
  * checkout.events.v1 → Order Service
  * orders.events.v1 → downstream consumers
@@ -33,6 +33,10 @@ public final class KafkaTopics {
     // PAYMENT DOMAIN
     public static final String PAYMENTS_EVENTS = "payments.events.v1";
     public static final String PAYMENTS_DLQ = "payments.events.v1.dlq";
+
+    // REVIEW DOMAIN
+    public static final String REVIEWS = "review.events.v1";
+    public static final String REVIEWS_DLQ = "review.events.v1.dlq";
 
     // NOTIFICATION DOMAIN
     public static final String NOTIFICATIONS = "notifications.events.v1";

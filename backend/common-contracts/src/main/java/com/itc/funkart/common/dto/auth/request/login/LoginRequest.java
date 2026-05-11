@@ -8,12 +8,14 @@ import lombok.extern.jackson.Jacksonized;
 
 /**
  * Credentials for standard email/password authentication.
+ *
+ * @param email    The user's registered email address. Must be a valid RFC-compliant email.
+ * @param password The user's plaintext password. Validated server-side against the BCrypt hash.
  */
 @Builder
 @Jacksonized
 public record LoginRequest(
-        /* User's registered email. */
         @NotBlank @Email String email,
-        /*  User's secret password. */
         @NotBlank String password
-) {}
+) {
+}

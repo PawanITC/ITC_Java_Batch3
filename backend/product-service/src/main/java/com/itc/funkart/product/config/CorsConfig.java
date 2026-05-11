@@ -1,7 +1,6 @@
 package com.itc.funkart.product.config;
 
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -24,7 +23,9 @@ import java.util.List;
  * at the controller level, promoting a centralized security policy.
  * </p>
  */
-@Configuration
+// @Configuration — DISABLED: this service sits behind the API Gateway which owns CORS.
+// Re-enabling this would add a second Access-Control-Allow-Origin header and
+// cause browsers to reject all cross-origin responses with a "multiple values" error.
 public class CorsConfig implements WebMvcConfigurer {
 
     private static final List<String> ALLOWED_ORIGINS = List.of(

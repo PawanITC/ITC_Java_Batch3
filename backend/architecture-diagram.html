@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Funkart Architecture Diagrams</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2e3347;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --purple: #a855f7;
+    --red: #ef4444;
+    --cyan: #06b6d4;
+    --pink: #ec4899;
+    --orange: #f97316;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; gap: 4px; flex-wrap: wrap; }
+  .tab { padding: 12px 20px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); font-size: 13px; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  .panel { display: none; padding: 32px 24px; }
+  .panel.active { display: block; }
+
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--muted); }
+  h3 { font-size: 13px; font-weight: 600; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+  .diagram-area { overflow-x: auto; overflow-y: auto; }
+
+  /* Architecture SVG container */
+  svg { max-width: 100%; }
+
+  /* Service cards for per-service view */
+  .service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+  .service-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .service-card .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 12px; }
+  .service-card .card-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .service-card .card-desc { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+  .service-card .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin: 12px 0 6px; }
+  .endpoint { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+  .method { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; white-space: nowrap; flex-shrink: 0; margin-top: 1px; }
+  .method.get  { background: rgba(34,197,94,0.15); color: var(--green); }
+  .method.post { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .method.patch { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .method.delete { background: rgba(239,68,68,0.15); color: var(--red); }
+  .endpoint-path { font-size: 12px; color: var(--text); font-family: 'Cascadia Code', monospace; }
+  .endpoint-desc { font-size: 11px; color: var(--muted); }
+
+  .flow-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .flow-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .flow-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 11px; margin: 2px; }
+  .tag.kafka { background: rgba(168,85,247,0.15); color: var(--purple); }
+  .tag.db { background: rgba(6,182,212,0.15); color: var(--cyan); }
+  .tag.redis { background: rgba(239,68,68,0.15); color: var(--red); }
+  .tag.otel { background: rgba(249,115,22,0.15); color: var(--orange); }
+  .tag.jwt { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview')">A1 Architecture</div>
+  <div class="tab" onclick="showTab('saga')">Saga Flow</div>
+  <div class="tab" onclick="showTab('user')">user-service</div>
+  <div class="tab" onclick="showTab('product')">product-service</div>
+  <div class="tab" onclick="showTab('order')">order-service</div>
+  <div class="tab" onclick="showTab('payment')">payment-service</div>
+  <div class="tab" onclick="showTab('notification')">notification-service</div>
+  <div class="tab" onclick="showTab('review')">review-rating-service</div>
+  <div class="tab" onclick="showTab('aggregator')">rating-aggregator-service</div>
+</div>
+
+<!-- ========== A1 OVERVIEW ========== -->
+<div id="panel-overview" class="panel active">
+  <h1>Funkart — Full System Architecture</h1>
+  <h2>All layers: Frontend → Gateway → Microservices → Kafka → Databases → OTEL</h2>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> HTTP/REST</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div> Kafka Event</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Database</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Redis</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> OTEL/Tracing</div>
+  </div>
+  <div class="diagram-area">
+    <svg viewBox="0 0 1200 920" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:900px">
+      <defs>
+        <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6"/>
+        </marker>
+        <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#a855f7"/>
+        </marker>
+        <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#22c55e"/>
+        </marker>
+        <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#f97316"/>
+        </marker>
+        <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ef4444"/>
+        </marker>
+      </defs>
+
+      <!-- ===== FRONTEND ===== -->
+      <rect x="450" y="10" width="300" height="60" rx="10" fill="#1e2030" stroke="#3b82f6" stroke-width="2"/>
+      <text x="600" y="35" text-anchor="middle" fill="#3b82f6" font-size="13" font-weight="700">React Frontend</text>
+      <text x="600" y="52" text-anchor="middle" fill="#64748b" font-size="10">Vite · React Query · Shadcn/ui · JWT Cookie</text>
+
+      <!-- ===== API GATEWAY ===== -->
+      <rect x="430" y="120" width="340" height="60" rx="10" fill="#1e2030" stroke="#f59e0b" stroke-width="2"/>
+      <text x="600" y="145" text-anchor="middle" fill="#f59e0b" font-size="13" font-weight="700">API Gateway</text>
+      <text x="600" y="162" text-anchor="middle" fill="#64748b" font-size="10">JWT Validation · Rate Limit · Route Proxy · Redis Session</text>
+
+      <!-- Frontend → Gateway arrow -->
+      <line x1="600" y1="70" x2="600" y2="119" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow-blue)"/>
+      <text x="608" y="100" fill="#3b82f6" font-size="10">HTTPS / cookie</text>
+
+      <!-- Redis (for gateway) -->
+      <rect x="810" y="120" width="100" height="60" rx="8" fill="#1e2030" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="860" y="145" text-anchor="middle" fill="#ef4444" font-size="11" font-weight="700">Redis</text>
+      <text x="860" y="160" text-anchor="middle" fill="#64748b" font-size="9">Rate limit</text>
+      <text x="860" y="172" text-anchor="middle" fill="#64748b" font-size="9">Session store</text>
+      <line x1="770" y1="150" x2="809" y2="150" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+
+      <!-- ===== MICROSERVICES ROW ===== -->
+      <!-- user-service -->
+      <rect x="30" y="260" width="140" height="70" rx="8" fill="#1e2030" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="100" y="282" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">user-service</text>
+      <text x="100" y="297" text-anchor="middle" fill="#64748b" font-size="9">Auth · JWT · OAuth2</text>
+      <text x="100" y="311" text-anchor="middle" fill="#64748b" font-size="9">Profile · Password</text>
+      <text x="100" y="323" text-anchor="middle" fill="#64748b" font-size="9">Admin users</text>
+
+      <!-- product-service -->
+      <rect x="195" y="260" width="140" height="70" rx="8" fill="#1e2030" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="265" y="282" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">product-service</text>
+      <text x="265" y="297" text-anchor="middle" fill="#64748b" font-size="9">Catalogue · Search</text>
+      <text x="265" y="311" text-anchor="middle" fill="#64748b" font-size="9">Cart · Inventory</text>
+      <text x="265" y="323" text-anchor="middle" fill="#64748b" font-size="9">Admin CRUD</text>
+
+      <!-- order-service -->
+      <rect x="360" y="260" width="140" height="70" rx="8" fill="#1e2030" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="430" y="282" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">order-service</text>
+      <text x="430" y="297" text-anchor="middle" fill="#64748b" font-size="9">Create · Cancel</text>
+      <text x="430" y="311" text-anchor="middle" fill="#64748b" font-size="9">Saga Orchestrator</text>
+      <text x="430" y="323" text-anchor="middle" fill="#64748b" font-size="9">Status tracking</text>
+
+      <!-- payment-service -->
+      <rect x="525" y="260" width="140" height="70" rx="8" fill="#1e2030" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="595" y="282" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">payment-service</text>
+      <text x="595" y="297" text-anchor="middle" fill="#64748b" font-size="9">Stripe / Mock</text>
+      <text x="595" y="311" text-anchor="middle" fill="#64748b" font-size="9">Saga Participant</text>
+      <text x="595" y="323" text-anchor="middle" fill="#64748b" font-size="9">Idempotent ACK</text>
+
+      <!-- notification-service -->
+      <rect x="690" y="260" width="140" height="70" rx="8" fill="#1e2030" stroke="#ec4899" stroke-width="1.5"/>
+      <text x="760" y="282" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">notification-service</text>
+      <text x="760" y="297" text-anchor="middle" fill="#64748b" font-size="9">Email SMTP</text>
+      <text x="760" y="311" text-anchor="middle" fill="#64748b" font-size="9">In-app alerts</text>
+      <text x="760" y="323" text-anchor="middle" fill="#64748b" font-size="9">Order events</text>
+
+      <!-- review-rating-service -->
+      <rect x="855" y="260" width="140" height="70" rx="8" fill="#1e2030" stroke="#06b6d4" stroke-width="1.5"/>
+      <text x="925" y="282" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">review-rating-service</text>
+      <text x="925" y="297" text-anchor="middle" fill="#64748b" font-size="9">Write side</text>
+      <text x="925" y="311" text-anchor="middle" fill="#64748b" font-size="9">Submit · Moderate</text>
+      <text x="925" y="323" text-anchor="middle" fill="#64748b" font-size="9">Publish events</text>
+
+      <!-- rating-aggregator-service -->
+      <rect x="1020" y="260" width="160" height="70" rx="8" fill="#1e2030" stroke="#f97316" stroke-width="1.5"/>
+      <text x="1100" y="282" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">rating-aggregator</text>
+      <text x="1100" y="297" text-anchor="middle" fill="#64748b" font-size="9">Read side · CQRS</text>
+      <text x="1100" y="311" text-anchor="middle" fill="#64748b" font-size="9">Avg rating cache</text>
+      <text x="1100" y="323" text-anchor="middle" fill="#64748b" font-size="9">Redis TTL 5 min</text>
+
+      <!-- Gateway → services (blue arrows) -->
+      <line x1="530" y1="180" x2="100" y2="259" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-blue)"/>
+      <line x1="545" y1="180" x2="265" y2="259" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-blue)"/>
+      <line x1="580" y1="180" x2="430" y2="259" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-blue)"/>
+      <line x1="610" y1="180" x2="595" y2="259" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-blue)"/>
+      <line x1="660" y1="180" x2="760" y2="259" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-blue)"/>
+      <line x1="700" y1="180" x2="925" y2="259" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-blue)"/>
+      <line x1="730" y1="180" x2="1100" y2="259" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-blue)"/>
+
+      <!-- ===== KAFKA BUS ===== -->
+      <rect x="30" y="410" width="1150" height="60" rx="10" fill="#1e1428" stroke="#a855f7" stroke-width="2"/>
+      <text x="605" y="437" text-anchor="middle" fill="#a855f7" font-size="13" font-weight="700">Apache Kafka Event Bus</text>
+      <text x="230" y="455" text-anchor="middle" fill="#64748b" font-size="10">orders.events.v1</text>
+      <text x="500" y="455" text-anchor="middle" fill="#64748b" font-size="10">payments.events.v1</text>
+      <text x="760" y="455" text-anchor="middle" fill="#64748b" font-size="10">user.events.v1</text>
+      <text x="1010" y="455" text-anchor="middle" fill="#64748b" font-size="10">review.events.v1</text>
+
+      <!-- services → Kafka arrows -->
+      <line x1="430" y1="330" x2="430" y2="409" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+      <line x1="595" y1="330" x2="595" y2="409" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+      <line x1="100" y1="330" x2="100" y2="409" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+      <line x1="925" y1="330" x2="925" y2="409" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+
+      <!-- Kafka → consumer arrows -->
+      <line x1="430" y1="470" x2="430" y2="509" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrow-purple)"/>
+      <line x1="595" y1="470" x2="595" y2="509" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrow-purple)"/>
+      <line x1="760" y1="470" x2="760" y2="509" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrow-purple)"/>
+      <line x1="1100" y1="470" x2="1100" y2="509" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrow-purple)"/>
+
+      <!-- Kafka consumer labels -->
+      <text x="350" y="495" fill="#a855f7" font-size="9">consumes payment events</text>
+      <text x="510" y="495" fill="#a855f7" font-size="9">consumes order events</text>
+      <text x="680" y="495" fill="#a855f7" font-size="9">consumes order events</text>
+      <text x="1000" y="495" fill="#a855f7" font-size="9">consumes review events</text>
+
+      <!-- ===== DATABASES ===== -->
+      <!-- user DB -->
+      <rect x="30" y="540" width="120" height="50" rx="8" fill="#0f2820" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="90" y="561" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="700">user-db</text>
+      <text x="90" y="576" text-anchor="middle" fill="#64748b" font-size="9">PostgreSQL</text>
+      <text x="90" y="588" text-anchor="middle" fill="#64748b" font-size="9">users · roles</text>
+      <line x1="100" y1="330" x2="90" y2="539" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow-green)"/>
+
+      <!-- product DB -->
+      <rect x="190" y="540" width="120" height="50" rx="8" fill="#0f2820" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="250" y="561" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="700">product-db</text>
+      <text x="250" y="576" text-anchor="middle" fill="#64748b" font-size="9">PostgreSQL</text>
+      <text x="250" y="588" text-anchor="middle" fill="#64748b" font-size="9">products · cart</text>
+      <line x1="265" y1="330" x2="250" y2="539" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow-green)"/>
+
+      <!-- order DB -->
+      <rect x="365" y="540" width="120" height="50" rx="8" fill="#0f2820" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="425" y="561" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="700">order-db</text>
+      <text x="425" y="576" text-anchor="middle" fill="#64748b" font-size="9">PostgreSQL</text>
+      <text x="425" y="588" text-anchor="middle" fill="#64748b" font-size="9">orders · status</text>
+      <line x1="430" y1="330" x2="425" y2="539" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow-green)"/>
+
+      <!-- payment DB -->
+      <rect x="530" y="540" width="120" height="50" rx="8" fill="#0f2820" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="590" y="561" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="700">payment-db</text>
+      <text x="590" y="576" text-anchor="middle" fill="#64748b" font-size="9">PostgreSQL</text>
+      <text x="590" y="588" text-anchor="middle" fill="#64748b" font-size="9">payments · refs</text>
+      <line x1="595" y1="330" x2="590" y2="539" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow-green)"/>
+
+      <!-- notification DB -->
+      <rect x="695" y="540" width="130" height="50" rx="8" fill="#0f2820" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="760" y="561" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="700">notification-db</text>
+      <text x="760" y="576" text-anchor="middle" fill="#64748b" font-size="9">PostgreSQL</text>
+      <text x="760" y="588" text-anchor="middle" fill="#64748b" font-size="9">notifications</text>
+      <line x1="760" y1="330" x2="760" y2="539" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow-green)"/>
+
+      <!-- review DB -->
+      <rect x="860" y="540" width="130" height="50" rx="8" fill="#0f2820" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="925" y="561" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="700">review-db</text>
+      <text x="925" y="576" text-anchor="middle" fill="#64748b" font-size="9">PostgreSQL</text>
+      <text x="925" y="588" text-anchor="middle" fill="#64748b" font-size="9">reviews · status</text>
+      <line x1="925" y1="330" x2="925" y2="539" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow-green)"/>
+
+      <!-- aggregator DB + Redis -->
+      <rect x="1020" y="540" width="130" height="50" rx="8" fill="#0f2820" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="1085" y="561" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="700">aggregator-db</text>
+      <text x="1085" y="576" text-anchor="middle" fill="#64748b" font-size="9">PostgreSQL</text>
+      <text x="1085" y="588" text-anchor="middle" fill="#64748b" font-size="9">rating aggregates</text>
+      <line x1="1100" y1="330" x2="1085" y2="539" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrow-green)"/>
+
+      <!-- aggregator Redis cache -->
+      <rect x="1020" y="610" width="130" height="40" rx="8" fill="#1e1010" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="1085" y="627" text-anchor="middle" fill="#ef4444" font-size="11" font-weight="700">Redis Cache</text>
+      <text x="1085" y="642" text-anchor="middle" fill="#64748b" font-size="9">TTL 5 min · ratings</text>
+      <line x1="1085" y1="590" x2="1085" y2="609" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+
+      <!-- ===== OTEL / JAEGER ===== -->
+      <rect x="200" y="680" width="800" height="55" rx="10" fill="#1a1206" stroke="#f97316" stroke-width="2"/>
+      <text x="600" y="703" text-anchor="middle" fill="#f97316" font-size="13" font-weight="700">OpenTelemetry Collector → Jaeger</text>
+      <text x="600" y="720" text-anchor="middle" fill="#64748b" font-size="10">Distributed traces across all services · Kafka trace propagation (traceparent header) · sampling: 100%</text>
+
+      <!-- OTEL arrows from each service -->
+      <line x1="100" y1="330" x2="300" y2="679" stroke="#f97316" stroke-width="0.8" stroke-dasharray="3,3" marker-end="url(#arrow-orange)"/>
+      <line x1="265" y1="330" x2="400" y2="679" stroke="#f97316" stroke-width="0.8" stroke-dasharray="3,3" marker-end="url(#arrow-orange)"/>
+      <line x1="430" y1="330" x2="520" y2="679" stroke="#f97316" stroke-width="0.8" stroke-dasharray="3,3" marker-end="url(#arrow-orange)"/>
+      <line x1="595" y1="330" x2="600" y2="679" stroke="#f97316" stroke-width="0.8" stroke-dasharray="3,3" marker-end="url(#arrow-orange)"/>
+      <line x1="760" y1="330" x2="680" y2="679" stroke="#f97316" stroke-width="0.8" stroke-dasharray="3,3" marker-end="url(#arrow-orange)"/>
+      <line x1="925" y1="330" x2="800" y2="679" stroke="#f97316" stroke-width="0.8" stroke-dasharray="3,3" marker-end="url(#arrow-orange)"/>
+      <line x1="1100" y1="330" x2="950" y2="679" stroke="#f97316" stroke-width="0.8" stroke-dasharray="3,3" marker-end="url(#arrow-orange)"/>
+
+      <!-- ===== EXTERNAL ===== -->
+      <rect x="450" y="800" width="140" height="45" rx="8" fill="#1e1428" stroke="#64748b" stroke-width="1"/>
+      <text x="520" y="820" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">Stripe API</text>
+      <text x="520" y="836" text-anchor="middle" fill="#64748b" font-size="9">Payment processing</text>
+      <line x1="595" y1="590" x2="520" y2="799" stroke="#64748b" stroke-width="1" stroke-dasharray="4,2"/>
+
+      <rect x="620" y="800" width="140" height="45" rx="8" fill="#1e1428" stroke="#64748b" stroke-width="1"/>
+      <text x="690" y="820" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">SMTP Server</text>
+      <text x="690" y="836" text-anchor="middle" fill="#64748b" font-size="9">Email delivery</text>
+      <line x1="760" y1="590" x2="690" y2="799" stroke="#64748b" stroke-width="1" stroke-dasharray="4,2"/>
+
+      <rect x="290" y="800" width="140" height="45" rx="8" fill="#1e1428" stroke="#64748b" stroke-width="1"/>
+      <text x="360" y="820" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">GitHub OAuth</text>
+      <text x="360" y="836" text-anchor="middle" fill="#64748b" font-size="9">OAuth2 provider</text>
+      <line x1="100" y1="590" x2="360" y2="799" stroke="#64748b" stroke-width="1" stroke-dasharray="4,2"/>
+
+      <!-- title watermark -->
+      <text x="600" y="910" text-anchor="middle" fill="#2e3347" font-size="11">Funkart E-Commerce Platform · ITC Java Batch 3 · 2026</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ========== SAGA FLOW ========== -->
+<div id="panel-saga" class="panel">
+  <h1>Order Saga — Choreography Pattern</h1>
+  <h2>Happy path: place order → payment → notification</h2>
+  <div class="diagram-area">
+    <svg viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:700px">
+      <defs>
+        <marker id="sa-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#64748b"/>
+        </marker>
+        <marker id="sa-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6"/>
+        </marker>
+        <marker id="sa-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#a855f7"/>
+        </marker>
+        <marker id="sa-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#22c55e"/>
+        </marker>
+        <marker id="sa-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#ef4444"/>
+        </marker>
+      </defs>
+
+      <!-- Swimlane headers -->
+      <rect x="10" y="10" width="130" height="40" rx="6" fill="#1e2030" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="75" y="34" text-anchor="middle" fill="#3b82f6" font-size="12" font-weight="700">Frontend</text>
+
+      <rect x="160" y="10" width="130" height="40" rx="6" fill="#1e2030" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="225" y="34" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="700">order-service</text>
+
+      <rect x="310" y="10" width="130" height="40" rx="6" fill="#1e2030" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="375" y="34" text-anchor="middle" fill="#a855f7" font-size="12" font-weight="700">Kafka</text>
+
+      <rect x="460" y="10" width="130" height="40" rx="6" fill="#1e2030" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="525" y="34" text-anchor="middle" fill="#a855f7" font-size="12" font-weight="700">payment-service</text>
+
+      <rect x="610" y="10" width="130" height="40" rx="6" fill="#1e2030" stroke="#ec4899" stroke-width="1.5"/>
+      <text x="675" y="34" text-anchor="middle" fill="#ec4899" font-size="12" font-weight="700">notification-svc</text>
+
+      <!-- vertical swim lanes -->
+      <line x1="75" y1="50" x2="75" y2="680" stroke="#1e2030" stroke-width="1"/>
+      <line x1="225" y1="50" x2="225" y2="680" stroke="#1e2030" stroke-width="1"/>
+      <line x1="375" y1="50" x2="375" y2="680" stroke="#1e2030" stroke-width="1"/>
+      <line x1="525" y1="50" x2="525" y2="680" stroke="#1e2030" stroke-width="1"/>
+      <line x1="675" y1="50" x2="675" y2="680" stroke="#1e2030" stroke-width="1"/>
+
+      <!-- Step 1: POST /orders -->
+      <rect x="20" y="80" width="110" height="32" rx="5" fill="#1a2540" stroke="#3b82f6" stroke-width="1"/>
+      <text x="75" y="100" text-anchor="middle" fill="#e2e8f0" font-size="11">POST /orders</text>
+      <line x1="130" y1="96" x2="218" y2="96" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#sa-blue)"/>
+
+      <!-- Step 2: save PENDING -->
+      <rect x="170" y="80" width="110" height="32" rx="5" fill="#1a2540" stroke="#f59e0b" stroke-width="1"/>
+      <text x="225" y="94" text-anchor="middle" fill="#e2e8f0" font-size="11">Save Order</text>
+      <text x="225" y="107" text-anchor="middle" fill="#64748b" font-size="9">status=PENDING</text>
+      <line x1="280" y1="96" x2="368" y2="96" stroke="#a855f7" stroke-width="1.5" marker-end="url(#sa-purple)"/>
+      <text x="320" y="90" text-anchor="middle" fill="#a855f7" font-size="9">ORDER_INITIATED</text>
+
+      <!-- Step 3: kafka to payment -->
+      <rect x="320" y="80" width="110" height="32" rx="5" fill="#1a1428" stroke="#a855f7" stroke-width="1"/>
+      <text x="375" y="100" text-anchor="middle" fill="#a855f7" font-size="11">orders.events.v1</text>
+      <line x1="430" y1="96" x2="518" y2="96" stroke="#a855f7" stroke-width="1.5" marker-end="url(#sa-purple)"/>
+
+      <!-- Step 4: payment processes -->
+      <rect x="470" y="80" width="110" height="32" rx="5" fill="#1a1428" stroke="#a855f7" stroke-width="1"/>
+      <text x="525" y="94" text-anchor="middle" fill="#e2e8f0" font-size="11">Process payment</text>
+      <text x="525" y="107" text-anchor="middle" fill="#64748b" font-size="9">Stripe / mock</text>
+
+      <!-- Step 5: payment publishes -->
+      <line x1="525" y1="160" x2="525" y2="175"/>
+      <rect x="470" y="175" width="110" height="32" rx="5" fill="#1a1428" stroke="#a855f7" stroke-width="1"/>
+      <text x="525" y="189" text-anchor="middle" fill="#e2e8f0" font-size="11">Save payment</text>
+      <text x="525" y="202" text-anchor="middle" fill="#64748b" font-size="9">PAYMENT_SUCCESS</text>
+      <line x1="470" y1="191" x2="382" y2="191" stroke="#a855f7" stroke-width="1.5" marker-end="url(#sa-purple)"/>
+      <text x="420" y="185" text-anchor="middle" fill="#a855f7" font-size="9">PAYMENT_SUCCESS</text>
+
+      <rect x="320" y="175" width="110" height="32" rx="5" fill="#1a1428" stroke="#a855f7" stroke-width="1"/>
+      <text x="375" y="195" text-anchor="middle" fill="#a855f7" font-size="11">payments.events.v1</text>
+
+      <!-- Order-service consumes payment event -->
+      <line x1="320" y1="191" x2="282" y2="191" stroke="#a855f7" stroke-width="1.5" marker-end="url(#sa-purple)"/>
+      <rect x="170" y="175" width="110" height="32" rx="5" fill="#1a2540" stroke="#f59e0b" stroke-width="1"/>
+      <text x="225" y="189" text-anchor="middle" fill="#e2e8f0" font-size="11">Update Order</text>
+      <text x="225" y="202" text-anchor="middle" fill="#64748b" font-size="9">status=PAID</text>
+
+      <!-- order service publishes PAYMENT_SUCCESS to orders.events.v1 -->
+      <line x1="280" y1="280" x2="368" y2="280" stroke="#a855f7" stroke-width="1.5" marker-end="url(#sa-purple)"/>
+      <line x1="225" y1="207" x2="225" y2="280"/>
+      <text x="318" y="274" text-anchor="middle" fill="#a855f7" font-size="9">PAYMENT_SUCCESS</text>
+      <rect x="320" y="265" width="110" height="32" rx="5" fill="#1a1428" stroke="#a855f7" stroke-width="1"/>
+      <text x="375" y="285" text-anchor="middle" fill="#a855f7" font-size="11">orders.events.v1</text>
+
+      <!-- notification consumes -->
+      <line x1="430" y1="281" x2="668" y2="281" stroke="#a855f7" stroke-width="1.5" marker-end="url(#sa-purple)"/>
+      <rect x="620" y="265" width="110" height="32" rx="5" fill="#1a1030" stroke="#ec4899" stroke-width="1"/>
+      <text x="675" y="279" text-anchor="middle" fill="#e2e8f0" font-size="11">Send email</text>
+      <text x="675" y="292" text-anchor="middle" fill="#64748b" font-size="9">SMTP · in-app alert</text>
+
+      <!-- frontend polls and gets PAID -->
+      <line x1="170" y1="300" x2="88" y2="300" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#sa-blue)"/>
+      <line x1="225" y1="207" x2="225" y2="300"/>
+      <text x="128" y="294" text-anchor="middle" fill="#3b82f6" font-size="9">GET /orders (poll)</text>
+      <rect x="20" y="310" width="110" height="32" rx="5" fill="#1a2540" stroke="#22c55e" stroke-width="1"/>
+      <text x="75" y="324" text-anchor="middle" fill="#22c55e" font-size="11">Shows PAID ✓</text>
+      <text x="75" y="337" text-anchor="middle" fill="#64748b" font-size="9">3s poll resolves</text>
+
+      <!-- Compensation path -->
+      <text x="100" y="420" fill="#ef4444" font-size="12" font-weight="700">── Compensation (PAYMENT_FAILED) ──</text>
+      <rect x="470" y="440" width="110" height="32" rx="5" fill="#1a1428" stroke="#ef4444" stroke-width="1"/>
+      <text x="525" y="454" text-anchor="middle" fill="#e2e8f0" font-size="11">Payment fails</text>
+      <text x="525" y="467" text-anchor="middle" fill="#64748b" font-size="9">Stripe error / timeout</text>
+
+      <line x1="470" y1="456" x2="382" y2="456" stroke="#ef4444" stroke-width="1.5" marker-end="url(#sa-red)"/>
+      <rect x="320" y="440" width="110" height="32" rx="5" fill="#1a1428" stroke="#ef4444" stroke-width="1"/>
+      <text x="375" y="460" text-anchor="middle" fill="#ef4444" font-size="11">payments.events.v1</text>
+
+      <line x1="320" y1="456" x2="282" y2="456" stroke="#ef4444" stroke-width="1.5" marker-end="url(#sa-red)"/>
+      <rect x="170" y="440" width="110" height="32" rx="5" fill="#1a2540" stroke="#ef4444" stroke-width="1"/>
+      <text x="225" y="454" text-anchor="middle" fill="#e2e8f0" font-size="11">Update Order</text>
+      <text x="225" y="467" text-anchor="middle" fill="#64748b" font-size="9">status=FAILED</text>
+
+      <!-- idempotency note -->
+      <rect x="30" y="540" width="840" height="50" rx="8" fill="#0f1117" stroke="#2e3347" stroke-width="1"/>
+      <text x="450" y="562" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">Idempotency guard in updateOrderStatus():</text>
+      <text x="450" y="578" text-anchor="middle" fill="#64748b" font-size="10">If order.status == newStatus → no-op (skip update + skip re-publish). Safe for Kafka at-least-once redelivery.</text>
+
+      <!-- afterCommit note -->
+      <rect x="30" y="610" width="840" height="50" rx="8" fill="#0f1117" stroke="#2e3347" stroke-width="1"/>
+      <text x="450" y="632" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">Transactional Outbox (afterCommit hook):</text>
+      <text x="450" y="648" text-anchor="middle" fill="#64748b" font-size="10">All Kafka publishes fire AFTER DB transaction commits — prevents phantom events for rows that rolled back.</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ========== PER-SERVICE PANELS ========== -->
+
+<!-- user-service -->
+<div id="panel-user" class="panel">
+  <div class="service-grid">
+    <div class="service-card">
+      <div class="badge" style="background:rgba(59,130,246,0.15);color:#3b82f6">Port 8080</div>
+      <div class="card-title">user-service</div>
+      <div class="card-desc">Authentication, JWT issuance, OAuth2 via GitHub, user profile management, admin user operations.</div>
+      <div class="section-label">REST Endpoints</div>
+      <div class="endpoint"><span class="method post">POST</span><div><div class="endpoint-path">/api/v1/auth/signup</div><div class="endpoint-desc">Register email/password user. Returns JWT cookie.</div></div></div>
+      <div class="endpoint"><span class="method post">POST</span><div><div class="endpoint-path">/api/v1/auth/login</div><div class="endpoint-desc">Authenticate, issue HTTP-only JWT cookie.</div></div></div>
+      <div class="endpoint"><span class="method post">POST</span><div><div class="endpoint-path">/api/v1/auth/logout</div><div class="endpoint-desc">Clears JWT cookie (Max-Age=0).</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/users/me</div><div class="endpoint-desc">Returns UserProfileDto (id, name, email, role, hasPassword).</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/users/me/name</div><div class="endpoint-desc">Update display name.</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/users/password</div><div class="endpoint-desc">Change password (email accounts only). Verifies current password.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/admin/users</div><div class="endpoint-desc">List all users (ADMIN only).</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/admin/users/{id}/role</div><div class="endpoint-desc">Change user role. Self-demotion guard.</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/admin/users/{id}/toggle-active</div><div class="endpoint-desc">Activate/deactivate account.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/login/oauth2/code/github</div><div class="endpoint-desc">GitHub OAuth2 callback → JWT + redirect.</div></div></div>
+    </div>
+    <div class="service-card">
+      <div class="section-label">Kafka Events Published</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#a855f7"></div><div class="flow-text"><span class="tag kafka">user.events.v1</span> USER_REGISTERED on signup</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#a855f7"></div><div class="flow-text"><span class="tag kafka">user.events.v1</span> USER_LOGGED_IN on login (any method)</div></div>
+      <div class="section-label">Storage</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#22c55e"></div><div class="flow-text"><span class="tag db">PostgreSQL</span> users table: id, name, email, password, role, isActive</div></div>
+      <div class="section-label">Security</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#f59e0b"></div><div class="flow-text"><span class="tag jwt">JWT</span> HS256, HTTP-only cookie, 24h expiry</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#f59e0b"></div><div class="flow-text"><span class="tag jwt">OAuth2</span> GitHub provider, {OAUTH} sentinel password</div></div>
+      <div class="section-label">Key Patterns</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#06b6d4"></div><div class="flow-text">getOrCreateOAuthUser() — idempotent user creation on first OAuth login</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#06b6d4"></div><div class="flow-text">hasPassword flag on UserProfileDto — frontend uses to show/hide change-password form</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#06b6d4"></div><div class="flow-text">Self-demotion guard — admin cannot remove their own ROLE_ADMIN</div></div>
+      <div class="section-label">OTEL</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#f97316"></div><div class="flow-text"><span class="tag otel">OTEL</span> All HTTP spans + Kafka producer spans exported to collector:4318</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- product-service -->
+<div id="panel-product" class="panel">
+  <div class="service-grid">
+    <div class="service-card">
+      <div class="badge" style="background:rgba(34,197,94,0.15);color:#22c55e">Port 8080</div>
+      <div class="card-title">product-service</div>
+      <div class="card-desc">Product catalogue, search/filter, inventory management, shopping cart, admin CRUD.</div>
+      <div class="section-label">REST Endpoints</div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/products</div><div class="endpoint-desc">Paginated list with search, category, price filter.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/products/{id}</div><div class="endpoint-desc">Single product detail.</div></div></div>
+      <div class="endpoint"><span class="method post">POST</span><div><div class="endpoint-path">/api/v1/admin/products</div><div class="endpoint-desc">Create product (ADMIN). Image URL, price, stock.</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/admin/products/{id}</div><div class="endpoint-desc">Update product details.</div></div></div>
+      <div class="endpoint"><span class="method delete">DELETE</span><div><div class="endpoint-path">/api/v1/admin/products/{id}</div><div class="endpoint-desc">Soft-delete product.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/cart</div><div class="endpoint-desc">Current user's cart.</div></div></div>
+      <div class="endpoint"><span class="method post">POST</span><div><div class="endpoint-path">/api/v1/cart/items</div><div class="endpoint-desc">Add item to cart.</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/cart/items/{id}</div><div class="endpoint-desc">Update item quantity (delta, not absolute).</div></div></div>
+      <div class="endpoint"><span class="method delete">DELETE</span><div><div class="endpoint-path">/api/v1/cart/items/{id}</div><div class="endpoint-desc">Remove cart item.</div></div></div>
+    </div>
+    <div class="service-card">
+      <div class="section-label">Storage</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#22c55e"></div><div class="flow-text"><span class="tag db">PostgreSQL</span> products, categories, cart_items tables</div></div>
+      <div class="section-label">Key Bug Fixed</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">Cart quantity mismatch: frontend sent delta (+1/-1), backend applied as absolute. Fixed: backend computes current + delta, removes item if result ≤ 0.</div></div>
+      <div class="section-label">OTEL</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#f97316"></div><div class="flow-text"><span class="tag otel">OTEL</span> HTTP spans, DB query spans exported</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- order-service -->
+<div id="panel-order" class="panel">
+  <div class="service-grid">
+    <div class="service-card">
+      <div class="badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">Port 8080 · Saga Orchestrator</div>
+      <div class="card-title">order-service</div>
+      <div class="card-desc">Creates and tracks orders. Orchestrates the payment saga via Kafka events. Handles cancellation with compensation.</div>
+      <div class="section-label">REST Endpoints</div>
+      <div class="endpoint"><span class="method post">POST</span><div><div class="endpoint-path">/api/v1/orders</div><div class="endpoint-desc">Create order from cart. Persists PENDING, publishes ORDER_INITIATED.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/orders</div><div class="endpoint-desc">User's order history. Polled every 3s while any order is PENDING.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/orders/my-latest</div><div class="endpoint-desc">Latest order for payment redirect flow.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/orders/{id}</div><div class="endpoint-desc">Single order detail.</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/orders/{id}/cancel</div><div class="endpoint-desc">Cancel order. Publishes ORDER_CANCELLED compensation event.</div></div></div>
+    </div>
+    <div class="service-card">
+      <div class="section-label">Kafka Topics</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#a855f7"></div><div class="flow-text"><span class="tag kafka">orders.events.v1</span> Publishes: ORDER_INITIATED, PAYMENT_SUCCESS, ORDER_CANCELLED, ORDER_SHIPPED, ORDER_DELIVERED</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#a855f7"></div><div class="flow-text"><span class="tag kafka">payments.events.v1</span> Consumes: PAYMENT_SUCCESS, PAYMENT_FAILED → updates order status</div></div>
+      <div class="section-label">Consumer Group</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#06b6d4"></div><div class="flow-text">order-service-group-v2 · auto-offset-reset: earliest</div></div>
+      <div class="section-label">Key Bugs Fixed</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">@Header required=true blocked consumer on missing header → changed to required=false with payload fallback</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">Consumer group ID mismatch (v1 vs v2) → messages skipped</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">Kafka publish before DB commit → afterCommit hook via syncAndSend()</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">No idempotency → duplicate events on redelivery → added no-op guard</div></div>
+      <div class="section-label">Storage</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#22c55e"></div><div class="flow-text"><span class="tag db">PostgreSQL</span> orders table: id, customerId, status, items (JSON), total</div></div>
+      <div class="section-label">OTEL</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#f97316"></div><div class="flow-text"><span class="tag otel">OTEL</span> Kafka traceparent propagation — single trace spans order + payment + notification</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- payment-service -->
+<div id="panel-payment" class="panel">
+  <div class="service-grid">
+    <div class="service-card">
+      <div class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">Port 8080 · Saga Participant</div>
+      <div class="card-title">payment-service</div>
+      <div class="card-desc">Processes payments via Stripe (or mock in dev). Participates in the order saga. Publishes outcome events.</div>
+      <div class="section-label">REST Endpoints</div>
+      <div class="endpoint"><span class="method post">POST</span><div><div class="endpoint-path">/api/v1/payments/initiate</div><div class="endpoint-desc">Create Stripe PaymentIntent. Returns clientSecret for frontend.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/payments/order/{orderId}</div><div class="endpoint-desc">Get payment record for an order.</div></div></div>
+      <div class="endpoint"><span class="method post">POST</span><div><div class="endpoint-path">/api/v1/payments/webhook</div><div class="endpoint-desc">Stripe webhook (payment_intent.succeeded / failed).</div></div></div>
+    </div>
+    <div class="service-card">
+      <div class="section-label">Kafka Topics</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#a855f7"></div><div class="flow-text"><span class="tag kafka">orders.events.v1</span> Consumes: ORDER_INITIATED → triggers payment processing</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#a855f7"></div><div class="flow-text"><span class="tag kafka">payments.events.v1</span> Publishes: PAYMENT_SUCCESS, PAYMENT_FAILED</div></div>
+      <div class="section-label">Consumer Group</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#06b6d4"></div><div class="flow-text">payment-service-group-v6 · auto-offset-reset: earliest</div></div>
+      <div class="section-label">Storage</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#22c55e"></div><div class="flow-text"><span class="tag db">PostgreSQL</span> payments: id, orderId, stripeRef, status, amount</div></div>
+      <div class="section-label">OTEL</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#f97316"></div><div class="flow-text"><span class="tag otel">OTEL</span> Propagates traceparent from Kafka into Stripe HTTP spans</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- notification-service -->
+<div id="panel-notification" class="panel">
+  <div class="service-grid">
+    <div class="service-card">
+      <div class="badge" style="background:rgba(236,72,153,0.15);color:#ec4899">Port 8080</div>
+      <div class="card-title">notification-service</div>
+      <div class="card-desc">Listens for order events via Kafka. Sends transactional emails via SMTP. Persists in-app notifications for the bell icon.</div>
+      <div class="section-label">REST Endpoints</div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/notifications</div><div class="endpoint-desc">List user's notifications. Polled every 10s by frontend.</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/notifications/{id}/read</div><div class="endpoint-desc">Mark notification as read.</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/notifications/read-all</div><div class="endpoint-desc">Mark all as read.</div></div></div>
+    </div>
+    <div class="service-card">
+      <div class="section-label">Kafka Consumed</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#a855f7"></div><div class="flow-text"><span class="tag kafka">orders.events.v1</span> All OrderEventTypes → persists Notification row + sends email</div></div>
+      <div class="section-label">Storage</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#22c55e"></div><div class="flow-text"><span class="tag db">PostgreSQL</span> notifications: id, userId, title, message, type, isRead, createdAt</div></div>
+      <div class="section-label">SMTP</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#06b6d4"></div><div class="flow-text">Spring Mail · MAIL_USERNAME / MAIL_PASSWORD env vars · port 587</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- review-rating-service -->
+<div id="panel-review" class="panel">
+  <div class="service-grid">
+    <div class="service-card">
+      <div class="badge" style="background:rgba(6,182,212,0.15);color:#06b6d4">Port 8080 · Write Side</div>
+      <div class="card-title">review-rating-service</div>
+      <div class="card-desc">CQRS write side. Accepts new reviews, handles moderation. Publishes ReviewEvents to Kafka for the aggregator to consume.</div>
+      <div class="section-label">REST Endpoints</div>
+      <div class="endpoint"><span class="method post">POST</span><div><div class="endpoint-path">/api/v1/reviews</div><div class="endpoint-desc">Submit review (authenticated). Status starts PENDING.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/reviews/product/{productId}</div><div class="endpoint-desc">List APPROVED reviews for a product.</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/reviews/{id}/approve</div><div class="endpoint-desc">Moderator approves review.</div></div></div>
+      <div class="endpoint"><span class="method patch">PATCH</span><div><div class="endpoint-path">/api/v1/reviews/{id}/reject</div><div class="endpoint-desc">Moderator rejects review.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/reviews/pending</div><div class="endpoint-desc">All pending reviews (MODERATOR/ADMIN).</div></div></div>
+    </div>
+    <div class="service-card">
+      <div class="section-label">Kafka Published</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#a855f7"></div><div class="flow-text"><span class="tag kafka">review.events.v1</span> REVIEW_SUBMITTED, REVIEW_APPROVED, REVIEW_REJECTED</div></div>
+      <div class="section-label">Storage</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#22c55e"></div><div class="flow-text"><span class="tag db">PostgreSQL</span> reviews: id, productId, userId, rating(1-5), body, status, createdAt</div></div>
+      <div class="section-label">Fixes Applied</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">Missing SecurityConfig causing 302 redirects instead of 401 JSON</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">Sub-package import errors → flattened package structure</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">Missing spring.application.name in application.yaml</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- rating-aggregator-service -->
+<div id="panel-aggregator" class="panel">
+  <div class="service-grid">
+    <div class="service-card">
+      <div class="badge" style="background:rgba(249,115,22,0.15);color:#f97316">Port 8080 · Read Side · CQRS</div>
+      <div class="card-title">rating-aggregator-service</div>
+      <div class="card-desc">CQRS read model. Consumes review events to maintain pre-computed rating aggregates. Serves from Redis cache with 5-minute TTL.</div>
+      <div class="section-label">REST Endpoints</div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/ratings/{productId}</div><div class="endpoint-desc">Returns { productId, averageRating, reviewCount }. Redis cached.</div></div></div>
+      <div class="endpoint"><span class="method get">GET</span><div><div class="endpoint-path">/api/v1/ratings/top</div><div class="endpoint-desc">Top 10 products by average rating.</div></div></div>
+    </div>
+    <div class="service-card">
+      <div class="section-label">Kafka Consumed</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#a855f7"></div><div class="flow-text"><span class="tag kafka">review.events.v1</span> REVIEW_APPROVED → increments count + sum, recomputes average, invalidates Redis</div></div>
+      <div class="section-label">Storage</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#22c55e"></div><div class="flow-text"><span class="tag db">PostgreSQL</span> rating_aggregates: productId (PK), count, sum, average</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text"><span class="tag redis">Redis</span> Key: ratings:{productId} · TTL: 5 minutes</div></div>
+      <div class="section-label">Consumer Group</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#06b6d4"></div><div class="flow-text">rating-aggregator-service-group-v1</div></div>
+      <div class="section-label">Fixes Applied</div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">Wrong primary key type on RatingAggregate entity (surrogate id vs natural productId)</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">Leftover scaffold files conflicting with new implementation — deleted</div></div>
+      <div class="flow-item"><div class="flow-dot" style="background:#ef4444"></div><div class="flow-text">Test YAML not picked up — renamed to application.yaml</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+</script>
+</body>
+</html>

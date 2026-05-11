@@ -4,7 +4,9 @@ import com.itc.funkart.common.dto.auth.request.login.LoginRequest;
 import com.itc.funkart.common.dto.auth.request.signup.SignupRequest;
 import com.itc.funkart.common.dto.auth.response.login.SuccessfulLoginResponse;
 import com.itc.funkart.common.dto.response.ApiResponse;
+import com.itc.funkart.gateway.security.CookieUtil;
 import com.itc.funkart.gateway.service.UserGatewayService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -41,13 +43,16 @@ import reactor.core.publisher.Mono;
 public class UserController {
 
     private final UserGatewayService userGatewayService;
+    private final CookieUtil cookieUtil;
 
     /**
      * @param userGatewayService Service responsible for handling authentication
      *                           orchestration and communication with the User-Service.
+     * @param cookieUtil         Utility for clearing the JWT session cookie on logout.
      */
-    public UserController(UserGatewayService userGatewayService) {
+    public UserController(UserGatewayService userGatewayService, CookieUtil cookieUtil) {
         this.userGatewayService = userGatewayService;
+        this.cookieUtil = cookieUtil;
     }
 
     /**
@@ -90,5 +95,18 @@ public class UserController {
 
         return userGatewayService.signup(request, exchange)
                 .map(ResponseEntity::ok);
+    }
+
+    /**
+     * Logs the user out by clearing the JWT HttpOnly cookie.
+     * No downstream call is needed — the session is stateless (JWT).
+     *
+     * @param exchange The current server exchange context
+     * @return 204 No Content on success
+     */
+    @PostMapping("/logout")
+    public Mono<ResponseEntity<Void>> logout(ServerWebExchange exchange) {
+        return cookieUtil.clearTokenCookie(exchange)
+                .then(Mono.just(ResponseEntity.<Void>status(HttpStatus.NO_CONTENT).build()));
     }
 }

@@ -6,11 +6,11 @@ import com.itc.funkart.common.dto.event.order.OrderCancelledEvent;
 import com.itc.funkart.common.dto.event.order.OrderEvent;
 import com.itc.funkart.common.enums.order.OrderEventType;
 import com.itc.funkart.common.enums.order.OrderStatus;
-import com.itc.funkart.dto.OrderItemRequest;
-import com.itc.funkart.dto.OrderItemResponse;
-import com.itc.funkart.dto.OrderResponse;
-import com.itc.funkart.entity.Order;
-import com.itc.funkart.entity.OrderItem;
+import com.itc.funkart.aggregator.dto.OrderItemRequest;
+import com.itc.funkart.aggregator.dto.OrderItemResponse;
+import com.itc.funkart.aggregator.dto.OrderResponse;
+import com.itc.funkart.aggregator.entity.Order;
+import com.itc.funkart.aggregator.entity.OrderItem;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -78,6 +78,7 @@ public class OrderMapper {
         return OrderResponse.builder()
                 .orderId(order.getId())
                 .customerId(order.getCustomerId())
+                .customerEmail(order.getCustomerEmail())
                 .orderStatus(order.getStatus())
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())
@@ -96,6 +97,7 @@ public class OrderMapper {
 
         // Critical: Mapping userId from the event to customerId in the Entity
         order.setCustomerId(event.customerId());
+        order.setCustomerEmail(event.customerEmail());
         order.setTotalAmount(event.totalAmount());
         order.setStatus(OrderStatus.PENDING);
 
@@ -120,6 +122,7 @@ public class OrderMapper {
         return items.stream()
                 .map(item -> new CheckoutItemPayload(
                         item.getProductId(),
+                        item.getProductName(),
                         item.getQuantity(),
                         item.getPriceAtPurchase(),
                         item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity()))
@@ -133,6 +136,7 @@ public class OrderMapper {
         return items.stream()
                 .map(item -> OrderItemResponse.builder()
                         .productId(item.getProductId())
+                        .productName(item.getProductName())
                         .quantity(item.getQuantity())
                         .priceAtPurchase(item.getPriceAtPurchase())
                         .build())
@@ -153,6 +157,7 @@ public class OrderMapper {
         return CheckoutInitiatedEvent.builder()
                 .eventType(OrderEventType.ORDER_INITIATED)
                 .customerId(order.getCustomerId())
+                .customerEmail(order.getCustomerEmail())
                 .totalAmount(order.getTotalAmount())
                 .items(mapItemEventPayloads(order.getItems()))
                 .currency("usd")

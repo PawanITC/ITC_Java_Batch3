@@ -14,3 +14,14 @@ spring:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
+
+# Disable tracing when running locally without a collector.
+# NOTE: In Docker this is overridden back to true via JAVA_TOOL_OPTIONS in docker-compose:
+#   -Dmanagement.tracing.enabled=true
+# The raw OTEL SDK gRPC exporter (hardcoded default localhost:4317) is also redirected there
+# via -Dotel.exporter.otlp.endpoint=http://otel-collector:4317. The OTEL_EXPORTER_OTLP_ENDPOINT
+# env var alone is not sufficient because Spring Boot's OTEL autoconfiguration reads JVM
+# system properties at higher priority than environment variables.
+management:
+  tracing:
+    enabled: false

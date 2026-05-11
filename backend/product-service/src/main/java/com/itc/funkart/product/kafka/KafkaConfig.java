@@ -1,10 +1,10 @@
 package com.itc.funkart.product.kafka;
 
 import com.itc.funkart.common.constants.messaging.KafkaTopics;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
-import org.apache.kafka.clients.admin.NewTopic;
 
 /**
  * <h2>Product Service Kafka Infrastructure</h2>

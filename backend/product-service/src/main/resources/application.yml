@@ -12,7 +12,7 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
-#        spring.json.type.mapping: "order_initiated:com.itc.funkart.common.dto.event.order.OrderInitiatedEvent"
+    #        spring.json.type.mapping: "order_initiated:com.itc.funkart.common.dto.event.order.OrderInitiatedEvent"
     consumer:
       group-id: product-service-group-v1
       # FIX: Use ErrorHandlingDeserializer for stability
@@ -37,10 +37,11 @@ management:
       probability: 1.0
   otlp:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
+      # Spring Boot Micrometer sends HTTP traces — must use port 4318, NOT 4317 (gRPC).
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://otel-collector:4318/v1/traces}
     metrics:
       export:
-        url: ${OTEL_METRICS_ENDPOINT:http://otel-collector:4318}
+        url: ${MANAGEMENT_OTLP_METRICS_URL:http://otel-collector:4318/v1/metrics}
   loki:
     endpoint: ${LOKI_URL:http://loki:3100/loki/api/v1/push}
 

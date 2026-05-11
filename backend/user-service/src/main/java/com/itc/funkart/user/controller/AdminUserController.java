@@ -23,13 +23,13 @@ import java.util.List;
  * modify authorization levels, and monitor account statuses across the Funkart system.</p>
  *
  * @author Abbas Gure
- * @version 1.1
+ * @version 1.2
  */
 @RestController
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasRole('ROLE_ADMIN')")
+@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 public class AdminUserController {
 
     private final UserService userService;
@@ -74,12 +74,39 @@ public class AdminUserController {
         log.info("Admin request: Updating role for user ID: {} to {}", userId, request.role());
 
         if (!(authentication.getPrincipal() instanceof UserPrincipalDto principal)) {
-            log.error("Principal type mismatch: Expected UserPrincipalDto");
-            throw new IllegalStateException("Unexpected principal type in SecurityContext");
+            log.error("Principal type mismatch: Expected UserPrincipalDto, got {}",
+                    authentication.getPrincipal() != null ? authentication.getPrincipal().getClass().getName() : "null");
+            throw new com.itc.funkart.user.exceptions.ForbiddenException("Admin identity could not be verified");
         }
 
         User updatedUser = userService.changeUserRole(userId, request.role(), principal.email());
 
         return ResponseEntity.ok(userMapper.toDto(updatedUser));
+    }
+
+    /**
+     * Toggles the active/inactive status of a user account.
+     * <p>Prevents an administrator from deactivating their own account.
+     * A deactivated user cannot log in and is locked out of all services.</p>
+     *
+     * @param userId         The unique database identifier of the user to toggle.
+     * @param authentication The current security context (used to verify admin identity).
+     * @return {@link ResponseEntity} containing the updated {@link UserDto}.
+     */
+    @PatchMapping("/{userId}/status")
+    public ResponseEntity<UserDto> toggleUserStatus(
+            @PathVariable Long userId,
+            Authentication authentication) {
+
+        log.info("Admin request: Toggling active status for user ID: {}", userId);
+
+        if (!(authentication.getPrincipal() instanceof UserPrincipalDto principal)) {
+            throw new com.itc.funkart.user.exceptions.ForbiddenException("Admin identity could not be verified");
+        }
+
+        User updated = userService.toggleUserActive(userId, principal.email());
+        log.info("User ID {} is now active={}", userId, updated.isActive());
+
+        return ResponseEntity.ok(userMapper.toDto(updated));
     }
 }

@@ -25,12 +25,23 @@ public class ProductController {
     private final ProductService productService;
 
     /**
-     * Retrieves the full catalog.
+     * Retrieves the product catalog.
+     * Supports optional filtering via query parameters:
+     * ?search=keyword  — case-insensitive name substring match
+     * ?categoryId=1    — filter by category ID
+     * When neither param is present the cached full-catalog path is used.
      */
     @GetMapping
-    @Operation(summary = "Get all products")
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> getAllProducts() {
-        List<ProductResponse> products = productService.getAllProducts();
+    @Operation(summary = "Get all products (with optional search/category filter)")
+    public ResponseEntity<ApiResponse<List<ProductResponse>>> getAllProducts(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId) {
+
+        boolean hasFilter = (search != null && !search.isBlank()) || categoryId != null;
+        List<ProductResponse> products = hasFilter
+                ? productService.getFilteredProducts(search, categoryId)
+                : productService.getAllProducts();
+
         return ResponseEntity.ok(ApiResponse.success(products, "Current products list"));
     }
 

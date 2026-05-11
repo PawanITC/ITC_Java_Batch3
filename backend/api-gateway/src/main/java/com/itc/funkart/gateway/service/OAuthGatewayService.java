@@ -1,11 +1,11 @@
 package com.itc.funkart.gateway.service;
 
+import com.itc.funkart.common.dto.auth.request.oauth.CodeRequest;
+import com.itc.funkart.common.dto.auth.response.login.SuccessfulLoginResponse;
 import com.itc.funkart.common.dto.auth.response.oauth.OAuthResponse;
 import com.itc.funkart.common.dto.response.ApiResponse;
 import com.itc.funkart.common.dto.user.UserDto;
 import com.itc.funkart.gateway.config.AppConfig;
-import com.itc.funkart.common.dto.auth.request.oauth.CodeRequest;
-import com.itc.funkart.common.dto.auth.response.login.SuccessfulLoginResponse;
 import com.itc.funkart.gateway.exception.JwtAuthenticationException;
 import com.itc.funkart.gateway.security.CookieUtil;
 import org.springframework.core.ParameterizedTypeReference;

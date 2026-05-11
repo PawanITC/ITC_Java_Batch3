@@ -1,0 +1,90 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk17'
+    }
+
+    environment {
+        DOCKER_HUB_USER          = 'abbasgureitc'
+        IMAGE_NAME               = 'order-service'
+        REGISTRY_CREDENTIALS_ID  = 'docker-hub-credentials'
+        SNYK_TOKEN               = credentials('snyk-token')
+        dockerImage              = ''
+    }
+
+    stages {
+        stage('Check Environment') {
+            steps {
+                sh 'java -version'
+                sh 'docker version'
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                script {
+                    sh "chmod +x gradlew"
+                    sh "./gradlew clean :common-contracts:publishToMavenLocal :order-service:build :order-service:jacocoTestReport \
+                        -Dspring.profiles.active=test \
+                        --no-daemon --stacktrace"
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                jacoco(
+                    execPattern:      'backend/order-service/build/jacoco/*.exec',
+                    classPattern:     'backend/order-service/build/classes/java/main',
+                    sourcePattern:    'backend/order-service/src/main/java',
+                    inclusionPattern: '**/*.class',
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '80',
+                    buildOverBuild: false
+                )
+            }
+        }
+
+        stage('Security Scan (Snyk)') {
+            steps {
+                script {
+                    sh "snyk auth ${SNYK_TOKEN}"
+                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                        sh 'snyk test --file=backend/order-service/build.gradle --severity-threshold=critical'
+                    }
+                    sh 'snyk monitor --file=backend/order-service/build.gradle'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} - ${IMAGE_NAME}"
+                    dockerImage = docker.build(
+                        "${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}",
+                        "-f backend/order-service/Dockerfile ."
+                    )
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('', REGISTRY_CREDENTIALS_ID) {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo "SUCCESS: ${IMAGE_NAME} is live on Docker Hub." }
+        failure { echo "FAILURE: Build or Security check failed. Check Jenkins logs." }
+        always  { cleanWs() }
+    }
+}

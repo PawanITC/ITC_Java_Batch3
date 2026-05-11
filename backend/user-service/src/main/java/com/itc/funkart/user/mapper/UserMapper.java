@@ -41,8 +41,9 @@ public class UserMapper {
 
         return new UserAdminSummary(
                 user.getId(),
+                user.getName(),
                 user.getEmail(),
-                user.getRole().name(),
+                user.getRole() != null ? user.getRole().name() : "ROLE_USER",
                 user.isActive()
         );
     }

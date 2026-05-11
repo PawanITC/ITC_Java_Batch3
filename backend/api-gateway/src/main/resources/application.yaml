@@ -7,6 +7,8 @@ internal:
     payment: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
     product: ${PRODUCT_SERVICE_URL:http://product-service:8080}
     order: ${ORDER_SERVICE_URL:http://order-service:8080}
+    review: ${REVIEW_SERVICE_URL:http://review-rating-service:8080}
+    aggregator: ${AGGREGATOR_SERVICE_URL:http://rating-aggregator-service:8080}
 
 spring:
   application:
@@ -35,7 +37,33 @@ spring:
     gateway:
       server:
         webflux:
+          globalcors:
+            cors-configurations:
+              "[/**]":
+                allowedOrigins:
+                  - ${FRONTEND_URL:http://localhost:5173}
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - PATCH
+                  - OPTIONS
+                allowedHeaders: "*"
+                exposedHeaders:
+                  - Authorization
+                  - Set-Cookie
+                allowCredentials: true
+                maxAge: 3600
           routes:
+            - id: admin-user-service
+              uri: ${internal.service-urls.user}
+              predicates:
+                # Include the base path WITHOUT trailing slash so /api/v1/admin/users is also matched
+                - Path=/api/v1/admin/users,/api/v1/admin/users/**
+              filters:
+                - StripPrefix=2
+
             - id: user-service
               uri: ${internal.service-urls.user}
               predicates:
@@ -53,7 +81,8 @@ spring:
             - id: order-service
               uri: ${internal.service-urls.order}
               predicates:
-                - Path=/api/v1/orders/**,/api/v1/admin/orders/**
+                # Include base paths WITHOUT trailing slash to avoid gateway 404
+                - Path=/api/v1/orders,/api/v1/orders/**,/api/v1/admin/orders,/api/v1/admin/orders/**
               filters:
                 - StripPrefix=2
 
@@ -61,6 +90,20 @@ spring:
               uri: ${internal.service-urls.payment}
               predicates:
                 - Path=/api/v1/payments/**
+              filters:
+                - StripPrefix=2
+
+            - id: review-service
+              uri: ${internal.service-urls.review}
+              predicates:
+                - Path=/api/v1/reviews/**
+              filters:
+                - StripPrefix=2
+
+            - id: rating-aggregator-service
+              uri: ${internal.service-urls.aggregator}
+              predicates:
+                - Path=/api/v1/rating-summary/**
               filters:
                 - StripPrefix=2
 
@@ -115,13 +158,11 @@ management:
 
   otlp:
     tracing:
-      # gRPC — port 4317
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      # Spring Boot Micrometer sends HTTP traces — must use port 4318, NOT 4317 (gRPC).
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://otel-collector:4318/v1/traces}
     metrics:
       export:
-        # FIX: was also OTEL_EXPORTER_OTLP_ENDPOINT (gRPC/4317).
-        # Micrometer OTLP metrics exporter uses HTTP — must point to 4318.
-        url: ${OTEL_METRICS_ENDPOINT:http://otel-collector:4318}
+        url: ${MANAGEMENT_OTLP_METRICS_URL:http://otel-collector:4318/v1/metrics}
 
   metrics:
     tags:

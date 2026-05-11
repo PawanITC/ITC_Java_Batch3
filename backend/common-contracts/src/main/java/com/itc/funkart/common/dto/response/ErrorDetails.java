@@ -17,11 +17,17 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ErrorDetails {
-    /** Machine-friendly error code (e.g., "VALIDATION_FAILED"). */
+    /**
+     * Machine-friendly error code (e.g., "VALIDATION_FAILED").
+     */
     private String code;
-    /** Human-friendly explanation. */
+    /**
+     * Human-friendly explanation.
+     */
     private String message;
-    /** The request field that caused the error, if applicable. */
+    /**
+     * The request field that caused the error, if applicable.
+     */
     private String field;
 
     /**

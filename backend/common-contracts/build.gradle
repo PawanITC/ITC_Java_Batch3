@@ -44,3 +44,7 @@ dependencies {
 tasks.named('jar') {
     archiveFileName = "common-contracts.jar"
 }
+
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}

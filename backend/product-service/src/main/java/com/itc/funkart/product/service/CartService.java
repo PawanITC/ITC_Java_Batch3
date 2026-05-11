@@ -63,5 +63,5 @@ public interface CartService {
      *
      * @throws IllegalStateException if the cart is empty or user is unauthenticated.
      */
-    void checkout();
+    void checkout(String customerEmail);
 }

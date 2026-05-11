@@ -6,6 +6,7 @@ import com.itc.funkart.common.dto.auth.response.login.SuccessfulLoginResponse;
 import com.itc.funkart.common.dto.response.ApiResponse;
 import com.itc.funkart.common.dto.user.UserDto;
 import com.itc.funkart.gateway.exception.OAuthException;
+import com.itc.funkart.gateway.security.CookieUtil;
 import com.itc.funkart.gateway.security.JwtAuthWebFilter;
 import com.itc.funkart.gateway.service.JwtService;
 import com.itc.funkart.gateway.service.UserGatewayService;
@@ -23,6 +24,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
@@ -68,9 +70,19 @@ class UserControllerTest {
     @MockitoBean
     private JwtService jwtService;
 
+    /**
+     * UserController directly injects CookieUtil, and SecurityConfig needs UrlBasedCorsConfigurationSource.
+     * Neither is loaded by @WebFluxTest (both need AppConfig / CorsConfig which are plain @Configurations).
+     * Mocking them here satisfies all transitive bean dependencies so the slice context can start.
+     */
+    @MockitoBean
+    private CookieUtil cookieUtil;
+
+    @MockitoBean
+    private UrlBasedCorsConfigurationSource corsSource;
+
     @BeforeEach
     void setUp() {
-        // Robust stubbing to prevent the NPE occuring
         lenient().when(jwtAuthWebFilter.filter(any(), any())).thenAnswer(inv -> {
             ServerWebExchange exchange = inv.getArgument(0);
             WebFilterChain chain = inv.getArgument(1);
@@ -78,15 +90,13 @@ class UserControllerTest {
         });
     }
 
-
     // -------------------------------------------------------------------------
     // Shared helpers
     // -------------------------------------------------------------------------
+
     private ApiResponse<SuccessfulLoginResponse> successfulResponse(String name, String email, String token) {
         UserDto user = new UserDto(1L, name, email, "ROLE_USER");
         SuccessfulLoginResponse body = new SuccessfulLoginResponse(user, token);
-
-        // Use the static factory method 'success' instead of 'new'
         return ApiResponse.success(body, "Success");
     }
 

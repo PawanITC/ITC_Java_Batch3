@@ -24,12 +24,13 @@ import lombok.extern.jackson.Jacksonized;
 @Builder
 @Jacksonized
 public record UserDto(
-    /* Database primary key. */
-    Long id,
-    /* User's full name. */
-    String name,
-    /* User's email. */
-    String email,
-    /* Assigned security role (e.g., ROLE_USER). */
-    String role
-) {}
+        /* Database primary key. */
+        Long id,
+        /* User's full name. */
+        String name,
+        /* User's email. */
+        String email,
+        /* Assigned security role (e.g., ROLE_USER). */
+        String role
+) {
+}

@@ -6,13 +6,13 @@ import lombok.extern.jackson.Jacksonized;
 
 /**
  * Exchange wrapper for GitHub OAuth temporary codes.
+ *
+ * @param code The temporary one-time code returned by GitHub's redirect URI.
+ *             This code is exchanged server-side for an access token.
  */
 @Builder
 @Jacksonized
 public record CodeRequest(
-        /*
-         *  The temporary 'code' string returned by GitHub redirect.
-         *  */
         @NotBlank String code
 ) {
 }

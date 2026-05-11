@@ -44,10 +44,13 @@ public class StripeService {
      * retries do not result in multiple Intents for the same Order.
      * </p>
      *
-     * @param amount    Transaction amount in the smallest currency unit (e.g., cents for USD).
-     * @param currency  3-character ISO currency code (e.g., "usd").
-     * @param userId    Internal ID of the user initiating the payment for metadata tagging.
-     * @param paymentId Local database ID used for metadata and the idempotency key.
+     * @param amount         Transaction amount in the smallest currency unit (e.g., cents for USD).
+     * @param currency       3-character ISO currency code (e.g., "usd").
+     * @param userId         Internal ID of the user initiating the payment for metadata tagging.
+     * @param paymentId      Local database ID used for metadata.
+     * @param orderId        Order ID used for metadata.
+     * @param idempotencyKey Stable UUID from the Payment entity. Tied to the DB record so a DB
+     *                       wipe generates a fresh key, avoiding Stripe IdempotencyException on replay.
      * @return A {@link PaymentIntent} object containing the {@code client_secret} for the frontend.
      * @throws StripeException If the request fails due to network issues, invalid parameters, or API limits.
      */
@@ -56,7 +59,8 @@ public class StripeService {
             String currency,
             Long userId,
             Long paymentId,
-            Long orderId
+            Long orderId,
+            String idempotencyKey
     ) throws StripeException {
 
         logger.debug("Requesting Stripe Intent | orderId={} paymentId={} amount={}",
@@ -80,9 +84,7 @@ public class StripeService {
                 .build();
 
         RequestOptions options = RequestOptions.builder()
-                .setIdempotencyKey(
-                        StripeIdempotencyKeys.createPaymentIntent(orderId)
-                )
+                .setIdempotencyKey(idempotencyKey)
                 .build();
 
         return PaymentIntent.create(params, options);
@@ -99,8 +101,14 @@ public class StripeService {
      * @param pmId      The Stripe PaymentMethod ID (pm_...) provided by the frontend.
      * @param returnUrl The URL to redirect the user back to after 3DS verification.
      * @throws StripeException If the payment is declined or the ID is invalid.
+     * Confirms and finalizes a PaymentIntent, returning the confirmed object.
+     *
+     * <p>The return value lets the caller inspect {@code intent.getStatus()} and
+     * handle the {@code "succeeded"} case inline — critical in dev/Docker where
+     * Stripe webhooks cannot reach the service, so {@code handlePaymentSuccess}
+     * would otherwise never fire and orders would stay PENDING indefinitely.</p>
      */
-    public void confirmPaymentIntent(
+    public PaymentIntent confirmPaymentIntent(
             String piId,
             String pmId,
             String returnUrl,
@@ -116,11 +124,12 @@ public class StripeService {
 
         RequestOptions options = RequestOptions.builder()
                 .setIdempotencyKey(
-                        StripeIdempotencyKeys.confirmPaymentIntent(piId, paymentId)
-                )
+                        StripeIdempotencyKeys.confirmPaymentIntent(piId, paymentId))
                 .build();
 
-        PaymentIntent.retrieve(piId).confirm(params, options);
+        // Return the confirmed intent — callers check status to fire PAYMENT_SUCCESS
+        // without needing a Stripe webhook delivery.
+        return PaymentIntent.retrieve(piId).confirm(params, options);
     }
 
     /**
@@ -153,7 +162,6 @@ public class StripeService {
     }
 
 
-
     /**
      * Voids an uncaptured PaymentIntent.
      * <p>
@@ -166,6 +174,10 @@ public class StripeService {
      */
     public void cancelPaymentIntent(String piId) throws StripeException {
         logger.info("Cancelling Stripe Intent | PI={}", piId);
-        PaymentIntent.retrieve(piId).cancel();
+        RequestOptions options = RequestOptions.builder()
+                .setIdempotencyKey("pi:cancel:payment-intent:" + piId)
+                .build();
+
+        PaymentIntent.retrieve(piId).cancel(options);
     }
 }

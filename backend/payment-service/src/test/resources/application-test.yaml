@@ -24,7 +24,10 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.add.type.headers: true
+        # Do NOT add __TypeId__ headers in tests — the consumer reads Map<String,Object>
+        # and enabling type headers causes the deserializer to produce a typed OrderEvent
+        # instance that cannot be assigned to Map<String,Object>.
+        spring.json.add.type.headers: false
     consumer:
       # Random UUID prevents group ID clashes in the JVM's process memory
       group-id: test-group-${random.uuid}
@@ -33,9 +36,11 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
-        spring.json.use.type.headers: true
-        # maps the incoming Kafka event to your common library DTO
-        spring.json.type.mapping: "OrderCreatedEvent:com.itc.funkart.common.dto.event.order.OrderCreatedEvent"
+        # Must be false: lets JsonDeserializer produce LinkedHashMap from JSON objects,
+        # which is what Map<String,Object> in the consumer method receives.
+        # When true, the deserializer reads __TypeId__ headers and produces a typed
+        # object (e.g. OrderEvent) — incompatible with the Map<String,Object> param.
+        spring.json.use.type.headers: false
 
 jwt:
   # Dummy secret to satisfy JwtService bean initialization in the JVM

@@ -5,7 +5,12 @@ import lombok.Builder;
 
 /**
  * Response wrapper for successful authentication.
- * Maps the nested UserDto and the accompanying JWT token.
+ *
+ * <p>Returned by the login and OAuth endpoints after the JWT has been
+ * issued and set as an HttpOnly cookie.</p>
+ *
+ * @param user  The authenticated user's public profile data.
+ * @param token The signed JWT string (also available as the {@code token} HttpOnly cookie).
  */
 @Builder
 public record SuccessfulLoginResponse(

@@ -334,7 +334,7 @@ class UserControllerTest {
         void getMe_returns200() throws Exception {
             authenticate(1L, "alice@example.com");
             when(userService.getUserProfile(1L))
-                    .thenReturn(new UserProfileDto(1L, "Alice", "alice@example.com", "ROLE_USER"));
+                    .thenReturn(new UserProfileDto(1L, "Alice", "alice@example.com", "ROLE_USER", true));
 
             mockMvc.perform(get("/users/me"))
                     .andExpect(status().isOk());
@@ -345,7 +345,7 @@ class UserControllerTest {
         void getMe_responseContainsEmail() throws Exception {
             authenticate(1L, "alice@example.com");
             when(userService.getUserProfile(1L))
-                    .thenReturn(new UserProfileDto(1L, "Alice", "alice@example.com", "ROLE_USER"));
+                    .thenReturn(new UserProfileDto(1L, "Alice", "alice@example.com", "ROLE_USER", true));
 
             mockMvc.perform(get("/users/me"))
                     .andExpect(jsonPath("$.data.email").value("alice@example.com"));
@@ -356,7 +356,7 @@ class UserControllerTest {
         void getMe_responseMessage() throws Exception {
             authenticate(1L, "alice@example.com");
             when(userService.getUserProfile(1L))
-                    .thenReturn(new UserProfileDto(1L, "Alice", "alice@example.com", "ROLE_USER"));
+                    .thenReturn(new UserProfileDto(1L, "Alice", "alice@example.com", "ROLE_USER", true));
 
             mockMvc.perform(get("/users/me"))
                     .andExpect(jsonPath("$.message").value("User profile fetched successfully"));
@@ -367,7 +367,7 @@ class UserControllerTest {
         void getMe_delegatesToUserService() throws Exception {
             authenticate(42L, "alice@example.com");
             when(userService.getUserProfile(42L))
-                    .thenReturn(new UserProfileDto(42L, "Alice", "alice@example.com", "ROLE_USER"));
+                    .thenReturn(new UserProfileDto(42L, "Alice", "alice@example.com", "ROLE_USER", true));
 
             mockMvc.perform(get("/users/me"));
 

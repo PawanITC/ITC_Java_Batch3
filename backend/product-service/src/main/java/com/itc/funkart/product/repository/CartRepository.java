@@ -25,9 +25,11 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
      * @param userId The unique identifier of the user.
      * @return An {@link Optional} containing the hydrated Cart, or empty if not found.
      */
-    @Query("SELECT c FROM Cart c " +
+    @Query("SELECT DISTINCT c FROM Cart c " +
             "LEFT JOIN FETCH c.items i " +
             "LEFT JOIN FETCH i.product " +
             "WHERE c.userId = :userId")
     Optional<Cart> findByUserIdWithItems(@Param("userId") Long userId);
+
+    Optional<Cart> findByUserId(Long userId);
 }

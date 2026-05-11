@@ -56,7 +56,8 @@ public class PaymentService {
                     request.currency(),
                     user.id(),
                     payment.getId(),
-                    payment.getOrderId()
+                    payment.getOrderId(),
+                    payment.getIdempotencyKey()
             );
 
             payment.setStripePaymentIntentId(stripeIntent.getId());
@@ -89,17 +90,30 @@ public class PaymentService {
                 return PaymentResponse.from(payment);
             }
 
-            stripeService.confirmPaymentIntent(
+            PaymentIntent confirmedIntent = stripeService.confirmPaymentIntent(
                     request.paymentIntentId(),
                     request.paymentMethodId(),
                     request.returnUrl(),
                     payment.getId()
             );
 
-            // ONLY provisional state
-            payment.setStatus(STATUS_PROCESSING);
-            paymentRepository.save(payment);
+            // In production Stripe fires a webhook → handlePaymentSuccess().
+            // In dev/Docker webhooks never reach us, so handle the success case inline
+            // using the confirmed intent's status. handlePaymentSuccess() is idempotent:
+            // if the webhook ALSO arrives later it will no-op because status == SUCCEEDED.
+            String intentStatus = confirmedIntent != null ? confirmedIntent.getStatus() : null;
+            if (STATUS_SUCCEEDED.equals(intentStatus)) {
+                log.info("💳 Stripe intent succeeded inline — publishing PAYMENT_SUCCESS for orderId={}", payment.getOrderId());
+                handlePaymentSuccess(confirmedIntent);
+            } else {
+                // 3DS / async flow — stay PROCESSING, wait for webhook
+                log.info("💳 Stripe intent status='{}' — staying PROCESSING, awaiting webhook", intentStatus);
+                payment.setStatus(STATUS_PROCESSING);
+                paymentRepository.save(payment);
+            }
 
+            // Re-fetch so the returned DTO reflects the status set above
+            payment = paymentRepository.findById(payment.getId()).orElse(payment);
             return PaymentResponse.from(payment);
 
         } catch (StripeException ex) {
@@ -166,6 +180,34 @@ public class PaymentService {
     }
 
     // -----------------------------
+    // GET LATEST PAYMENT INTENT (for checkout page restore)
+    // Returns empty Optional when no payment exists yet (caller should return 204).
+    // Throws only on real errors (Stripe API failures).
+    // -----------------------------
+    public java.util.Optional<PaymentIntentResponse> getLatestPaymentIntent(JwtUserDto user) {
+        try {
+            java.util.Optional<Payment> paymentOpt =
+                    paymentRepository.findTopByUserIdOrderByCreatedAtDesc(user.id());
+
+            if (paymentOpt.isEmpty()) {
+                return java.util.Optional.empty();
+            }
+
+            Payment payment = paymentOpt.get();
+
+            if (payment.getStripePaymentIntentId() == null) {
+                // Order exists but Stripe intent not yet created — still pending
+                return java.util.Optional.empty();
+            }
+
+            PaymentIntent intent = PaymentIntent.retrieve(payment.getStripePaymentIntentId());
+            return java.util.Optional.of(PaymentIntentResponse.from(intent));
+        } catch (com.stripe.exception.StripeException ex) {
+            throw new PaymentException("Could not retrieve payment intent: " + ex.getMessage());
+        }
+    }
+
+    // -----------------------------
     // WEBHOOK (SOURCE OF TRUTH)
     // -----------------------------
     public void handlePaymentSuccess(PaymentIntent intent) {
@@ -208,8 +250,8 @@ public class PaymentService {
                 .paymentId(payment.getId())
                 .orderId(payment.getOrderId())
                 .stripeId(intent.getId())
-                .errorMessage(error != null ? error.getMessage() : "Payment declined")
-                .stripeErrorCode(error != null ? error.getCode() : "unknown")
+//                .errorMessage(error != null ? error.getMessage() : "Payment declined")
+//                .stripeErrorCode(error != null ? error.getCode() : "unknown")
                 .timestamp(Instant.now().toEpochMilli())
                 .build());
     }
@@ -237,11 +279,25 @@ public class PaymentService {
     }
 
 
+    // Event types this service actually handles — everything else is silently ACK'd
+    private static final java.util.Set<String> HANDLED_EVENTS = java.util.Set.of(
+            "payment_intent.succeeded",
+            "payment_intent.payment_failed",
+            "charge.refunded"
+    );
+
     @Transactional
     public void processWebhookEvent(Event event) {
 
-        log.debug("Processing Webhook Event | ID: {} | Type: {}", event.getId(), event.getType());
+        log.info("📨 Webhook received | ID: {} | Type: {}", event.getId(), event.getType());
 
+        // Skip deserialization (and avoid version-mismatch 500s) for events we don't handle
+        if (!HANDLED_EVENTS.contains(event.getType())) {
+            log.info("ℹ️ Unhandled event type — ACK'ing: {}", event.getType());
+            return;
+        }
+
+        // Deserialize only for events we actually need to process
         StripeObject stripeObject;
         try {
             stripeObject = event.getDataObjectDeserializer()
@@ -254,6 +310,7 @@ public class PaymentService {
                         }
                     });
         } catch (Exception ex) {
+            log.error("❌ Deserialization failed for {} ({}): {}", event.getType(), event.getId(), ex.getMessage());
             throw new PaymentException("Webhook deserialization failure: " + event.getId());
         }
 
@@ -276,8 +333,6 @@ public class PaymentService {
                     handlePaymentRefunded(charge);
                 }
             }
-
-            default -> log.info("ℹ️ Unhandled event type: {}", event.getType());
         }
     }
 

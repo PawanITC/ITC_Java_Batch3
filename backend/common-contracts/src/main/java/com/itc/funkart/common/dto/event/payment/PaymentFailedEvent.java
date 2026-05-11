@@ -15,12 +15,10 @@ import lombok.Builder;
  * Transformation logic must reside in the Producer service.
  * </p>
  *
- * @param paymentId       The internal primary key of the payment record.
- * @param orderId         The associated Order ID.
- * @param stripeId        The external Stripe PaymentIntent ID (pi_...) for traceability.
- * @param errorMessage    A human-readable description of the failure.
- * @param stripeErrorCode The specific machine-readable error code (e.g., "card_declined", "expired_card").
- * @param timestamp       The epoch millisecond when the failure occurred.
+ * @param paymentId The internal primary key of the payment record.
+ * @param orderId   The associated Order ID.
+ * @param stripeId  The external Stripe PaymentIntent ID (pi_...) for traceability.
+ * @param timestamp The epoch millisecond when the failure occurred.
  */
 @Builder
 public record PaymentFailedEvent(
@@ -31,14 +29,14 @@ public record PaymentFailedEvent(
         @JsonProperty("order_id")
         Long orderId,
 
+        @JsonProperty("user_id")
+        Long userId,
+
         @JsonProperty("stripe_id")
         String stripeId,
 
-        @JsonProperty("error_message")
-        String errorMessage,
-
-        @JsonProperty("stripe_error_code")
-        String stripeErrorCode,
+        @JsonProperty("amount")
+        Long amount,
 
         @JsonProperty("timestamp")
         Long timestamp,
