@@ -153,12 +153,19 @@ class PaymentServiceTest {
     class ConfirmationTests {
 
         @Test
-        @DisplayName("Success: transitions to PROCESSING")
+        @DisplayName("Success: transitions to PROCESSING when Stripe returns non-succeeded status")
         void success() throws Exception {
             var request = new ConfirmPaymentRequest("pi_123", "pm_card", "http://return.url");
             var payment = new Payment(testUser.id(), 101L, 5000L, "usd");
             when(mockPaymentRepository.findByStripePaymentIntentId("pi_123"))
                     .thenReturn(Optional.of(payment));
+
+            // Stripe returns "processing" (e.g. 3DS flow) — should stay PROCESSING
+            var mockIntent = mock(PaymentIntent.class);
+            when(mockIntent.getStatus()).thenReturn("processing");
+            when(mockStripeService.confirmPaymentIntent(
+                    eq("pi_123"), anyString(), anyString(), any()))
+                    .thenReturn(mockIntent);
 
             var response = paymentService.confirmPayment(testUser, request);
 

@@ -20,9 +20,11 @@ spring:
           writetimeout: 5000
 
   # ── Database ───────────────────────────────────────────────────────────────
-  # POSTGRES_HOST defaults to localhost for local dev; Docker sets it to postgres-db
+  # POSTGRES_HOST defaults to localhost for local dev; Docker sets it to postgres-db.
+  # DB_NAME defaults to "mydb" — the single shared database created by docker-compose.
+  # "notificationDB" was the original name but was never created in the postgres container.
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/notificationDB
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/${DB_NAME:mydb}
     username: ${POSTGRES_notificationDB_user:postgres}
     password: ${POSTGRES_notificationDB_pass:postgres}
 

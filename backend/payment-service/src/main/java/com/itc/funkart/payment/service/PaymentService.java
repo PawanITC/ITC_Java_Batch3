@@ -90,17 +90,30 @@ public class PaymentService {
                 return PaymentResponse.from(payment);
             }
 
-            stripeService.confirmPaymentIntent(
+            PaymentIntent confirmedIntent = stripeService.confirmPaymentIntent(
                     request.paymentIntentId(),
                     request.paymentMethodId(),
                     request.returnUrl(),
                     payment.getId()
             );
 
-            // ONLY provisional state
-            payment.setStatus(STATUS_PROCESSING);
-            paymentRepository.save(payment);
+            // In production Stripe fires a webhook → handlePaymentSuccess().
+            // In dev/Docker webhooks never reach us, so handle the success case inline
+            // using the confirmed intent's status. handlePaymentSuccess() is idempotent:
+            // if the webhook ALSO arrives later it will no-op because status == SUCCEEDED.
+            String intentStatus = confirmedIntent != null ? confirmedIntent.getStatus() : null;
+            if (STATUS_SUCCEEDED.equals(intentStatus)) {
+                log.info("💳 Stripe intent succeeded inline — publishing PAYMENT_SUCCESS for orderId={}", payment.getOrderId());
+                handlePaymentSuccess(confirmedIntent);
+            } else {
+                // 3DS / async flow — stay PROCESSING, wait for webhook
+                log.info("💳 Stripe intent status='{}' — staying PROCESSING, awaiting webhook", intentStatus);
+                payment.setStatus(STATUS_PROCESSING);
+                paymentRepository.save(payment);
+            }
 
+            // Re-fetch so the returned DTO reflects the status set above
+            payment = paymentRepository.findById(payment.getId()).orElse(payment);
             return PaymentResponse.from(payment);
 
         } catch (StripeException ex) {

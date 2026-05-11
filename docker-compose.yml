@@ -221,7 +221,13 @@ services:
       dockerfile: notification-service/Dockerfile
     env_file: ./backend/notification-service/.env
     environment:
-      - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
+      # -Dotel.service.name  forces the OTEL resource attribute so Jaeger shows
+      #   "notification-service" instead of "unknown_service". spring.application.name is
+      #   not always wired into the OTEL SDK resource before it initialises.
+      - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true -Dotel.service.name=notification-service
+      - OTEL_SERVICE_NAME=notification-service
+      - DB_NAME=mydb
+      - POSTGRES_HOST=postgres-db
       - KAFKA_HOST=kafka
       - KAFKA_PORT=9092
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
@@ -284,7 +290,15 @@ services:
     ports:
       - "8083:8080"
     environment:
-      - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
+      # -Dmanagement.tracing.enabled=true  overrides application-dev.yml (SPRING_PROFILES_ACTIVE=dev
+      #   is set in .env), which sets management.tracing.enabled=false for local runs without a
+      #   collector. Inside the container we always want tracing enabled.
+      # -Dotel.exporter.otlp.endpoint      overrides the raw OTEL SDK gRPC auto-configuration;
+      #   its built-in default is localhost:4317 and it ignores the OTEL_EXPORTER_OTLP_ENDPOINT
+      #   env var when initialised via Spring Boot autoconfigure. JVM -D system props win.
+      # -Dotel.service.name                ensures Jaeger labels this service correctly instead
+      #   of falling back to "unknown_service".
+      - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true -Dmanagement.tracing.enabled=true -Dotel.exporter.otlp.endpoint=http://otel-collector:4317 -Dotel.service.name=product-service
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
       - MANAGEMENT_OTLP_METRICS_URL=http://otel-collector:4318/v1/metrics

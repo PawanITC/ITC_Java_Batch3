@@ -101,8 +101,14 @@ public class StripeService {
      * @param pmId      The Stripe PaymentMethod ID (pm_...) provided by the frontend.
      * @param returnUrl The URL to redirect the user back to after 3DS verification.
      * @throws StripeException If the payment is declined or the ID is invalid.
+     * Confirms and finalizes a PaymentIntent, returning the confirmed object.
+     *
+     * <p>The return value lets the caller inspect {@code intent.getStatus()} and
+     * handle the {@code "succeeded"} case inline — critical in dev/Docker where
+     * Stripe webhooks cannot reach the service, so {@code handlePaymentSuccess}
+     * would otherwise never fire and orders would stay PENDING indefinitely.</p>
      */
-    public void confirmPaymentIntent(
+    public PaymentIntent confirmPaymentIntent(
             String piId,
             String pmId,
             String returnUrl,
@@ -121,7 +127,9 @@ public class StripeService {
                         StripeIdempotencyKeys.confirmPaymentIntent(piId, paymentId))
                 .build();
 
-        PaymentIntent.retrieve(piId).confirm(params, options);
+        // Return the confirmed intent — callers check status to fire PAYMENT_SUCCESS
+        // without needing a Stripe webhook delivery.
+        return PaymentIntent.retrieve(piId).confirm(params, options);
     }
 
     /**
