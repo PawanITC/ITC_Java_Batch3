@@ -1,7 +1,61 @@
 services:
+
+
+  app:
+    build: .
+    depends_on:
+      - postgres
+      - kafka
+      - jaeger
+    restart: on-failure
+    secrets:
+      - postgres_user
+      - postgres_pass
+      - mail_user
+      - mail_pass
+      - twilio_sid
+      - twilio_token
+      - twilio_number
+    environment:
+      POSTGRES_HOST: postgres
+      KAFKA_HOST: kafka
+      KAFKA_PORT: 9092
+      # Overriding Spring Datasource settings
+      SPRING_DATASOURCE_USERNAME: "${spring.config.import:file:/run/secrets/postgres_user}"
+      SPRING_DATASOURCE_PASSWORD: "${spring.config.import:file:/run/secrets/postgres_pass}"
+
+      # Overriding Spring Mail settings
+      SPRING_MAIL_USERNAME: "${spring.config.import:file:/run/secrets/mail_user}"
+      SPRING_MAIL_PASSWORD: "${spring.config.import:file:/run/secrets/mail_pass}"
+
+      # Overriding your custom Twilio properties
+      # (Adjust the left names to match your exact application property keys)
+      TWILIO_ACCOUNT-SID: "${spring.config.import:file:/run/secrets/twilio_sid}"
+      TWILIO_AUTH-TOKEN: "${spring.config.import:file:/run/secrets/twilio_token}"
+      TWILIO_FROM-NUMBER: "${spring.config.import:file:/run/secrets/twilio_number}"
+
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
+      MANAGEMENT_OTLP_TRACING_TRANSPORT: http
+      MANAGEMENT_TRACING_EXPORT_ENABLED: "true"
+
+
+    ports:
+      - "8080:8080"
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres-notification-service-C
+    environment:
+      POSTGRES_DB: notificationDB
+      # Overriding Spring Mail settings
+      SPRING_MAIL_USERNAME: "${spring.config.import:file:/run/secrets/mail_user}"
+      SPRING_MAIL_PASSWORD: "${spring.config.import:file:/run/secrets/mail_pass}"
+    ports:
+      - "5432:5432"
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
-    container_name: notification-zookeeper
+    container_name: notification-zookeeper-C
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -10,33 +64,36 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
-    container_name: notification-kafka
+    container_name: notification-kafka-C
     depends_on:
       - zookeeper
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://notification-kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.4.0
-    container_name: schema-registry
+    container_name: schema-registry-C
     depends_on:
       - kafka
     ports:
       - "8085:8081"
     environment:
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://notification-kafka:9092
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
 
   control-center:
     image: confluentinc/cp-enterprise-control-center:7.4.0
-    container_name: control-center
+    container_name: control-center-C
     depends_on:
       - kafka
       - schema-registry
@@ -49,3 +106,40 @@ services:
       CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
       CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
       PORT: 9021
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger-C
+    ports:
+    - "16686:16686"   # UI
+    - "4317:4317"     # OTLP gRPC
+    - "4318:4318"     # OTLP HTTP
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+
+# Top-level secrets mapping nicknames to your local files inside the project folder
+secrets:
+  postgres_user:
+    file: ./secrets/postgres_username.txt
+  postgres_pass:
+    file: ./secrets/postgres_password.txt
+  mail_user:
+    file: ./secrets/mail_username.txt
+  mail_pass:
+    file: ./secrets/mail_password.txt
+  twilio_sid:
+    file: ./secrets/twilio_sid.txt
+  twilio_token:
+    file: ./secrets/twilio_authtoken.txt
+  twilio_number:
+    file: ./secrets/twilio_fromnumber.txt
