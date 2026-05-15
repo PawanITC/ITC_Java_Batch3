@@ -38,8 +38,9 @@ services:
       MANAGEMENT_OTLP_TRACING_TRANSPORT: http
       MANAGEMENT_TRACING_EXPORT_ENABLED: "true"
 
+    #override the entrypoint:
     entrypoint:
-      - sh
+      - sh  #start shell first at entrypoint as we need to pass in secrets to spring boot app via shell command
       - -c
       - |
         export SPRING_DATASOURCE_USERNAME=$$(cat /run/secrets/postgres_user)
@@ -51,9 +52,10 @@ services:
         export TWILIO_ACCOUNT_SID=$$(cat /run/secrets/twilio_sid)
         export TWILIO_AUTH_TOKEN=$$(cat /run/secrets/twilio_token)
         export TWILIO_FROM_NUMBER=$$(cat /run/secrets/twilio_number)
-
+        
         exec java -jar /app.jar
-
+      # export makes the variable available to child processes.Without export:SPRING_DATASOURCE_USERNAME=postgres only exists inside the shell.
+      #With export: export SPRING_DATASOURCE_USERNAME=postgres .the Java process inherits it. That is how Spring Boot sees the variables.
     ports:
       - "8080:8080"
 
