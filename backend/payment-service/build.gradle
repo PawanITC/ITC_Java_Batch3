@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.12' // FIX: Upgrading to 3.5.12 fixes Auth Bypass and Tomcat issues
+    id 'org.springframework.boot' version '3.5.14'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
 }
@@ -22,37 +22,27 @@ repositories {
     mavenCentral()
 }
 
-// This block handles the version rules silently and globally
 dependencyManagement {
     dependencies {
-        // 1. Jackson Suite - Standardized to 2.18.2 (Stable & Snyk-Safe)
-        dependency 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
-        dependency 'com.fasterxml.jackson.core:jackson-core:2.18.2'
-        dependency 'com.fasterxml.jackson.core:jackson-annotations:2.18.2' // Added missing link
-        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.18.2'
-        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2'
-        dependency 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.18.2'
+        // Jackson Suite
+        dependency 'com.fasterxml.jackson.core:jackson-databind:2.21.2'
+        dependency 'com.fasterxml.jackson.core:jackson-core:2.21.2'
+        // FIX: jackson-annotations uses 2.21 (no patch version)
+        dependency 'com.fasterxml.jackson.core:jackson-annotations:2.21'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.21.2'
+        dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.2'
 
-        // 2. Tomcat (Fixes Cryptographic & Auth Bypass bugs)
-        dependency 'org.apache.tomcat.embed:tomcat-embed-core:10.1.53'
-        dependency 'org.apache.tomcat.embed:tomcat-embed-websocket:10.1.53'
-        dependency 'org.apache.tomcat.embed:tomcat-embed-el:10.1.53'
-
-        // 3. Utils & Testing
-        dependency 'org.apache.commons:commons-lang3:3.18.0'
-        dependency 'io.rest-assured:rest-assured:5.5.7'
-
-        // 4. Kafka Support
-        dependency 'org.lz4:lz4-java:1.8.0'
+        // Tomcat Suite
+        dependency 'org.apache.tomcat.embed:tomcat-embed-core:10.1.54'
+        dependency 'org.apache.tomcat.embed:tomcat-embed-websocket:10.1.54'
+        dependency 'org.apache.tomcat.embed:tomcat-embed-el:10.1.54'
     }
 }
 
-// THE "HAMMER": Add this block to force the version resolution
-configurations.configureEach {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        if (details.requested.group.startsWith('com.fasterxml.jackson')) {
-            details.useVersion '2.18.2'
-        }
+configurations {
+    configureEach {
+        exclude group: "com.fasterxml.jackson.module", module: "jackson-module-scala_2.13"
+        exclude group: "com.fasterxml.jackson.module", module: "jackson-module-scala_2.12"
     }
 }
 
@@ -61,6 +51,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.apache.commons:commons-lang3:3.18.0'
 
     // === 2. CORE SPRING BOOT ===
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -75,7 +66,7 @@ dependencies {
     implementation 'org.springframework.kafka:spring-kafka:3.3.2'
     implementation 'com.stripe:stripe-java:28.1.0'
 
-    // === 5. SECURITY & JWT ===
+    // === 5. SECURITY & JWT (JJWT) ===
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
@@ -83,11 +74,10 @@ dependencies {
     // === 6. TESTING ===
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testImplementation 'io.rest-assured:rest-assured' // Version managed above
+    testImplementation 'io.rest-assured:rest-assured:5.5.7'
     testImplementation 'com.h2database:h2'
-    testImplementation 'org.mockito:mockito-inline:5.2.0'
+    testImplementation 'org.awaitility:awaitility:4.3.0'
 }
 
 jacocoTestReport {
@@ -96,10 +86,22 @@ jacocoTestReport {
         xml.required = true
         html.required = true
     }
+    // Filter coverage to focus on logic rather than boilerplate
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    "**/dto/**",
+                    "**/entity/**",
+                    "**/config/**",
+                    "**/*Application*"
+            ])
+        }))
+    }
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    jvmArgs("-XX:+EnableDynamicAgentLoading")
     finalizedBy jacocoTestReport
 }
 

@@ -49,15 +49,24 @@ public record PaymentRefundedEvent(
      * prevent NullPointerExceptions during Kafka publishing.
      * </p>
      */
-    public static PaymentRefundedEvent from(Payment payment , Charge charge){
-        String refundId = (charge.getRefunds() != null && !charge.getRefunds().getData().isEmpty())
-                ? charge.getRefunds().getData().get(0).getId()
-                : "unknown_refund_id";
+    public static PaymentRefundedEvent from(Payment payment, Charge charge) {
+        // 1. Default to the charge total, but try to find the specific refund event
+        String refundId = "unknown_refund_id";
+        Long amountForThisEvent = charge.getAmountRefunded();
+
+        // 2. Stripe's 'charge.refunded' webhook includes a list of refunds.
+        // The first one in the list [0] is the most recent one.
+        if (charge.getRefunds() != null && !charge.getRefunds().getData().isEmpty()) {
+            var latestRefund = charge.getRefunds().getData().get(0);
+            refundId = latestRefund.getId();
+            amountForThisEvent = latestRefund.getAmount(); // This is the 'Specific' amount
+        }
+
         return new PaymentRefundedEvent(
                 payment.getId(),
                 payment.getOrderId(),
                 refundId,
-                charge.getAmountRefunded(),
+                amountForThisEvent,
                 payment.getCurrency(),
                 System.currentTimeMillis()
         );

@@ -1,13 +1,14 @@
 package com.itc.funkart.product_service.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
+import lombok.Builder;
 
-@Data
-public class CategoryRequest {
-    @NotBlank(message = "Category name is required")
-    private String name;
-
-    @NotBlank(message = "Description is required")
-    private String description;
+/**
+ * Request for creating or updating a product category.
+ */
+@Builder
+public record CategoryRequest(
+        @NotBlank(message = "Category name is required") String name,
+        @NotBlank(message = "Description is required") String description
+) {
 }

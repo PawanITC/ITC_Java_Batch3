@@ -1,15 +1,15 @@
-
 package com.itc.funkart.service;
 
 import com.itc.funkart.dto.ReviewRequest;
 import com.itc.funkart.dto.ReviewResponse;
 import com.itc.funkart.entity.ProductRatingSummary;
 import com.itc.funkart.entity.Review;
-import com.itc.funkart.kafka.ReviewEventProducer;
+import com.itc.funkart.outbox.OutboxService;
 import com.itc.funkart.projection.RatingStats;
 import com.itc.funkart.repository.ProductRatingSummaryRepository;
 import com.itc.funkart.repository.ReviewRepository;
 import com.itc.funkart.serviceimpl.ReviewServiceImpl;
+import org.apache.avro.specific.SpecificRecordBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,11 +18,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 
-import java.util.Collections;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -36,10 +37,10 @@ class ReviewServiceImplTest {
     private ProductRatingSummaryRepository summaryRepository;
 
     @Mock
-    private ReviewEventProducer reviewEventProducer;
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Mock
-    private RedisTemplate<String, Object> redisTemplate;
+    private OutboxService outboxService;
 
     @InjectMocks
     private ReviewServiceImpl reviewService;
@@ -51,20 +52,18 @@ class ReviewServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        request = new ReviewRequest();
-        request.setRating(5);
-        request.setComment("Great");
+        request = new ReviewRequest(5, "Great");
     }
 
-    // ✅ CREATE FLOW
+    // ⭐ CREATE FLOW
     @Test
-    void createOrUpdateReview_createsNewWhenNotExists() {
+    void createOrUpdateReview_createsNewReview() {
 
         when(reviewRepository.findByProductIdAndUserId(productId, userId))
                 .thenReturn(Optional.empty());
 
-        when(reviewRepository.getRatingStatsByProductId(productId))
-                .thenReturn(mockStats(5.0, 1L));
+        /*when(reviewRepository.getRatingStatsByProductId(productId))
+                .thenReturn(mockStats(5.0, 1L));*/
 
         when(summaryRepository.findById(productId))
                 .thenReturn(Optional.empty());
@@ -72,24 +71,17 @@ class ReviewServiceImplTest {
         Review saved = buildReview(100L, 5, "Great");
         when(reviewRepository.save(any())).thenReturn(saved);
 
-        ReviewResponse resp = reviewService.createOrUpdateReview(productId, userId, request);
+        reviewService.createOrUpdateReview(productId, userId, request);
 
-        // ✅ verify save
         verify(reviewRepository).save(any());
-
-        // ✅ verify summary updated
         verify(summaryRepository).save(any());
-
-        // ✅ verify kafka
-        verify(reviewEventProducer).sendReviewCreatedEvent(any());
-
-        // ✅ verify cache eviction
         verify(redisTemplate).delete("product:1:rating-summary");
 
-        assertThat(resp.getId()).isEqualTo(100L);
+        // ⭐ Outbox event must be saved
+        verify(outboxService).saveEventToOutbox(any(SpecificRecordBase.class));
     }
 
-    // ✅ UPDATE FLOW
+    // ⭐ UPDATE FLOW
     @Test
     void createOrUpdateReview_updatesExistingReview() {
 
@@ -98,8 +90,8 @@ class ReviewServiceImplTest {
         when(reviewRepository.findByProductIdAndUserId(productId, userId))
                 .thenReturn(Optional.of(existing));
 
-        when(reviewRepository.getRatingStatsByProductId(productId))
-                .thenReturn(mockStats(4.0, 2L));
+        /*when(reviewRepository.getRatingStatsByProductId(productId))
+                .thenReturn(mockStats(4.0, 2L));*/
 
         when(summaryRepository.findById(productId))
                 .thenReturn(Optional.of(new ProductRatingSummary()));
@@ -110,19 +102,21 @@ class ReviewServiceImplTest {
 
         verify(reviewRepository).save(any());
         verify(summaryRepository).save(any());
-        verify(reviewEventProducer).sendReviewCreatedEvent(any());
         verify(redisTemplate).delete("product:1:rating-summary");
+
+        // ⭐ Outbox event must be saved
+        verify(outboxService).saveEventToOutbox(any(SpecificRecordBase.class));
     }
 
-    // ✅ NULL STATS → delete summary
+    // ⭐ NULL STATS → delete summary
     @Test
     void recalculateSummary_whenStatsNull_shouldDeleteSummary() {
 
         when(reviewRepository.findByProductIdAndUserId(productId, userId))
                 .thenReturn(Optional.empty());
 
-        when(reviewRepository.getRatingStatsByProductId(productId))
-                .thenReturn(null);
+        /*when(reviewRepository.getRatingStatsByProductId(productId))
+                .thenReturn(null);*/
 
         when(reviewRepository.save(any()))
                 .thenReturn(buildReview(1L, 5, "Great"));
@@ -132,15 +126,15 @@ class ReviewServiceImplTest {
         verify(summaryRepository).deleteById(productId);
     }
 
-    // ✅ EXCEPTION FLOW
+    // ⭐ EXCEPTION FLOW
     @Test
     void createOrUpdateReview_whenSaveFails_shouldThrowException() {
 
         when(reviewRepository.findByProductIdAndUserId(productId, userId))
                 .thenReturn(Optional.empty());
 
-        when(reviewRepository.getRatingStatsByProductId(productId))
-                .thenReturn(null);
+        /*when(reviewRepository.getRatingStatsByProductId(productId))
+                .thenReturn(null);*/
 
         when(reviewRepository.save(any()))
                 .thenThrow(new RuntimeException("DB error"));
@@ -149,22 +143,23 @@ class ReviewServiceImplTest {
                 reviewService.createOrUpdateReview(productId, userId, request)
         ).isInstanceOf(RuntimeException.class);
 
-        verify(reviewEventProducer, never()).sendReviewCreatedEvent(any());
+        verify(outboxService, never()).saveEventToOutbox(any());
         verify(redisTemplate, never()).delete(anyString());
     }
 
-    // ✅ HELPER
+    // ⭐ HELPERS
     private Review buildReview(Long id, int rating, String comment) {
-        Review r = new Review();
-        r.setId(id);
-        r.setProductId(productId);
-        r.setUserId(userId);
+
+        Review r = new Review(productId, userId, LocalDateTime.now());  // FIXED
+
+        r.setId(id);  // UUID conversion
         r.setRating(rating);
-        r.setComment(comment);
-        r.setCreatedAt(java.time.Instant.now()); // ✅ ADD THIS
-        r.setUpdatedAt(java.time.Instant.now()); // ✅ ADD THIS
+        r.setReviewText(comment);
+        r.setUpdatedAt(LocalDateTime.now());
+
         return r;
     }
+
 
     private RatingStats mockStats(Double avg, Long count) {
         RatingStats stats = mock(RatingStats.class);

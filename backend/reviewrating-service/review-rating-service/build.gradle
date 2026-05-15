@@ -1,6 +1,7 @@
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.3.0'
+	id 'com.github.davidmc24.gradle.plugin.avro' version '1.8.0'
 	id 'io.spring.dependency-management' version '1.1.5'
 	id 'jacoco'
 }
@@ -10,8 +11,14 @@ version = '0.0.1-SNAPSHOT'
 
 
 repositories {
+	mavenLocal()
 	mavenCentral()
 }
+
+avro {
+	fieldVisibility = "PRIVATE"
+}
+
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -32,11 +39,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'io.lettuce:lettuce-core'
 	implementation 'org.springframework.kafka:spring-kafka'
+	implementation("com.itc.funkart:review-events-schema:1.0.0")
 
 
 
 
-    // Kafka
+
+	// Kafka
 	implementation 'org.springframework.kafka:spring-kafka'
 
 	// Jackson

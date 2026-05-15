@@ -1,41 +1,26 @@
 package com.itc.funkart.dto;
 
-import com.itc.funkart.entity.ProductRatingSummary;
-
 public class ProductRatingSummaryResponse {
+
     private Long productId;
-    private double averageRating;
-    private long ratingCount;
+    private Double averageRating;
+    private Long ratingCount;
+
+    public ProductRatingSummaryResponse(Long productId, Double averageRating, Long ratingCount) {
+        this.productId = productId;
+        this.averageRating = averageRating;
+        this.ratingCount = ratingCount;
+    }
 
     public Long getProductId() {
         return productId;
     }
 
-    public void setProductId(Long productId) {
-        this.productId = productId;
-    }
-
-    public double getAverageRating() {
+    public Double getAverageRating() {
         return averageRating;
     }
 
-    public void setAverageRating(double averageRating) {
-        this.averageRating = averageRating;
-    }
-
-    public long getRatingCount() {
+    public Long getRatingCount() {
         return ratingCount;
-    }
-
-    public void setRatingCount(long ratingCount) {
-        this.ratingCount = ratingCount;
-    }
-
-    public static ProductRatingSummaryResponse from(ProductRatingSummary s) {
-        ProductRatingSummaryResponse resp = new ProductRatingSummaryResponse();
-        resp.productId = s.getProductId();
-        resp.averageRating = s.getAverageRating();
-        resp.ratingCount = s.getRatingCount();
-        return resp;
     }
 }

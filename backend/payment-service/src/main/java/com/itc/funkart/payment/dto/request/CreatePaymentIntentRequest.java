@@ -27,4 +27,5 @@ public record CreatePaymentIntentRequest(
         @JsonProperty("currency")
         @NotNull(message = "Currency is required")
         String currency
-) {}
+) {
+}

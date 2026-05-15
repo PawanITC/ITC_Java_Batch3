@@ -1,0 +1,111 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk17'
+    }
+
+    environment {
+        // Product Service Specific Configs
+        SERVICE_NAME             = 'product-service'
+        PROJECT_DIR              = 'backend/product-service'
+        VERSION                  = "1.0.${env.BUILD_NUMBER}"
+
+        // Docker Hub Config (Aligning with your 'user-service' naming)
+        DOCKER_HUB_USER          = 'abbasgureitc'
+        REGISTRY_CREDENTIALS_ID  = 'docker-hub-credentials'
+
+        // Security
+        SNYK_TOKEN               = credentials('snyk-token')
+        dockerImage              = ''
+    }
+
+    stages {
+        stage('Check Environment') {
+            steps {
+                sh 'java -version'
+                sh 'docker version'
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                // Ensure we are in the product-service directory
+                dir("${env.PROJECT_DIR}") {
+                    script {
+                        sh "chmod +x gradlew"
+                        // Note: We include the tests here unlike your older files
+                        // because we finally fixed the 'forever hang'!
+                        sh "./gradlew clean build jacocoTestReport \
+                            -Dspring.profiles.active=test \
+                            --no-daemon --stacktrace"
+                    }
+                }
+            }
+        }
+
+        stage('Security Scan (Snyk)') {
+            steps {
+                dir("${env.PROJECT_DIR}") {
+                    script {
+                        sh "snyk auth ${env.SNYK_TOKEN}"
+                        // We catch the error so the build doesn't die on non-critical vulnerabilities
+                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                            sh 'snyk test --severity-threshold=critical'
+                        }
+                        sh 'snyk monitor'
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                // This will fail the build if coverage is below 70%
+                jacoco(
+                    execPattern: "${env.PROJECT_DIR}/**/build/jacoco/*.exec",
+                    classPattern: "${env.PROJECT_DIR}/**/build/classes/java/main",
+                    sourcePattern: "${env.PROJECT_DIR}**/src/main/java",
+                    minimumLineCoverage: '70'
+                )
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir("${env.PROJECT_DIR}") {
+                    script {
+                        // Tagging with build number for traceability
+                        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${env.SERVICE_NAME}"
+                        dockerImage = docker.build("${env.DOCKER_HUB_USER}/${env.SERVICE_NAME}:${env.VERSION}", ".")
+                    }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('', env.REGISTRY_CREDENTIALS_ID) {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "SUCCESS: ${env.SERVICE_NAME} v${env.VERSION} is live on Docker Hub."
+        }
+        failure {
+            echo "FAILURE: Check Jacoco reports or Snyk logs."
+        }
+        always {
+            // Housekeeping: remove local images to save Jenkins disk space
+            sh "docker rmi ${env.DOCKER_HUB_USER}/${env.SERVICE_NAME}:${env.VERSION} || true"
+            cleanWs()
+        }
+    }
+}

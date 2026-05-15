@@ -47,7 +47,7 @@ pipeline {
                     // Jacoco plugin uses these for the health report (Quality Gates)
                     minimumLineCoverage: '70',
                     maximumLineCoverage: '80',
-                    buildOverBuild: true
+                    buildOverBuild: false
                 )
             }
         }

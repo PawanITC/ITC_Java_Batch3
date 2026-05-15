@@ -6,7 +6,7 @@ spring:
     name: review-rating-service
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -19,6 +19,6 @@ spring:
       port: 6379
 
 rating-aggregator:
-  base-url: http://rating-aggregator-service:9094/aggregator
+  base-url: http://rating-aggregator-service:9096/aggregator
 
 

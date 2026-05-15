@@ -14,7 +14,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -22,6 +22,18 @@ spring:
       retries: 3
       properties:
         spring.json.add.type.headers: false
+    # NEW: Consumer settings
+    consumer:
+      group-id: payment-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.itc.funkart.payment.dto.event"
+        # FIX: Tell the consumer which class to use when headers are missing
+        spring.json.value.default.type: "com.itc.funkart.payment.dto.event.OrderCreatedEvent"
+        # FIX: Tell the consumer not to look for headers at all
+        spring.json.use.type.headers: false
 
 jwt:
   secret: ${JWT_SECRET}
@@ -35,12 +47,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
 
 logging:
   level:
-    root: INFO
-    com.itc.funkart: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

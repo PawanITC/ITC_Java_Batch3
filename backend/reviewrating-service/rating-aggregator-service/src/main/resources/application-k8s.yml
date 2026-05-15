@@ -1,0 +1,27 @@
+server:
+  port: 9096
+
+spring:
+  application:
+    name: rating-aggregator-service
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP}
+    consumer:
+      group-id: rating-aggregator-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

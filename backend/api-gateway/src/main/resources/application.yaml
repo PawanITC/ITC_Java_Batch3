@@ -26,6 +26,13 @@ spring:
               filters:
                 - StripPrefix=2
 
+            - id: payment-webhook-route
+              uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
+              predicates:
+                - Path=/api/v1/payments/webhook/**
+              filters:
+                - StripPrefix=2
+
             - id: payment-service
               uri: ${PAYMENT_SERVICE_URL:http://payment-service:8080}
               predicates:
@@ -42,6 +49,15 @@ spring:
 
 server:
   port: ${PORT:8060}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus  # minimal for prod
+  endpoint:
+    health:
+      show-details: always
 
 # Custom Application Properties
 app:

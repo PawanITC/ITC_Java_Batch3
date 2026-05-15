@@ -26,8 +26,10 @@ public class StripeConfig {
      */
     @PostConstruct
     public void init() {
-        if (apiKey == null || apiKey.isEmpty()) {
-            throw new IllegalStateException("Stripe API Key is missing! Check your configuration.");
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            throw new IllegalStateException(
+                    "❌ STRIPE ERROR: 'stripe.api-key' is missing. " +
+                            "The Payment Service cannot function without it.");
         }
         com.stripe.Stripe.apiKey = this.apiKey;
     }

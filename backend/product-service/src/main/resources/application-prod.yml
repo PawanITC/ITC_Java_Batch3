@@ -1,27 +1,30 @@
 spring:
+  config:
+    activate:
+      on-profile: prod
+
   datasource:
-    # 'postgres' is the service name in docker-compose
-    url: jdbc:postgresql://18.132.197.27:31369/postgres
-    username: postgres
-    password: pYOXcbv2aV
+    url: jdbc:postgresql://${PROD_DB_HOST:18.175.222.132}:32680/postgres
+    username: ${PROD_DB_USER:postgres}
+    password: ${PROD_DB_PASS:Ie422p9Cx8}
     driver-class-name: org.postgresql.Driver
-#
-#  data:
-#    redis:
-#      # 'redis' is the service name in docker-compose
-#      host: redis
-#      port: 6379
-#
-#  cache:
-#    redis:
-#      time-to-live: 3600000
-#
-#  kafka:
-#    # 'kafka' is the service name; 29092 is the internal docker port
-#    bootstrap-servers: kafka:29092
-#
-#management:
-#  otlp:
-#    tracing:
-#      # 'jaeger' is the service name in docker-compose
-#      endpoint: http://jaeger:4317/v1/traces
+
+
+  jwt:
+    secret: ${PROD_JWT_SECRET:${JWT_SECRET}}
+    expiration: ${PROD_JWT_EXPIRATION:3600000}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  kafka:
+    bootstrap-servers: ${PROD_KAFKA_HOST:ae2c9c1e88ee}:9092
+    producer:
+      client-id: product-service-prod-producer
+
+  data:
+    redis:
+      host: ${PROD_REDIS_HOST:localhost}
+      port: 6379

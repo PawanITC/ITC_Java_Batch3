@@ -1,117 +1,50 @@
 package com.itc.funkart.product_service.controller;
-import com.itc.funkart.product_service.dto.request.CategoryResponse;
+
+import com.itc.funkart.product_service.dto.response.CategoryResponse;
+import com.itc.funkart.product_service.response.ApiResponse;
 import com.itc.funkart.product_service.service.CategoryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 /**
- * Category Controller
- * 
- * REST API endpoints for managing product categories.
- * Provides operations for retrieving and organizing product categories.
- * 
- * Base URL: /api/categories
+ * Public API endpoints for browsing product categories.
  */
 @RestController
-@RequestMapping("/api/categories")
+@RequestMapping("/categories")
 @RequiredArgsConstructor
-@Tag(
-    name = "Categories",
-    description = "Category Management API - Retrieve and manage product categories"
-)
-
-import java.util.List;
-
-@RestController
-@RequestMapping("/api/categories")
-@RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
+@Tag(name = "Categories", description = "Public Category Browsing API")
 public class CategoryController {
 
     private final CategoryService categoryService;
 
     /**
-     * Retrieve all product categories
-     * 
-     * Fetches a complete list of all product categories available in the system.
-     * Categories are used to organize and filter products.
-     * 
-     * @return List of all available categories
+     * Fetches all available product categories.
+     *
+     * @return List of categories.
      */
     @GetMapping
-    @Operation(
-        summary = "Get all categories",
-        description = "Retrieve a complete list of all product categories. Used for product organization and filtering.",
-        tags = {"Categories", "Retrieve"}
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Successfully retrieved all categories",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CategoryResponse.class))
-        ),
-        @ApiResponse(
-            responseCode = "500",
-            description = "Internal server error"
-        )
-    })
-    @GetMapping
-    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
-        return ResponseEntity.ok(categoryService.getAllCategories());
+    @Operation(summary = "Get all categories")
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAllCategories() {
+        return ResponseEntity.ok(new ApiResponse<>(categoryService.getAllCategories()));
     }
 
     /**
-     * Retrieve a specific category by ID
-     * 
-     * Fetches detailed information about a single category including:
-     * - Category name and description
-     * - Associated products count (if available)
-     * 
-     * @param id The unique category identifier (Long)
-     * @return Category details if found
+     * Fetches details for a single category by its ID.
+     *
+     * @param id Unique identifier of the category.
+     * @return Category details.
      */
     @GetMapping("/{id}")
-    @Operation(
-        summary = "Get category by ID",
-        description = "Retrieve detailed information about a specific category by its ID. " +
-                      "Includes category metadata and associated information.",
-        tags = {"Categories", "Retrieve"}
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Category found and returned successfully",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CategoryResponse.class))
-        ),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Category not found with the given ID"
-        ),
-        @ApiResponse(
-            responseCode = "500",
-            description = "Internal server error"
-        )
-    })
-    public ResponseEntity<CategoryResponse> getCategory(
-        @Parameter(
-            name = "id",
-            description = "The unique identifier of the category to retrieve",
-            required = true,
-            example = "1"
-        )
-        @PathVariable Long id) {
-    @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponse> getCategory(@PathVariable Long id) {
-        return ResponseEntity.ok(categoryService.getCategoryById(id));
+    @Operation(summary = "Get category by ID")
+    public ResponseEntity<ApiResponse<CategoryResponse>> getCategory(@PathVariable Long id) {
+        return ResponseEntity.ok(new ApiResponse<>(categoryService.getCategoryById(id)));
     }
 }

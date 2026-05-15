@@ -1,11 +1,10 @@
 package com.itc.funkart.payment.controller;
 
 import com.itc.funkart.payment.config.ApiConfig;
+import com.itc.funkart.payment.exception.PaymentException;
 import com.itc.funkart.payment.service.JwtService;
 import com.itc.funkart.payment.service.PaymentService;
-import com.stripe.model.Event;
-import com.stripe.model.EventDataObjectDeserializer;
-import com.stripe.model.PaymentIntent;
+import com.stripe.model.*;
 import com.stripe.net.Webhook;
 import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
@@ -24,61 +23,58 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * <h1>PaymentWebhookControllerTest</h1>
+ * <h2>PaymentWebhookControllerTest</h2>
  * <p>
- * This test suite validates the Stripe Webhook integration. Unlike standard controllers,
- * Webhooks require static mocking of the Stripe SDK to simulate cryptographic signature
- * verification and payload deserialization.
+ * This test suite performs a <b>Web Slice</b> test of the {@link PaymentWebhookController}.
+ * It validates the integration with Stripe's asynchronous notification system.
  * </p>
- *
- * <h3>Key Testing Areas:</h3>
+ * * <h3>Key Technical Strategies:</h3>
  * <ul>
- * <li><b>Security:</b> Ensuring {@code SignatureVerificationException} results in a 401 Unauthorized.</li>
- * <li><b>Integrity:</b> Verifying that corrupted or empty Stripe objects result in a 400 Bad Request.</li>
- * <li><b>Versioning:</b> Confirming the webhook endpoint is reachable under the {@code /api/v1} prefix.</li>
+ * <li><b>Static Mocking:</b> Uses {@code MockedStatic<Webhook>} to intercept the Stripe SDK's
+ * signature verification logic without requiring real API keys.</li>
+ * <li><b>Deep Stubbing:</b> Utilizes {@code RETURNS_DEEP_STUBS} to simulate the complex,
+ * nested deserialization hierarchy of Stripe's {@link Event} objects.</li>
+ * <li><b>Security Validation:</b> Tests the boundary between authorized Stripe requests
+ * and potentially malicious payloads.</li>
  * </ul>
  *
  * @author Abbas
- * @version 1.0
+ * @version 1.3
  */
 @WebMvcTest(PaymentWebhookController.class)
-@AutoConfigureMockMvc(addFilters = false) // Webhooks are validated by Stripe signatures, not JWTs
+@AutoConfigureMockMvc(addFilters = false) // Webhooks are secured by Stripe signatures, not JWT filters
 class PaymentWebhookControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    /**
-     * Mocked service to handle the business logic after a successful webhook.
-     */
     @MockitoBean
     private PaymentService paymentService;
 
-    /**
-     * Infrastructure mocks required for WebConfig and Context loading.
-     */
     @MockitoBean
     private ApiConfig apiConfig;
+
     @MockitoBean
     private JwtService jwtService;
+
     @MockitoBean
     private KafkaTemplate<String, Object> kafkaTemplate;
+
     @MockitoBean
     private RestClient restClient;
 
     /**
-     * Static mock for the Stripe {@link Webhook} utility.
-     * Must be closed in {@code tearDown} to prevent memory leaks in the test runner.
+     * Static mock context for Stripe Webhook utility.
+     * Must be manually closed to avoid thread-local leakage.
      */
     private MockedStatic<Webhook> mockedWebhook;
 
     /**
-     * Sets up the static mock for Stripe's Webhook utility and configures the API versioning prefix.
+     * Initializes the static mock for {@link Webhook} and stubs common infrastructure.
      */
     @BeforeEach
     void setUp() {
@@ -87,7 +83,7 @@ class PaymentWebhookControllerTest {
     }
 
     /**
-     * Closes the static mock context after every test to ensure isolation.
+     * Cleans up static mock resources after each test execution.
      */
     @AfterEach
     void tearDown() {
@@ -97,189 +93,138 @@ class PaymentWebhookControllerTest {
     }
 
     /**
-     * <h2>Stripe Webhook: Successful Events</h2>
-     * Validates flows where the signature is valid and the payload is correctly structured.
+     * <b>Universal Mock Helper:</b>
+     * Bypasses the package-private visibility of Stripe internal classes (like EventData).
+     * By using {@code RETURNS_DEEP_STUBS}, we can mock the chain:
+     * {@code event.getDataObjectDeserializer().getObject()} in a single setup.
+     * * @param type The Stripe Event type (e.g., "payment_intent.succeeded").
+     *
+     * @param obj The specific Stripe model object to be returned in the data payload.
+     * @return A deep-stubbed Event mock.
+     */
+    private Event mockStripeEvent(String type, StripeObject obj) {
+        Event event = mock(Event.class, RETURNS_DEEP_STUBS);
+        when(event.getType()).thenReturn(type);
+        when(event.getDataObjectDeserializer().getObject()).thenReturn(Optional.of(obj));
+        return event;
+    }
+
+    /**
+     * <h3>Success Flow Tests</h3>
+     * Tests valid payloads that should be correctly routed to the service layer.
      */
     @Nested
-    @DisplayName("Stripe Webhook: Successful Events")
-    class WebhookSuccessTests {
+    @DisplayName("Webhook: Positive Scenarios")
+    class PositiveTests {
 
         /**
-         * Verifies that a {@code payment_intent.succeeded} event is processed and returns HTTP 200.
-         * * @throws Exception if the MockMvc request fails
+         * Verifies that a standard payment success event returns 200 OK
+         * and triggers the centralized service processing.
          */
         @Test
-        @DisplayName("Process payment_intent.succeeded")
+        @DisplayName("POST /webhook - payment_intent.succeeded")
         void handleSucceededEvent() throws Exception {
-            // Arrange
-            Event mockEvent = mock(Event.class);
-            PaymentIntent mockPi = mock(PaymentIntent.class);
-            EventDataObjectDeserializer mockDeserializer = mock(EventDataObjectDeserializer.class);
-
-            when(mockEvent.getType()).thenReturn("payment_intent.succeeded");
-            when(mockEvent.getDataObjectDeserializer()).thenReturn(mockDeserializer);
-            when(mockDeserializer.getObject()).thenReturn(Optional.of(mockPi));
+            PaymentIntent intent = mock(PaymentIntent.class);
+            Event event = mockStripeEvent("payment_intent.succeeded", intent);
 
             mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
-                    .thenReturn(mockEvent);
+                    .thenReturn(event);
 
-            // Act & Assert
-            // Path updated to include /api/v1 prefix from WebConfig
-            mockMvc.perform(post("/api/v1/payments/webhook")
-                            .header("Stripe-Signature", "valid_sig")
-                            .content("payload_content")
+            mockMvc.perform(post("/payments/webhook")
+                            .header("Stripe-Signature", "valid")
+                            .content("{}")
                             .contentType(MediaType.TEXT_PLAIN))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("Event processed: payment_intent.succeeded"));
 
-            verify(paymentService, times(1)).handlePaymentSuccess(any(PaymentIntent.class));
+            verify(paymentService).processWebhookEvent(any(Event.class));
+        }
+
+        /**
+         * Verifies that refund events are correctly received and processed.
+         */
+        @Test
+        @DisplayName("POST /webhook - charge.refunded")
+        void handleRefundEvent() throws Exception {
+            Charge charge = mock(Charge.class);
+            Event event = mockStripeEvent("charge.refunded", charge);
+
+            mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
+                    .thenReturn(event);
+
+            mockMvc.perform(post("/payments/webhook")
+                            .header("Stripe-Signature", "valid")
+                            .content("{}"))
+                    .andExpect(status().isOk());
+
+            verify(paymentService).processWebhookEvent(any(Event.class));
         }
     }
 
     /**
-     * <h2>Stripe Webhook: Security & Failures</h2>
-     * Validates that the system correctly rejects unauthorized or malformed requests.
+     * <h3>Security & Failure Flow Tests</h3>
+     * Ensures the system robustly handles invalid signatures and corrupted data.
      */
     @Nested
-    @DisplayName("Stripe Webhook: Security & Failures")
-    class WebhookFailureTests {
+    @DisplayName("Webhook: Negative & Security Scenarios")
+    class NegativeTests {
 
         /**
-         * Verifies that requests with invalid signatures are rejected with 401 Unauthorized.
+         * <b>Scenario:</b> The request contains an invalid cryptographic signature.<br>
+         * <b>Expectation:</b> Returns 401 Unauthorized to satisfy security best practices.
          */
         @Test
-        @DisplayName("Reject Invalid Signature (401)")
+        @DisplayName("Invalid Signature - Should return 401")
         void handleInvalidSignature() throws Exception {
-            // Arrange
             mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
-                    .thenThrow(new com.stripe.exception.SignatureVerificationException("Invalid Signature", "sig_header"));
+                    .thenThrow(new com.stripe.exception.SignatureVerificationException("Fail", "sig"));
 
-            // Act & Assert
-            mockMvc.perform(post("/api/v1/payments/webhook")
-                            .header("Stripe-Signature", "fake_sig")
-                            .content("malicious_payload"))
+            mockMvc.perform(post("/payments/webhook")
+                            .header("Stripe-Signature", "fake")
+                            .content("bad_payload"))
                     .andExpect(status().isUnauthorized());
         }
 
         /**
-         * Verifies that if Stripe sends a valid signature but the object cannot be extracted,
-         * the system returns a 400 Bad Request.
+         * <b>Scenario:</b> The signature is valid, but the JSON payload is malformed
+         * or the internal Stripe object is missing.<br>
+         * <b>Expectation:</b> Returns 400 Bad Request via {@link PaymentException}.
          */
         @Test
-        @DisplayName("Handle Deserialization Error (400)")
+        @DisplayName("Malformed Payload - Should return 400")
         void handleNullObject() throws Exception {
-            // Arrange
-            Event mockEvent = mock(Event.class);
-            EventDataObjectDeserializer mockDeserializer = mock(EventDataObjectDeserializer.class);
-
-            when(mockEvent.getType()).thenReturn("payment_intent.succeeded");
-            when(mockEvent.getDataObjectDeserializer()).thenReturn(mockDeserializer);
-            when(mockDeserializer.getObject()).thenReturn(Optional.empty());
+            Event event = mock(Event.class, RETURNS_DEEP_STUBS);
 
             mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
-                    .thenReturn(mockEvent);
+                    .thenReturn(event);
 
-            // Act & Assert
-            mockMvc.perform(post("/api/v1/payments/webhook")
-                            .header("Stripe-Signature", "sig")
+            // Stubbing the service to simulate the .orElseThrow() behavior for missing data
+            doThrow(new PaymentException("Failed to extract data"))
+                    .when(paymentService).processWebhookEvent(event);
+
+            mockMvc.perform(post("/payments/webhook")
+                            .header("Stripe-Signature", "valid")
                             .content("{}"))
                     .andExpect(status().isBadRequest());
         }
-    }
-
-    /**
-     * <h2>Stripe Webhook: Coverage Boosters</h2>
-     * <p>This nested class contains tests specifically designed to target complex
-     * branching logic, including switch-case defaults and nested exception handling.</p>
-     */
-    @Nested
-    @DisplayName("Stripe Webhook: Coverage Boosters")
-    class WebhookCoverageTests {
 
         /**
-         * <b>Scenario:</b> Payment failure notification from Stripe.<br>
-         * <b>Coverage:</b> Line 74-80 (payment_intent.payment_failed case).<br>
-         * <b>Technical Note:</b> Mocks a {@code StripeError} to ensure the logger can
-         * access {@code getMessage()} without a NullPointerException.
+         * <b>Scenario:</b> Stripe sends an event type that the system does not handle.<br>
+         * <b>Expectation:</b> Returns 200 OK but does not perform business logic.
+         * (Stripe requires 2xx for ignored events to stop retries).
          */
         @Test
-        @DisplayName("Process payment_intent.payment_failed - Should trigger failure handling logic")
-        void handleFailedEvent() throws Exception {
-            Event mockEvent = mock(Event.class);
-            PaymentIntent mockPi = mock(PaymentIntent.class);
-            EventDataObjectDeserializer mockDeserializer = mock(EventDataObjectDeserializer.class);
-            // Mocking the error message for the logger line 77
-            com.stripe.model.StripeError mockError = mock(com.stripe.model.StripeError.class);
-            when(mockError.getMessage()).thenReturn("Card Declined");
-            when(mockPi.getLastPaymentError()).thenReturn(mockError);
-            when(mockPi.getId()).thenReturn("pi_failed_123");
-
-            when(mockEvent.getType()).thenReturn("payment_intent.payment_failed");
-            when(mockEvent.getDataObjectDeserializer()).thenReturn(mockDeserializer);
-            when(mockDeserializer.getObject()).thenReturn(Optional.of(mockPi));
+        @DisplayName("Unhandled Event - Should return 200 (Ignore Silently)")
+        void handleUnhandledEvent() throws Exception {
+            Customer customer = mock(Customer.class);
+            Event event = mockStripeEvent("customer.created", customer);
 
             mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
-                    .thenReturn(mockEvent);
+                    .thenReturn(event);
 
-            mockMvc.perform(post("/api/v1/payments/webhook")
+            mockMvc.perform(post("/payments/webhook")
                             .header("Stripe-Signature", "valid")
-                            .content("payload"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("Success"));
-
-            verify(paymentService).handlePaymentFailure(any());
-        }
-
-        /**
-         * <b>Scenario:</b> Critical failure during Stripe object deserialization.<br>
-         * <b>Coverage:</b> Line 58 (RuntimeException) and Line 93-95 (General Catch block).<br>
-         * <b>Technical Note:</b> Simulates a failure in {@code deserializeUnsafe()} to trigger
-         * the internal {@code RuntimeException}, which is then caught by the global handler.
-         */
-        @Test
-        @DisplayName("Trigger Deserialization RuntimeException - Handle critical failures during Stripe payload extraction")
-        void handleDeserializationException() throws Exception {
-            Event mockEvent = mock(Event.class);
-            EventDataObjectDeserializer mockDeserializer = mock(EventDataObjectDeserializer.class);
-
-            when(mockEvent.getDataObjectDeserializer()).thenReturn(mockDeserializer);
-            // Force orElseGet to trigger
-            when(mockDeserializer.getObject()).thenReturn(Optional.empty());
-            // Force deserializeUnsafe to throw the specific Stripe exception
-            when(mockDeserializer.deserializeUnsafe()).thenThrow(new com.stripe.exception.EventDataObjectDeserializationException("Bad Data", "json"));
-
-            mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
-                    .thenReturn(mockEvent);
-
-            // This hits the 'catch (Exception ex)' at line 93 because of the RuntimeException at line 58
-            mockMvc.perform(post("/api/v1/payments/webhook")
-                            .header("Stripe-Signature", "valid")
-                            .content("payload"))
-                    .andExpect(status().isInternalServerError());
-        }
-
-        /**
-         * <b>Scenario:</b> Stripe sends an event type not explicitly handled by the switch.<br>
-         * <b>Coverage:</b> Line 81 (Default switch case).<br>
-         * <b>Technical Note:</b> Uses {@code customer.created} to verify the "Ignored event type"
-         * logging logic.
-         */
-        @Test
-        @DisplayName("Process unhandled event types - Should ignore and return 200")
-        void handleDefaultEvent() throws Exception {
-            Event mockEvent = mock(Event.class);
-            EventDataObjectDeserializer mockDeserializer = mock(EventDataObjectDeserializer.class);
-            when(mockEvent.getType()).thenReturn("customer.created"); // Not handled in switch
-            when(mockEvent.getDataObjectDeserializer()).thenReturn(mockDeserializer);
-            when(mockDeserializer.getObject()).thenReturn(Optional.of(mock(com.stripe.model.Customer.class)));
-
-            mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
-                    .thenReturn(mockEvent);
-
-            mockMvc.perform(post("/api/v1/payments/webhook")
-                            .header("Stripe-Signature", "valid")
-                            .content("payload"))
+                            .content("{}"))
                     .andExpect(status().isOk());
         }
     }

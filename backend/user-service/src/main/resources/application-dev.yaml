@@ -52,7 +52,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics  # minimal for prod
+        include: health,info,metrics,prometheus  # minimal for prod
   endpoint:
     health:
       show-details: always

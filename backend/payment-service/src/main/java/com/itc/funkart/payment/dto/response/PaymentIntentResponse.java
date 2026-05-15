@@ -20,6 +20,7 @@ public record PaymentIntentResponse(
      * Static factory to map a Stripe SDK PaymentIntent to our API response.
      * Extracts only the fields necessary for the Frontend to complete the transaction.
      * * @param intent The Stripe SDK PaymentIntent object.
+     *
      * @return A sanitized DTO for the client-side.
      */
     public static PaymentIntentResponse from(com.stripe.model.PaymentIntent intent) {

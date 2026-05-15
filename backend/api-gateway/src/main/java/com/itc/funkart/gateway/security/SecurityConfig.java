@@ -13,7 +13,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 /**
  * <h2>Central Security Policy for API Gateway</h2>
  *
- * <p>Acts as the primary gatekeeper for the microservices ecosystem.
+ * <p>Acts as the primary gatekeeper for the microservices' ecosystem.
  * This configuration operates in a Reactive (WebFlux) environment.</p>
  *
  * <p><b>Architecture Rule:</b> The Gateway enforces routing-level authorization.
@@ -28,7 +28,8 @@ public class SecurityConfig {
     /**
      * Defines security rules for gateway routes.
      * * @param http The {@link ServerHttpSecurity} builder.
-     * @param corsSource Configured CORS policy for frontend access.
+     *
+     * @param corsSource       Configured CORS policy for frontend access.
      * @param jwtAuthWebFilter Custom filter to validate JWTs in the request flow.
      * @return The configured {@link SecurityWebFilterChain}.
      */
@@ -63,7 +64,8 @@ public class SecurityConfig {
                                 "/api/v1/oauth/**",         // For the direct gateway oauth paths
                                 "/api/v1/users/health",
                                 "/actuator/**",             // Allow health checks
-                                "/payments/webhook/**"
+                                "/api/v1/payments/webhook/**", // 1. External facing path
+                                "/payments/webhook/**"         // 2. Internal/Direct path (Just in case)
                         ).permitAll()
 
                         // PROTECTED ENDPOINTS: Requires valid JWT (e.g., /api/v1/users/me)

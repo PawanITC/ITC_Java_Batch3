@@ -7,29 +7,40 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * <h2>CartRepositoryTest</h2>
+ * <p>
+ * Tests Cart persistence and relationship integrity.
+ * Verifies unique user constraints and orphan removal logic.
+ * </p>
+ */
 @DataJpaTest
 @ActiveProfiles("test")
+@DisplayName("Cart Repository Integration Tests")
 class CartRepositoryTest {
 
     @Autowired
     private CartRepository cartRepository;
 
     @Autowired
-    private CartItemRepository cartItemRepository;
+    private TestEntityManager entityManager;
 
-    @Autowired
-    private ProductRepository productRepository;
+    // --- Helpers using Entity Builders ---
 
     private Cart createCart(Long userId) {
         return Cart.builder()
                 .userId(userId)
+                .items(new ArrayList<>())
                 .build();
     }
 
@@ -40,37 +51,37 @@ class CartRepositoryTest {
                 .price(BigDecimal.valueOf(100))
                 .stockQuantity(10)
                 .brand("TestBrand")
+                .active(true)
                 .build();
     }
 
     @Test
-    @DisplayName("Should save cart with userId")
+    @DisplayName("Save - Should persist cart with correct userId")
     void shouldSaveCart() {
-        Cart cart = createCart(1L);
-
-        Cart saved = cartRepository.save(cart);
+        Cart saved = cartRepository.save(createCart(1L));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getUserId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("Should enforce unique userId constraint")
-    void shouldThrowExceptionWhenDuplicateUserId() {
-        Cart cart1 = createCart(1L);
-        Cart cart2 = createCart(1L);
+    @DisplayName("Constraint - Should prevent duplicate carts for the same userId")
+    void shouldEnforceUniqueUserIdConstraint() {
+        entityManager.persist(createCart(1L));
+        entityManager.flush();
 
-        cartRepository.save(cart1);
+        Cart duplicateCart = createCart(1L);
 
-        assertThatThrownBy(() -> cartRepository.saveAndFlush(cart2))
+        // Enforce flush to trigger the DataIntegrityViolationException
+        assertThatThrownBy(() -> cartRepository.saveAndFlush(duplicateCart))
                 .isInstanceOf(Exception.class);
     }
 
     @Test
-    @DisplayName("Should find cart by userId")
+    @DisplayName("Query - Should find cart using custom findByUserId method")
     void shouldFindCartByUserId() {
-        Cart cart = createCart(2L);
-        cartRepository.save(cart);
+        entityManager.persist(createCart(2L));
+        entityManager.flush();
 
         Optional<Cart> result = cartRepository.findByUserId(2L);
 
@@ -79,47 +90,67 @@ class CartRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should return empty when userId not found")
-    void shouldReturnEmptyWhenUserIdNotFound() {
-        Optional<Cart> result = cartRepository.findByUserId(999L);
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should persist cart with multiple cart items")
+    @DisplayName("Relationships - Should correctly link multiple CartItems")
     void shouldSaveCartWithCartItems() {
-        Cart cart = cartRepository.save(createCart(3L));
+        // Arrange
+        Cart cart = entityManager.persist(createCart(3L));
+        Product p1 = entityManager.persist(createProduct("Phone", "p-1"));
 
-        Product product1 = productRepository.save(createProduct("Phone", "phone-slug"));
-        Product product2 = productRepository.save(createProduct("Laptop", "laptop-slug"));
-
-        CartItem item1 = CartItem.builder()
+        CartItem item = CartItem.builder()
                 .cart(cart)
-                .product(product1)
+                .product(p1)
                 .quantity(2)
                 .build();
 
-        CartItem item2 = CartItem.builder()
-                .cart(cart)
-                .product(product2)
-                .quantity(1)
-                .build();
+        entityManager.persist(item);
+        entityManager.flush();
+        entityManager.clear();
 
-        cartItemRepository.save(item1);
-        cartItemRepository.saveAndFlush(item2);
+        // Act
+        Optional<Cart> foundCart = cartRepository.findByUserId(3L);
 
-        assertThat(cartItemRepository.findAll()).hasSize(2);
+        // Assert
+        assertThat(foundCart).isPresent();
+        assertThat(foundCart.get().getItems()).hasSize(1);
+        assertThat(foundCart.get().getItems().get(0).getQuantity()).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("Should delete cart by id")
-    void shouldDeleteCart() {
-        Cart cart = cartRepository.save(createCart(4L));
+    @DisplayName("Cascade Delete - Should remove items when cart is deleted (Branch: Orphan Removal)")
+    void shouldRemoveCartItemsWhenCartIsDeleted() {
+        // 1. Arrange: Create and link objects in memory
+        Cart cart = createCart(4L);
+        // Persist the cart first so it has an ID
+        cart = entityManager.persist(cart);
 
-        cartRepository.deleteById(cart.getId());
+        Product p1 = entityManager.persist(createProduct("Gadget", "g-1"));
 
-        assertThat(cartRepository.findById(cart.getId())).isEmpty();
+        CartItem item = CartItem.builder()
+                .cart(cart)
+                .product(p1)
+                .quantity(1)
+                .build();
+
+        // CRITICAL FIX: Link the item to the cart's internal list
+        // Without this, Hibernate doesn't realize the Item is a "child" of this specific Cart instance
+        cart.getItems().add(item);
+
+        // Now persist the item
+        entityManager.persist(item);
+
+        // Synchronize with DB and clear cache to simulate a fresh request
+        entityManager.flush();
+        entityManager.clear();
+
+        // 2. Act: Find the cart and delete it
+        Cart foundCart = cartRepository.findById(cart.getId()).orElseThrow();
+        cartRepository.delete(foundCart);
+
+        // Flush again to trigger the Cascading Delete SQL
+        entityManager.flush();
+
+        // 3. Assert
+        assertThat(entityManager.find(Cart.class, cart.getId())).isNull();
+        assertThat(entityManager.find(CartItem.class, item.getId())).isNull();
     }
 }
-
