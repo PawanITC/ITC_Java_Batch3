@@ -20,24 +20,39 @@ services:
       POSTGRES_HOST: postgres
       KAFKA_HOST: kafka
       KAFKA_PORT: 9092
-      # Overriding Spring Datasource settings
-      SPRING_DATASOURCE_USERNAME: "${spring.config.import:file:/run/secrets/postgres_user}"
-      SPRING_DATASOURCE_PASSWORD: "${spring.config.import:file:/run/secrets/postgres_pass}"
-
-      # Overriding Spring Mail settings
-      SPRING_MAIL_USERNAME: "${spring.config.import:file:/run/secrets/mail_user}"
-      SPRING_MAIL_PASSWORD: "${spring.config.import:file:/run/secrets/mail_pass}"
-
-      # Overriding your custom Twilio properties
-      # (Adjust the left names to match your exact application property keys)
-      TWILIO_ACCOUNT-SID: "${spring.config.import:file:/run/secrets/twilio_sid}"
-      TWILIO_AUTH-TOKEN: "${spring.config.import:file:/run/secrets/twilio_token}"
-      TWILIO_FROM-NUMBER: "${spring.config.import:file:/run/secrets/twilio_number}"
+#      #Overriding Spring Datasource settings
+#      SPRING_DATASOURCE_USERNAME: "$${spring.config.import:file:/run/secrets/postgres_user}"
+#      SPRING_DATASOURCE_PASSWORD: "$${spring.config.import:file:/run/secrets/postgres_pass}"
+#
+#      # Overriding Spring Mail settings
+#      SPRING_MAIL_USERNAME: "$${spring.config.import:file:/run/secrets/mail_user}"
+#      SPRING_MAIL_PASSWORD: "$${spring.config.import:file:/run/secrets/mail_pass}"
+#
+#      # Overriding your custom Twilio properties
+#      # (Adjust the left names to match your exact application property keys)
+#      TWILIO_ACCOUNT-SID: "$${spring.config.import:file:/run/secrets/twilio_sid}"
+#      TWILIO_AUTH-TOKEN: "$${spring.config.import:file:/run/secrets/twilio_token}"
+#      TWILIO_FROM-NUMBER: "$${spring.config.import:file:/run/secrets/twilio_number}"
 
       MANAGEMENT_OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
       MANAGEMENT_OTLP_TRACING_TRANSPORT: http
       MANAGEMENT_TRACING_EXPORT_ENABLED: "true"
 
+    entrypoint:
+      - sh
+      - -c
+      - |
+        export SPRING_DATASOURCE_USERNAME=$$(cat /run/secrets/postgres_user)
+        export SPRING_DATASOURCE_PASSWORD=$$(cat /run/secrets/postgres_pass)
+
+        export SPRING_MAIL_USERNAME=$$(cat /run/secrets/mail_user)
+        export SPRING_MAIL_PASSWORD=$$(cat /run/secrets/mail_pass)
+
+        export TWILIO_ACCOUNT_SID=$$(cat /run/secrets/twilio_sid)
+        export TWILIO_AUTH_TOKEN=$$(cat /run/secrets/twilio_token)
+        export TWILIO_FROM_NUMBER=$$(cat /run/secrets/twilio_number)
+
+        exec java -jar /app.jar
 
     ports:
       - "8080:8080"
@@ -47,9 +62,12 @@ services:
     container_name: postgres-notification-service-C
     environment:
       POSTGRES_DB: notificationDB
-      # Overriding Spring Mail settings
-      SPRING_MAIL_USERNAME: "${spring.config.import:file:/run/secrets/mail_user}"
-      SPRING_MAIL_PASSWORD: "${spring.config.import:file:/run/secrets/mail_pass}"
+      # Overriding Spring Datasource settings
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_pass
+    secrets:
+      - postgres_user
+      - postgres_pass
     ports:
       - "5432:5432"
 
